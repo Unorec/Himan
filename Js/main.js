@@ -188,3 +188,37 @@ document.addEventListener('DOMContentLoaded', function() {
         checkInForm.classList.add('hidden');
     }
 });
+document.addEventListener('DOMContentLoaded', function() {
+    // ... 其他初始化代碼 ...
+
+    // 首先確保快速操作區域有正確的 HTML 結構
+    const quickActionsContainer = document.querySelector('.grid.grid-cols-2.gap-4');
+    if (quickActionsContainer) {
+        // 清空現有內容
+        quickActionsContainer.innerHTML = `
+            <button class="btn bg-blue-500 text-white p-2 rounded" id="checkInBtn">入場登記</button>
+            <button class="btn bg-blue-500 text-white p-2 rounded">營業報表</button>
+            <button class="btn bg-blue-500 text-white p-2 rounded">系統設定</button>
+            <button class="btn bg-blue-500 text-white p-2 rounded">歷史記錄</button>
+        `;
+    }
+
+    // 綁定入場登記按鈕事件
+    const checkInBtn = document.getElementById('checkInBtn');
+    if (checkInBtn) {
+        checkInBtn.addEventListener('click', function() {
+            const checkInForm = document.getElementById('checkInForm');
+            if (checkInForm) {
+                checkInForm.classList.remove('hidden');
+                console.log('顯示入場登記表單'); // 用於調試
+            } else {
+                console.error('找不到入場登記表單');
+            }
+        });
+    }
+
+    // 用於調試：檢查元素是否存在
+    console.log('快速操作容器:', !!quickActionsContainer);
+    console.log('入場登記按鈕:', !!checkInBtn);
+    console.log('入場登記表單:', !!document.getElementById('checkInForm'));
+});

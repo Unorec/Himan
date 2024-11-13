@@ -164,3 +164,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // 定期更新顯示（每分鐘）
     setInterval(updateDisplay, 60000);
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    // ... 現有的代碼 ...
+    
+    // 綁定快速操作按鈕
+    const quickActions = document.querySelector('.grid.grid-cols-2.gap-4');
+    quickActions.addEventListener('click', function(e) {
+        if (e.target.textContent.trim() === '入場登記') {
+            showCheckInForm();
+        }
+    });
+
+    // 顯示入場登記表單
+    function showCheckInForm() {
+        const checkInForm = document.getElementById('checkInForm');
+        checkInForm.classList.remove('hidden');
+    }
+
+    // 可選：添加關閉表單的功能
+    function hideCheckInForm() {
+        const checkInForm = document.getElementById('checkInForm');
+        checkInForm.classList.add('hidden');
+    }
+});

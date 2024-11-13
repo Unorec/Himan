@@ -70,35 +70,35 @@
                 <div class="bg-white rounded-lg shadow p-6">
                     <h2 class="text-lg font-semibold mb-4">快速操作</h2>
                     <div class="grid grid-cols-2 gap-4">
-                        <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onclick="showCheckInForm()">
                             入場登記
                         </button>
-                        <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" onclick="showReportPage()">
                             營業報表
                         </button>
-                        <button class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                        <button class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600" onclick="showSettingsPage()">
                             系統設定
                         </button>
-                        <button class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                        <button class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onclick="showHistoryPage()">
                             歷史記錄
                         </button>
                     </div>
                 </div>
 
                 <!-- 入場登記表單 -->
-                <div class="bg-white rounded-lg shadow p-6">
+                <div id="checkInForm" class="bg-white rounded-lg shadow p-6 hidden">
                     <h2 class="text-lg font-semibold mb-4">入場登記</h2>
-                    <form id="checkInForm" class="space-y-4">
+                    <form onsubmit="handleCheckIn(event)">
                         <!-- 置物櫃號碼 -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <div class="form-group">
+                            <label class="form-label">
                                 置物櫃號碼 <span class="text-red-500">*</span>
                             </label>
                             <div class="flex space-x-2">
                                 <input 
                                     type="number" 
                                     id="lockerNumber"
-                                    class="flex-1 p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                                    class="flex-1 form-input"
                                     required
                                 >
                                 <button type="button" class="bg-gray-100 px-3 rounded hover:bg-gray-200" onclick="showLockerSelector()">
@@ -108,13 +108,13 @@
                         </div>
 
                         <!-- 付款方式 -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <div class="form-group">
+                            <label class="form-label">
                                 付款方式 <span class="text-red-500">*</span>
                             </label>
                             <select 
                                 id="paymentType"
-                                class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                                class="form-input"
                                 required
                             >
                                 <option value="cash">現金</option>
@@ -123,26 +123,23 @@
                             </select>
                         </div>
 
-                        <!-- 動態付款輸入 -->
-                        <div id="paymentFields"></div>
+                        <!-- 付款方式動態輸入 -->
+                        <div id="paymentFields" class="form-group"></div>
 
                         <!-- 備註 -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <div class="form-group">
+                            <label class="form-label">
                                 備註
                             </label>
                             <textarea 
                                 id="notes"
-                                class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                                class="form-input"
                                 rows="3"
                             ></textarea>
                         </div>
 
                         <!-- 提交按鈕 -->
-                        <button 
-                            type="submit"
-                            class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                        >
+                        <button type="submit" class="w-full btn btn-primary">
                             確認入場
                         </button>
                     </form>
@@ -168,7 +165,7 @@
             <div class="mt-4 flex justify-end">
                 <button 
                     onclick="hideLockerSelector()"
-                    class="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200"
+                    class="btn bg-gray-100 text-gray-700 hover:bg-gray-200"
                 >
                     取消
                 </button>
@@ -176,37 +173,8 @@
         </div>
     </div>
 
-    <!-- 客人資料卡片模板 -->
-    <template id="customerCardTemplate">
-        <div class="customer-card bg-white rounded-lg shadow-sm p-4">
-            <div class="flex justify-between items-start">
-                <div>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-lg font-semibold">{{lockerNumber}}號櫃</span>
-                        <span class="text-sm px-2 py-0.5 rounded-full {{statusClass}}">
-                            {{status}}
-                        </span>
-                    </div>
-                    <div class="mt-2 space-y-1 text-sm text-gray-600">
-                        <div>入場時間: {{checkInTime}}</div>
-                        <div>已使用: {{duration}}</div>
-                        <div>付款方式: {{payment}}</div>
-                        {{#overtimeFee}}
-                        <div class="text-red-500">超時費用: {{overtimeFee}}元</div>
-                        {{/overtimeFee}}
-                        {{#notes}}
-                        <div class="mt-2 text-gray-500">備註: {{notes}}</div>
-                        {{/notes}}
-                    </div>
-                </div>
-                <button 
-                    onclick="handleCheckOut('{{id}}')"
-                    class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                >
-                    結帳
-                </button>
-            </div>
-        </div>
-    </template>
+    <script src="js/utils.js"></script>
+    <script src="js/customers.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

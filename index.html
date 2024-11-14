@@ -242,14 +242,17 @@
                 <form id="entryForm" class="form-grid">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>櫃位號碼</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   name="lockerNumber" 
-                                   required 
-                                   pattern="[A-Z]\d{3}"
-                                   placeholder="例：A101">
-                        </div>
+            <label>櫃位號碼</label>
+            <input type="number" 
+                   class="form-control" 
+                   name="lockerNumber"
+                   min="1"
+                   max="300"
+                   required
+                   placeholder="請輸入1-300之間的數字">
+        </div>
+    `;
+}
                         <div class="form-group">
                             <label>付款方式</label>
                             <select class="form-control" 
@@ -285,13 +288,19 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>票券編號</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       name="ticketNumber"
-                                       pattern="T\d{11}"
-                                       placeholder="例：T20240114001">
-                            </div>
+            <label>票券號碼</label>
+            <input type="text" 
+                   class="form-control" 
+                   name="ticketNumber"
+                   minlength="4"
+                   maxlength="20"
+                   pattern="[A-Za-z0-9]{4,20}"
+                   placeholder="請輸入4-20位英數字"
+                   required>
+        </div>
+    `;
+}
+
                         </div>
                     </div>
 

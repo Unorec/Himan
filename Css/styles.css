@@ -224,3 +224,29 @@ body {
         margin-bottom: 0.5rem;
     }
 }
+/* 數字輸入框樣式 */
+input[type="number"] {
+    -moz-appearance: textfield; /* Firefox */
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* 櫃位號碼顯示樣式 */
+.locker-number {
+    font-family: monospace;
+    font-weight: bold;
+    padding: 2px 6px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+/* 票券號碼顯示樣式 */
+.ticket-number {
+    font-family: monospace;
+    color: #2c3e50;
+    letter-spacing: 1px;
+}

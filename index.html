@@ -8,200 +8,107 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="bg-gray-100">
-      <!-- 頂部導航 -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <span class="text-xl font-bold">三溫暖管理系統</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <span id="currentTime" class="text-gray-600"></span>
-                    <span id="activeCount" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-                        在場: 0人
-                    </span>
+    <div class="max-w-4xl mx-auto p-4">
+        <!-- 系統狀態 -->
+        <div class="bg-white rounded-lg shadow mb-6 p-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold">三溫暖管理系統</h1>
+                <div class="text-sm text-gray-600">
+                    <span id="currentTime"></span>
                 </div>
             </div>
         </div>
-    </nav>
 
-    <div class="max-w-7xl mx-auto px-4 py-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- 左側：置物櫃狀態 -->
-            <div class="md:col-span-2">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h2 class="text-lg font-semibold mb-4">置物櫃狀態</h2>
-                    <div id="lockerGrid" class="grid grid-cols-5 md:grid-cols-10 gap-2">
-                        <!-- 置物櫃會動態生成在這裡 -->
-                    </div>
+        <!-- 入場登記表單 -->
+        <div class="bg-white rounded-lg shadow mb-6 p-4">
+            <h2 class="text-xl font-bold mb-4">入場登記</h2>
+            <form id="checkInForm">
+                <!-- 置物櫃號碼 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        置物櫃號碼 <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        id="lockerNumber"
+                        class="w-full p-2 border rounded"
+                        required
+                    >
                 </div>
 
-                <!-- 在場客人分類顯示 -->
-                <div class="mt-6 space-y-6">
-                    <!-- 超時客人 -->
-                    <div id="overtimeCustomers" class="bg-red-50 rounded-lg shadow p-6">
-                        <h2 class="text-lg font-semibold text-red-700 mb-4">超時客人</h2>
-                        <div class="space-y-4">
-                            <!-- 超時客人會動態插入這裡 -->
-                        </div>
-                    </div>
-                    <!-- 即將超時客人 -->
-                    <div id="warningCustomers" class="bg-yellow-50 rounded-lg shadow p-6">
-                        <h2 class="text-lg font-semibold text-yellow-700 mb-4">即將超時客人</h2>
-                        <div class="space-y-4">
-                            <!-- 即將超時客人會動態插入這裡 -->
-                        </div>
-                    </div>
-
-                    <!-- 一般客人 -->
-                    <div id="normalCustomers" class="bg-white rounded-lg shadow p-6">
-                        <h2 class="text-lg font-semibold mb-4">在場客人</h2>
-                        <div class="space-y-4">
-                            <!-- 一般客人會動態插入這裡 -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 右側：入場表單和快速操作 -->
-            <div class="space-y-6">
-                <!-- 快速操作按鈕 -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h2 class="text-lg font-semibold mb-4">快速操作</h2>
-                    <div class="grid grid-cols-2 gap-4">
-                        <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                            入場登記
-                        </button>
-                        <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                            營業報表
-                        </button>
-                        <button class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
-                            系統設定
-                        </button>
-                        <button class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-                            歷史記錄
-                        </button>
-                    </div>
+                <!-- 付款方式 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        付款方式 <span class="text-red-500">*</span>
+                    </label>
+                    <select 
+                        id="paymentType"
+                        class="w-full p-2 border rounded"
+                        required
+                    >
+                        <option value="cash">現金</option>
+                        <option value="weekdayTicket">平日券</option>
+                        <option value="weekendTicket">假日券</option>
+                    </select>
                 </div>
 
-                <!-- 入場登記表單 -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h2 class="text-lg font-semibold mb-4">入場登記</h2>
-                    <form id="checkInForm" class="space-y-4">
-                        <!-- 置物櫃號碼 -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                置物櫃號碼 <span class="text-red-500">*</span>
-                            </label>
-                            <div class="flex space-x-2">
-                                <input 
-                                    type="number" 
-                                    id="lockerNumber"
-                                    class="flex-1 p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                    required
-                                >
-                                <button type="button" class="bg-gray-100 px-3 rounded hover:bg-gray-200" onclick="showLockerSelector()">
-                                    選擇
-                                </button>
-                            </div>
-                        </div>
-                        <!-- 付款方式 -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                付款方式 <span class="text-red-500">*</span>
-                            </label>
-                            <select 
-                                id="paymentType"
-                                class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                required
-                            >
-                                <option value="cash">現金</option>
-                                <option value="weekdayTicket">平日券</option>
-                                <option value="weekendTicket">假日券</option>
-                            </select>
-                        </div>
-                        <!-- 動態付款輸入 -->
-                        <div id="paymentFields"></div>
-                        <!-- 備註 -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                備註
-                            </label>
-                            <textarea 
-                                id="notes"
-                                class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                rows="3"
-                            ></textarea>
-                        </div>
-                        <!-- 提交按鈕 -->
-                        <button 
-                            type="submit"
-                            class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                        >
-                            確認入場
-                        </button>
-                    </form>
+                <!-- 付款金額（現金） -->
+                <div id="cashAmountField" class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        現金金額 <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        id="cashAmount"
+                        class="w-full p-2 border rounded"
+                    >
                 </div>
+
+                <!-- 票券號碼 -->
+                <div id="ticketField" class="mb-4 hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        票券號碼 <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="ticketNumber"
+                        class="w-full p-2 border rounded"
+                    >
+                </div>
+
+                <!-- 備註 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        備註
+                    </label>
+                    <textarea 
+                        id="notes"
+                        class="w-full p-2 border rounded"
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <!-- 提交按鈕 -->
+                <button 
+                    type="submit"
+                    class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                >
+                    確認入場
+                </button>
+            </form>
+        </div>
+
+        <!-- 在場客人列表 -->
+        <div class="bg-white rounded-lg shadow p-4">
+            <h2 class="text-xl font-bold mb-4">在場客人</h2>
+            <div id="customerList" class="space-y-4">
+                <!-- 客人列表會動態插入這裡 -->
             </div>
         </div>
     </div>
 
-    <!-- 置物櫃選擇器對話框 -->
-    <div id="lockerSelector" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold">選擇置物櫃</h3>
-                <button onclick="hideLockerSelector()" class="text-gray-500 hover:text-gray-700">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <div id="lockerSelectorGrid" class="grid grid-cols-5 md:grid-cols-10 gap-2">
-                <!-- 置物櫃選項會動態生成在這裡 -->
-            </div>
-            <div class="mt-4 flex justify-end">
-                <button 
-                    onclick="hideLockerSelector()"
-                    class="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200"
-                >
-                    取消
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 客人資料卡片模板 -->
-    <template id="customerCardTemplate">
-        <div class="customer-card bg-white rounded-lg shadow-sm p-4">
-            <div class="flex justify-between items-start">
-                <div>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-lg font-semibold">{{lockerNumber}}號櫃</span>
-                        <span class="text-sm px-2 py-0.5 rounded-full {{statusClass}}">
-                            {{status}}
-                        </span>
-                    </div>
-                    <div class="mt-2 space-y-1 text-sm text-gray-600">
-                        <div>入場時間: {{checkInTime}}</div>
-                        <div>已使用: {{duration}}</div>
-                        <div>付款方式: {{payment}}</div>
-                        {{#overtimeFee}}
-                        <div class="text-red-500">超時費用: {{overtimeFee}}元</div>
-                        {{/overtimeFee}}
-                        {{#notes}}
-                        <div class="mt-2 text-gray-500">備註: {{notes}}</div>
-                        {{/notes}}
-                    </div>
-                </div>
-                <button 
-                    onclick="handleCheckOut('{{id}}')"
-                    class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                >
-                    結帳
-                </button>
-            </div>
-        </div>
-    </template>
+    <script src="js/utils.js"></script>
+    <script src="js/customers.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

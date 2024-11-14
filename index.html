@@ -167,5 +167,327 @@
             }
         }
     </script>
+    <!-- 在 main-system div 內新增以下內容 -->
+<div class="container">
+    <!-- 入場登記區域 -->
+    <div id="entrySection" class="section">
+        <div class="card">
+            <h2>入場登記</h2>
+            <form id="entryForm" class="form-grid">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="lockerNumber">櫃位號碼</label>
+                        <input type="text" id="lockerNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentType">付款方式</label>
+                        <select id="paymentType" onchange="togglePaymentFields()">
+                            <option value="cash">現金</option>
+                            <option value="ticket">票券</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 現金付款欄位 -->
+                <div id="cashFields" class="form-row">
+                    <div class="form-group">
+                        <label for="amount">金額</label>
+                        <input type="number" id="amount">
+                    </div>
+                </div>
+
+                <!-- 票券付款欄位 -->
+                <div id="ticketFields" class="form-row" style="display:none;">
+                    <div class="form-group">
+                        <label for="ticketType">票券類型</label>
+                        <select id="ticketType">
+                            <option value="weekday">平日券</option>
+                            <option value="allday">暢遊券</option>
+                            <option value="event">活動票券</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="ticketNumber">票券編號</label>
+                        <input type="text" id="ticketNumber">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="notes">備註</label>
+                        <textarea id="notes"></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">新增入場記錄</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 入場記錄列表區域 -->
+    <div id="recordsSection" class="section">
+        <div class="card">
+            <div class="card-header">
+                <h2>入場記錄一覽</h2>
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="搜尋櫃位號碼...">
+                    <select id="statusFilter">
+                        <option value="">全部狀態</option>
+                        <option value="active">使用中</option>
+                        <option value="tempLeave">暫時外出</option>
+                        <option value="nearEnd">即將到期</option>
+                        <option value="ended">已結束</option>
+                    </select>
+                    <button class="btn btn-search">搜尋</button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table id="recordsTable">
+                    <thead>
+                        <tr>
+                            <th>櫃位號碼</th>
+                            <th>付款資訊</th>
+                            <th>入場時間</th>
+                            <th>外出時間</th>
+                            <th>返回時間</th>
+                            <th>剩餘時間</th>
+                            <th>狀態</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsList">
+                        <!-- 資料會由 JavaScript 動態產生 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增樣式 -->
+<style>
+    /* 卡片樣式 */
+    .card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    /* 表單網格樣式 */
+    .form-grid {
+        display: grid;
+        gap: 20px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    /* 表格樣式 */
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+
+    /* 搜尋欄位樣式 */
+    .search-bar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .search-bar input,
+    .search-bar select {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    /* 按鈕樣式 */
+    .btn-search {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-action {
+        padding: 5px 10px;
+        margin: 0 5px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-leave {
+        background: #ffc107;
+        color: black;
+    }
+
+    .btn-return {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-checkout {
+        background: #dc3545;
+        color: white;
+    }
+
+    /* 狀態標籤樣式 */
+    .status-tag {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+
+    .status-active {
+        background: #28a745;
+        color: white;
+    }
+
+    .status-leave {
+        background: #ffc107;
+        color: black;
+    }
+
+    .status-near-end {
+        background: #dc3545;
+        color: white;
+    }
+
+    .status-ended {
+        background: #6c757d;
+        color: white;
+    }
+</style>
+
+<!-- 加入 JavaScript -->
+<script>
+    // 切換付款方式顯示欄位
+    function togglePaymentFields() {
+        const paymentType = document.getElementById('paymentType').value;
+        document.getElementById('cashFields').style.display = 
+            paymentType === 'cash' ? 'grid' : 'none';
+        document.getElementById('ticketFields').style.display = 
+            paymentType === 'ticket' ? 'grid' : 'none';
+    }
+
+    // 模擬資料
+    const mockData = [
+        {
+            lockerNumber: "A001",
+            paymentInfo: "現金 NT$600",
+            entryTime: "2024-01-14 14:30",
+            leaveTime: "",
+            returnTime: "",
+            timeLeft: "23:30",
+            status: "active"
+        },
+        {
+            lockerNumber: "A002",
+            paymentInfo: "票券 #12345",
+            entryTime: "2024-01-14 13:00",
+            leaveTime: "2024-01-14 15:30",
+            returnTime: "",
+            timeLeft: "22:00",
+            status: "leave"
+        }
+    ];
+
+    // 更新記錄列表
+    function updateRecordsList() {
+        const tbody = document.getElementById('recordsList');
+        tbody.innerHTML = mockData.map(record => `
+            <tr>
+                <td>${record.lockerNumber}</td>
+                <td>${record.paymentInfo}</td>
+                <td>${record.entryTime}</td>
+                <td>${record.leaveTime}</td>
+                <td>${record.returnTime}</td>
+                <td>${record.timeLeft}</td>
+                <td>
+                    <span class="status-tag status-${record.status}">
+                        ${getStatusText(record.status)}
+                    </span>
+                </td>
+                <td>
+                    ${getActionButtons(record)}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // 取得狀態文字
+    function getStatusText(status) {
+        const statusMap = {
+            active: '使用中',
+            leave: '暫時外出',
+            nearEnd: '即將到期',
+            ended: '已結束'
+        };
+        return statusMap[status] || status;
+    }
+
+    // 取得操作按鈕
+    function getActionButtons(record) {
+        if (record.status === 'active') {
+            return `
+                <button class="btn-action btn-leave" onclick="handleLeave('${record.lockerNumber}')">
+                    暫時外出
+                </button>
+                <button class="btn-action btn-checkout" onclick="handleCheckout('${record.lockerNumber}')">
+                    結帳離場
+                </button>
+            `;
+        }
+        if (record.status === 'leave') {
+            return `
+                <button class="btn-action btn-return" onclick="handleReturn('${record.lockerNumber}')">
+                    返回
+                </button>
+            `;
+        }
+        return '';
+    }
+
+    // 初始化頁面
+    document.addEventListener('DOMContentLoaded', function() {
+        updateRecordsList();
+    });
+
+    // 處理表單提交
+    document.getElementById('entryForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        // 這裡加入實際的表單處理邏輯
+        alert('新增入場記錄成功！');
+    });
+</script>
 </body>
 </html>

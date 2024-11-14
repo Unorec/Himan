@@ -4,111 +4,168 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>三溫暖管理系統</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* 基礎樣式 */
+        body {
+            font-family: Arial, '微軟正黑體', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 登入表單樣式 */
+        .login-form {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin: 100px auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        /* 頁首樣式 */
+        .header {
+            background: #333;
+            color: white;
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        /* 選單樣式 */
+        .nav-menu {
+            background: #f8f9fa;
+            padding: 10px;
+            margin-top: 60px;
+        }
+
+        .nav-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-menu a {
+            text-decoration: none;
+            color: #333;
+            padding: 5px 10px;
+        }
+
+        .nav-menu a:hover {
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-    <div class="max-w-4xl mx-auto p-4">
-        <!-- 系統狀態 -->
-        <div class="bg-white rounded-lg shadow mb-6 p-4">
-            <div class="flex justify-between items-center">
-                <h1 class="text-2xl font-bold">三溫暖管理系統</h1>
-                <div class="text-sm text-gray-600">
-                    <span id="currentTime"></span>
-                </div>
+<body>
+    <!-- 登入頁面 -->
+    <div class="login-form">
+        <h2>三溫暖管理系統登入</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">帳號</label>
+                <input type="text" id="username" name="username" required>
             </div>
-        </div>
-
-        <!-- 入場登記表單 -->
-        <div class="bg-white rounded-lg shadow mb-6 p-4">
-            <h2 class="text-xl font-bold mb-4">入場登記</h2>
-            <form id="checkInForm">
-                <!-- 置物櫃號碼 -->
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        置物櫃號碼 <span class="text-red-500">*</span>
-                    </label>
-                    <input 
-                        type="number" 
-                        id="lockerNumber"
-                        class="w-full p-2 border rounded"
-                        required
-                    >
-                </div>
-
-                <!-- 付款方式 -->
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        付款方式 <span class="text-red-500">*</span>
-                    </label>
-                    <select 
-                        id="paymentType"
-                        class="w-full p-2 border rounded"
-                        required
-                    >
-                        <option value="cash">現金</option>
-                        <option value="weekdayTicket">平日券</option>
-                        <option value="weekendTicket">假日券</option>
-                    </select>
-                </div>
-
-                <!-- 付款金額（現金） -->
-                <div id="cashAmountField" class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        現金金額 <span class="text-red-500">*</span>
-                    </label>
-                    <input 
-                        type="number" 
-                        id="cashAmount"
-                        class="w-full p-2 border rounded"
-                    >
-                </div>
-
-                <!-- 票券號碼 -->
-                <div id="ticketField" class="mb-4 hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        票券號碼 <span class="text-red-500">*</span>
-                    </label>
-                    <input 
-                        type="text" 
-                        id="ticketNumber"
-                        class="w-full p-2 border rounded"
-                    >
-                </div>
-
-                <!-- 備註 -->
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        備註
-                    </label>
-                    <textarea 
-                        id="notes"
-                        class="w-full p-2 border rounded"
-                        rows="3"
-                    ></textarea>
-                </div>
-
-                <!-- 提交按鈕 -->
-                <button 
-                    type="submit"
-                    class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-                >
-                    確認入場
-                </button>
-            </form>
-        </div>
-
-        <!-- 在場客人列表 -->
-        <div class="bg-white rounded-lg shadow p-4">
-            <h2 class="text-xl font-bold mb-4">在場客人</h2>
-            <div id="customerList" class="space-y-4">
-                <!-- 客人列表會動態插入這裡 -->
+            <div class="form-group">
+                <label for="password">密碼</label>
+                <input type="password" id="password" name="password" required>
             </div>
-        </div>
+            <button type="submit" class="btn">登入</button>
+        </form>
     </div>
 
-    <script src="js/utils.js"></script>
-    <script src="js/customers.js"></script>
-    <script src="js/main.js"></script>
+    <!-- 主系統介面（登入後顯示） -->
+    <div class="main-system" style="display: none;">
+        <!-- 頁首 -->
+        <header class="header">
+            <h1>三溫暖管理系統</h1>
+        </header>
+
+        <!-- 導航選單 -->
+        <nav class="nav-menu">
+            <ul>
+                <li><a href="#" onclick="showSection('entry')">入場登記</a></li>
+                <li><a href="#" onclick="showSection('records')">入場記錄</a></li>
+                <li><a href="#" onclick="showSection('reports')">報表查詢</a></li>
+                <li><a href="#" onclick="showSection('settings')">系統設定</a></li>
+                <li><a href="#" onclick="logout()">登出</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <script>
+        // 登入表單處理
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // 這裡應該要加入實際的登入驗證邏輯
+            if (username === 'admin' && password === 'password') {
+                document.querySelector('.login-form').style.display = 'none';
+                document.querySelector('.main-system').style.display = 'block';
+            } else {
+                alert('帳號或密碼錯誤！');
+            }
+        });
+
+        // 顯示不同區段的函數
+        function showSection(sectionId) {
+            // 實作切換不同功能區段的邏輯
+            console.log('Showing section:', sectionId);
+        }
+
+        // 登出函數
+        function logout() {
+            if (confirm('確定要登出嗎？')) {
+                document.querySelector('.login-form').style.display = 'block';
+                document.querySelector('.main-system').style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>

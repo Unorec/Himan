@@ -1,224 +1,171 @@
-// 等待 DOM 載入完成
+// main.js
+
+// 全局變數
+let mockRecords = [];
+let systemSettings = {
+    systemName: 'HiMAN三溫暖管理系統',
+    openTime: '06:00',
+    closeTime: '23:00',
+    basePrice: 600,
+    overtimeRate: 100,
+    reminderTime: 30
+};
+
+// 本地儲存管理
+const Storage = {
+    save: function(key, data) {
+        localStorage.setItem(key, JSON.stringify(data));
+    },
+    load: function(key) {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+    },
+    clear: function(key) {
+        localStorage.removeItem(key);
+    }
+};
+
+// 頁面載入初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 初始化客人管理器
-    const customerManager = new CustomerManager();
-    
-    // 更新時間顯示
-    function updateCurrentTime() {
-        const currentTime = document.getElementById('currentTime');
-        const now = new Date();
-        currentTime.textContent = formatTime(now);
-    }
-    
-    // 每秒更新時間
-    setInterval(updateCurrentTime, 1000);
-    updateCurrentTime();
+    initializeLogin();
+    loadMockData();
+});
 
-    // 更新置物櫃顯示
-    function updateLockerGrid() {
-        const grid = document.getElementById('lockerGrid');
-        grid.innerHTML = '';
-        
-        for (let i = 1; i <= 50; i++) {
-            const locker = document.createElement('div');
-            const isOccupied = customerManager.isLockerOccupied(i);
-            
-            locker.className = `locker-item ${isOccupied ? 'locker-occupied' : 'locker-available'}`;
-            locker.textContent = i;
-            
-            if (!isOccupied) {
-                locker.onclick = () => selectLocker(i);
-            }
-            
-            grid.appendChild(locker);
-        }
-    }
-
-    // 選擇置物櫃
-    function selectLocker(number) {
-        document.getElementById('lockerNumber').value = number;
-        hideLockerSelector();
-    }
-
-    // 處理入場表單提交
-    document.getElementById('checkInForm').addEventListener('submit', function(e) {
+// 登入功能
+function initializeLogin() {
+    document.getElementById('loginForm')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        
-        try {
-            const formData = {
-                lockerNumber: parseInt(document.getElementById('lockerNumber').value),
-                paymentType: document.getElementById('paymentType').value,
-                cashAmount: document.getElementById('cashAmount')?.value,
-                ticketNumber: document.getElementById('ticketNumber')?.value,
-                notes: document.getElementById('notes').value
-            };
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
 
-            customerManager.addCustomer(formData);
-            this.reset();
-            updateDisplay();
-            alert('入場登記成功！');
-        } catch (error) {
-            alert(error.message);
-        }
-    });
-
-    // 處理付款方式變更
-    document.getElementById('paymentType').addEventListener('change', function() {
-        updatePaymentFields(this.value);
-    });
-
-    // 更新付款欄位顯示
-    function updatePaymentFields(paymentType) {
-        const paymentFields = document.getElementById('paymentFields');
-        
-        if (paymentType === 'cash') {
-            paymentFields.innerHTML = `
-                <div class="form-group">
-                    <label class="form-label">現金金額 <span class="text-red-500">*</span></label>
-                    <input type="number" id="cashAmount" class="form-input" required>
-                </div>
-            `;
+        if (username === 'himan' && password === 'himan') {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('mainSystem').style.display = 'block';
+            showSection('entry');
+            showToast('登入成功！', 'success');
         } else {
-            paymentFields.innerHTML = `
-                <div class="form-group">
-                    <label class="form-label">票券號碼 <span class="text-red-500">*</span></label>
-                    <input type="text" id="ticketNumber" class="form-input" required>
-                </div>
-            `;
-        }
-    }
-
-    // 更新顯示
-    function updateDisplay() {
-        updateLockerGrid();
-        updateCustomerList();
-        updateActiveCount();
-    }
-
-    // 更新客人列表
-    function updateCustomerList() {
-        const customers = customerManager.getActiveCustomers();
-        
-        // 清空現有列表
-        document.getElementById('overtimeCustomers').innerHTML = '';
-        document.getElementById('warningCustomers').innerHTML = '';
-        document.getElementById('normalCustomers').innerHTML = '';
-        
-        // 分類客人
-        customers.forEach(customer => {
-            const card = createCustomerCard(customer);
-            
-            if (customer.isOvertime) {
-                document.getElementById('overtimeCustomers').appendChild(card);
-            } else if (customer.isNearingEnd) {
-                document.getElementById('warningCustomers').appendChild(card);
-            } else {
-                document.getElementById('normalCustomers').appendChild(card);
-            }
-        });
-    }
-
-    // 創建客人卡片
-    function createCustomerCard(customer) {
-        const card = document.createElement('div');
-        card.className = `customer-card ${customer.isOvertime ? 'customer-overtime' : 
-                                        customer.isNearingEnd ? 'customer-warning' : ''}`;
-        
-        card.innerHTML = `
-            <div class="flex justify-between items-start">
-                <div>
-                    <div class="text-lg font-bold">櫃號: ${customer.lockerNumber}</div>
-                    <div class="text-sm text-gray-600">
-                        <div>入場時間: ${formatTime(customer.checkInTime)}</div>
-                        <div>已使用: ${formatDuration(customer.hours)}</div>
-                        <div>付款方式: ${
-                            customer.paymentType === 'cash' ? 
-                            `現金 ${customer.cashAmount}元` : 
-                            `${customer.paymentType === 'weekdayTicket' ? '平日券' : '假日券'} (${customer.ticketNumber})`
-                        }</div>
-                        ${customer.overtime ? `<div class="text-red-500">超時費用: ${customer.overtimeFee}元</div>` : ''}
-                        ${customer.notes ? `<div class="mt-2 text-gray-500">備註: ${customer.notes}</div>` : ''}
-                    </div>
-                </div>
-                <button 
-                    onclick="handleCheckOut('${customer.id}')"
-                    class="btn btn-danger"
-                >
-                    結帳
-                </button>
-            </div>
-        `;
-        
-        return card;
-    }
-
-    // 更新在場人數
-    function updateActiveCount() {
-        const count = customerManager.getActiveCustomers().length;
-        document.getElementById('activeCount').textContent = `在場: ${count}人`;
-    }
-
-    // 初始化顯示
-    updateDisplay();
-    
-    // 定期更新顯示（每分鐘）
-    setInterval(updateDisplay, 60000);
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    // ... 現有的代碼 ...
-    
-    // 綁定快速操作按鈕
-    const quickActions = document.querySelector('.grid.grid-cols-2.gap-4');
-    quickActions.addEventListener('click', function(e) {
-        if (e.target.textContent.trim() === '入場登記') {
-            showCheckInForm();
+            showToast('帳號或密碼錯誤！', 'error');
         }
     });
+}
 
-    // 顯示入場登記表單
-    function showCheckInForm() {
-        const checkInForm = document.getElementById('checkInForm');
-        checkInForm.classList.remove('hidden');
+// 載入模擬資料
+function loadMockData() {
+    const savedRecords = Storage.load('records');
+    if (savedRecords) {
+        mockRecords = savedRecords;
+    }
+}
+
+// 顯示提示訊息
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+
+    toast.textContent = message;
+    toast.className = `toast toast-${type}`;
+    toast.style.display = 'block';
+
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 3000);
+}
+
+// 切換頁面區段
+function showSection(sectionId) {
+    const mainContent = document.getElementById('mainContent');
+    if (!mainContent) return;
+
+    mainContent.innerHTML = '';
+    
+    switch(sectionId) {
+        case 'entry':
+            loadEntryForm();
+            break;
+        case 'records':
+            loadRecordsList();
+            break;
+        case 'stats':
+            loadStatistics();
+            break;
+        case 'settings':
+            loadSettings();
+            break;
+    }
+}
+
+// 入場登記功能
+function loadEntryForm() {
+    // 載入入場表單模板
+    const template = document.getElementById('entryTemplate');
+    if (!template) return;
+
+    const content = template.content.cloneNode(true);
+    document.getElementById('mainContent').appendChild(content);
+    
+    // 初始化表單處理
+    initializeEntryForm();
+}
+
+// 處理入場登記
+function initializeEntryForm() {
+    document.getElementById('entryForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        const newEntry = {
+            id: Date.now(),
+            lockerNumber: formData.get('lockerNumber'),
+            paymentType: formData.get('paymentType'),
+            amount: formData.get('paymentType') === 'cash' ? 
+                parseFloat(formData.get('amount')) : 0,
+            entryTime: new Date().toISOString(),
+            status: 'active'
+        };
+
+        if (validateEntry(newEntry)) {
+            mockRecords.unshift(newEntry);
+            Storage.save('records', mockRecords);
+            showToast('登記成功！', 'success');
+            e.target.reset();
+        }
+    });
+}
+
+// 驗證入場資料
+function validateEntry(entry) {
+    if (!entry.lockerNumber.match(/^[A-Z]\d{3}$/)) {
+        showToast('櫃位號碼格式錯誤', 'error');
+        return false;
     }
 
-    // 可選：添加關閉表單的功能
-    function hideCheckInForm() {
-        const checkInForm = document.getElementById('checkInForm');
-        checkInForm.classList.add('hidden');
-    }
-});
-document.addEventListener('DOMContentLoaded', function() {
-    // ... 其他初始化代碼 ...
-
-    // 首先確保快速操作區域有正確的 HTML 結構
-    const quickActionsContainer = document.querySelector('.grid.grid-cols-2.gap-4');
-    if (quickActionsContainer) {
-        // 清空現有內容
-        quickActionsContainer.innerHTML = `
-            <button class="btn bg-blue-500 text-white p-2 rounded" id="checkInBtn">入場登記</button>
-            <button class="btn bg-blue-500 text-white p-2 rounded">營業報表</button>
-            <button class="btn bg-blue-500 text-white p-2 rounded">系統設定</button>
-            <button class="btn bg-blue-500 text-white p-2 rounded">歷史記錄</button>
-        `;
+    if (entry.paymentType === 'cash' && 
+        (entry.amount <= 0 || entry.amount > 10000)) {
+        showToast('金額必須在1-10000之間', 'error');
+        return false;
     }
 
-    // 綁定入場登記按鈕事件
-    const checkInBtn = document.getElementById('checkInBtn');
-    if (checkInBtn) {
-        checkInBtn.addEventListener('click', function() {
-            const checkInForm = document.getElementById('checkInForm');
-            if (checkInForm) {
-                checkInForm.classList.remove('hidden');
-                console.log('顯示入場登記表單'); // 用於調試
-            } else {
-                console.error('找不到入場登記表單');
-            }
-        });
-    }
+    return true;
+}
 
-    // 用於調試：檢查元素是否存在
-    console.log('快速操作容器:', !!quickActionsContainer);
-    console.log('入場登記按鈕:', !!checkInBtn);
-    console.log('入場登記表單:', !!document.getElementById('checkInForm'));
-});
+// 登出功能
+function logout() {
+    if (confirm('確定要登出系統嗎？')) {
+        document.getElementById('loginContainer').style.display = 'flex';
+        document.getElementById('mainSystem').style.display = 'none';
+        document.getElementById('loginForm').reset();
+        showToast('已登出系統', 'info');
+    }
+}
+
+// 時間格式化
+function formatDateTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString('zh-TW', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}

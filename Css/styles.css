@@ -1,94 +1,42 @@
-/* 基礎樣式設定 */
+/* 全局樣式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: '微軟正黑體', Arial, sans-serif;
+}
+
 :root {
-    --primary-color: #3b82f6;
-    --warning-color: #f59e0b;
-    --danger-color: #ef4444;
-    --success-color: #10b981;
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --success-color: #2ecc71;
+    --warning-color: #f1c40f;
+    --danger-color: #e74c3c;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
 }
 
-/* 布局容器 */
-.container {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 1rem;
+body {
+    background: #f5f5f5;
+    line-height: 1.6;
 }
 
-/* 頂部導航欄 */
-.nav-header {
-    background-color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.nav-container {
+/* 登入頁面 */
+.login-container {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    height: 64px;
-}
-
-/* 置物櫃網格 */
-.locker-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 0.5rem;
-    padding: 1rem;
-}
-
-.locker-item {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    font-weight: bold;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #00a8ff, #0097e6);
 }
 
-.locker-available {
-    background-color: #dcfce7;
-    border: 2px solid #86efac;
-    color: #166534;
-}
-
-.locker-available:hover {
-    background-color: #bbf7d0;
-}
-
-.locker-occupied {
-    background-color: #fee2e2;
-    border: 2px solid #fca5a5;
-    color: #991b1b;
-    cursor: not-allowed;
-}
-
-/* 客人卡片樣式 */
-.customer-card {
-    background-color: white;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s ease;
-}
-
-.customer-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.customer-overtime {
-    background-color: #fee2e2;
-    border-left: 4px solid #ef4444;
-}
-
-.customer-warning {
-    background-color: #fef3c7;
-    border-left: 4px solid #f59e0b;
+.login-form {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
 }
 
 /* 表單樣式 */
@@ -96,154 +44,183 @@
     margin-bottom: 1rem;
 }
 
-.form-label {
+.form-group label {
     display: block;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #374151;
     margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--dark-color);
 }
 
-.form-input {
+.form-control {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
     font-size: 1rem;
+    transition: border-color 0.2s;
 }
 
-.form-input:focus {
+.form-control:focus {
+    border-color: var(--secondary-color);
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
 /* 按鈕樣式 */
 .btn {
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
 }
 
 .btn-primary {
-    background-color: var(--primary-color);
+    background: var(--secondary-color);
     color: white;
 }
 
-.btn-primary:hover {
-    background-color: #2563eb;
+.btn-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-warning {
+    background: var(--warning-color);
+    color: black;
 }
 
 .btn-danger {
-    background-color: var(--danger-color);
+    background: var(--danger-color);
     color: white;
 }
 
-.btn-danger:hover {
-    background-color: #dc2626;
+.btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* 卡片樣式 */
+.card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1rem;
+    background: var(--light-color);
+    border-bottom: 1px solid #ddd;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+/* 表格樣式 */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+.table th,
+.table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+}
+
+.table th {
+    background: var(--light-color);
+    font-weight: bold;
 }
 
 /* 狀態標籤 */
-.status-badge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
+.status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 15px;
+    font-size: 0.875rem;
+    text-align: center;
 }
 
-.status-normal {
-    background-color: #dbeafe;
-    color: #1e40af;
-}
+.status-active { background: var(--success-color); color: white; }
+.status-leave { background: var(--warning-color); color: black; }
+.status-warning { background: var(--danger-color); color: white; }
 
-.status-warning {
-    background-color: #fef3c7;
-    color: #92400e;
-}
-
-.status-overtime {
-    background-color: #fee2e2;
-    color: #991b1b;
-}
-
-/* 響應式設計 */
-@media (max-width: 768px) {
-    .locker-grid {
-        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-    }
-
-    .customer-card {
-        padding: 0.75rem;
-    }
-
-    .form-input {
-        font-size: 16px; /* 防止 iOS 縮放 */
-    }
-}
-
-/* 動畫效果 */
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-.animate-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* 工具類 */
-.hidden {
-    display: none;
-}
-
-.flex {
-    display: flex;
-}
-
-.space-between {
-    justify-content: space-between;
-}
-
-.items-center {
-    align-items: center;
-}
-
-/* 提示框樣式 */
-.modal {
+/* 提示訊息 */
+.toast {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    top: 20px;
+    right: 20px;
+    padding: 1rem;
+    border-radius: 4px;
+    color: white;
     z-index: 1000;
-}
-
-.modal-content {
-    background-color: white;
-    padding: 2rem;
-    border-radius: 0.5rem;
-    max-width: 500px;
-    width: 90%;
+    animation: slideIn 0.3s ease;
 }
 
 /* 載入動畫 */
 .loading {
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid var(--primary-color);
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--secondary-color);
     border-radius: 50%;
-    width: 24px;
-    height: 24px;
     animation: spin 1s linear infinite;
+}
+
+/* 動畫效果 */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .login-form {
+        margin: 1rem;
+    }
+
+    .card {
+        margin: 0.5rem;
+        border-radius: 4px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
 }

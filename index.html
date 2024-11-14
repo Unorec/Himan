@@ -3,10 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>三溫暖管理系統</title>
+    <title>HiMAN三溫暖管理系統</title>
+    
+    <!-- 引入外部資源 -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+
+    <!-- 基礎樣式 -->
     <style>
-        /* 全域樣式 */
         * {
             margin: 0;
             padding: 0;
@@ -20,76 +24,14 @@
             color: #333;
         }
 
-        /* 登入頁面樣式 */
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: linear-gradient(135deg, #00a8ff, #0097e6);
-        }
-
-        .login-form {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
-        }
-
-        /* 主系統樣式 */
-        .main-system {
-            display: none;
-        }
-
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 1rem;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 1000;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .nav-menu {
-            background: #34495e;
-            padding: 1rem;
-            position: fixed;
-            top: 60px;
-            width: 100%;
-            z-index: 999;
-        }
-
-        .nav-menu ul {
-            list-style: none;
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-        }
-
-        .nav-menu a {
-            color: white;
-            text-decoration: none;
-            padding: 5px 15px;
-            border-radius: 4px;
-            transition: background 0.3s;
-        }
-
-        .nav-menu a:hover {
-            background: #2c3e50;
-        }
-
-        .content {
-            margin-top: 120px;
+        /* 通用類別樣式 */
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 20px;
         }
 
-        /* 表單樣式 */
         .form-group {
             margin-bottom: 1rem;
         }
@@ -115,7 +57,7 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 1rem;
-            transition: background 0.3s;
+            transition: all 0.3s ease;
         }
 
         .btn-primary {
@@ -123,8 +65,18 @@
             color: white;
         }
 
-        .btn-primary:hover {
-            background: #2980b9;
+        .btn-warning {
+            background: #f1c40f;
+            color: #000;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
         }
 
         /* 卡片樣式 */
@@ -133,206 +85,279 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 1rem;
-            overflow: hidden;
         }
 
         .card-header {
-            background: #f8f9fa;
             padding: 1rem;
             border-bottom: 1px solid #ddd;
+            background: #f8f9fa;
         }
 
         .card-body {
             padding: 1rem;
         }
 
-        /* 表格樣式 */
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        th {
-            background: #f8f9fa;
-            font-weight: bold;
-        }
-
-        /* 狀態標籤 */
-        .status {
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.875rem;
-        }
-
-        .status-active {
-            background: #2ecc71;
-            color: white;
-        }
-
-        .status-leave {
-            background: #f1c40f;
-            color: black;
-        }
-
-        .status-warning {
-            background: #e74c3c;
-            color: white;
-        }
-
         /* 響應式設計 */
         @media (max-width: 768px) {
-            .nav-menu ul {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .nav-menu {
-                top: 60px;
-                padding: 0.5rem;
-            }
-
-            .content {
-                margin-top: 180px;
+            .container {
+                width: 100%;
                 padding: 10px;
             }
+            
+            .form-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* 動畫效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+    </style>
+    <!-- 登入頁面樣式 -->
+    <style>
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #00a8ff, #0097e6);
+        }
+
+        .login-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+
+        .login-form .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .login-hint {
+            text-align: center;
+            margin-top: 1rem;
+            color: #7f8c8d;
+            font-size: 0.9em;
         }
     </style>
 </head>
 <body>
-    <!-- 登入頁面 -->
-<div class="login-form" id="loginForm">
-    <h2 style="text-align: center; margin-bottom: 2rem;">三溫暖管理系統</h2>
-    <div class="form-group">
-        <label for="username">帳號</label>
-        <input type="text" class="form-control" id="username" required placeholder="請輸入: himan">
+    <!-- 登入介面 -->
+    <div class="login-container" id="loginContainer">
+        <form class="login-form" id="loginForm">
+            <div class="login-header">
+                <h2>HiMAN三溫暖管理系統</h2>
+                <p>登入系統</p>
+            </div>
+            <div class="form-group">
+                <label for="username">帳號</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="username" 
+                       required 
+                       placeholder="請輸入: himan">
+            </div>
+            <div class="form-group">
+                <label for="password">密碼</label>
+                <input type="password" 
+                       class="form-control" 
+                       id="password" 
+                       required 
+                       placeholder="請輸入: himan">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                登入系統
+            </button>
+            <div class="login-hint">
+                預設帳號/密碼: himan/himan
+            </div>
+        </form>
     </div>
-    <div class="form-group">
-        <label for="password">密碼</label>
-        <input type="password" class="form-control" id="password" required placeholder="請輸入: himan">
-    </div>
-    <button type="submit" class="btn btn-primary" style="width: 100%;">登入</button>
-    <div style="text-align: center; margin-top: 1rem; color: #666; font-size: 0.9em;">
-        預設帳號/密碼: himan/himan
-    </div>
-</div>
-
     <!-- 主系統介面 -->
-    <div class="main-system" id="mainSystem">
+    <div class="main-system" id="mainSystem" style="display: none;">
         <!-- 頁首 -->
         <header class="header">
-            <h1>三溫暖管理系統</h1>
+            <h1>HiMAN三溫暖管理系統</h1>
             <div class="user-info">
-                <span id="currentUser">管理員</span>
-                <button class="btn btn-logout" onclick="logout()">登出</button>
+                <span id="currentUser">HiMAN</span>
+                <button class="btn btn-danger" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> 登出
+                </button>
             </div>
         </header>
 
         <!-- 導航選單 -->
         <nav class="nav-menu">
             <ul>
-                <li><a href="#" onclick="showSection('entry')"><i class="fas fa-plus-circle"></i> 入場登記</a></li>
-                <li><a href="#" onclick="showSection('records')"><i class="fas fa-list"></i> 入場記錄</a></li>
-                <li><a href="#" onclick="showSection('reports')"><i class="fas fa-chart-bar"></i> 統計報表</a></li>
-                <li><a href="#" onclick="showSection('settings')"><i class="fas fa-cog"></i> 系統設定</a></li>
+                <li><a href="#" onclick="showSection('entry')">
+                    <i class="fas fa-plus-circle"></i> 入場登記
+                </a></li>
+                <li><a href="#" onclick="showSection('records')">
+                    <i class="fas fa-list"></i> 入場記錄
+                </a></li>
+                <li><a href="#" onclick="showSection('stats')">
+                    <i class="fas fa-chart-bar"></i> 統計報表
+                </a></li>
+                <li><a href="#" onclick="showSection('settings')">
+                    <i class="fas fa-cog"></i> 系統設定
+                </a></li>
             </ul>
         </nav>
 
         <!-- 主要內容區域 -->
         <div class="content" id="mainContent">
-            <!-- 內容會由JavaScript動態載入 -->
+            <!-- 內容由 JavaScript 動態載入 -->
         </div>
     </div>
 
-    <!-- 入場登記表單 -->
+    <!-- 提示訊息元件 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- 載入指示器 -->
+    <div id="loading" class="loading" style="display: none;">
+        <div class="loading-spinner"></div>
+    </div><!-- 入場登記表單模板 -->
     <template id="entryTemplate">
         <div class="card">
             <div class="card-header">
                 <h2><i class="fas fa-plus-circle"></i> 入場登記</h2>
             </div>
             <div class="card-body">
-                <form id="entryForm">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <form id="entryForm" class="form-grid">
+                    <div class="form-row">
                         <div class="form-group">
                             <label>櫃位號碼</label>
-                            <input type="text" class="form-control" name="lockerNumber" required>
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="lockerNumber" 
+                                   required 
+                                   pattern="[A-Z]\d{3}"
+                                   placeholder="例：A101">
                         </div>
                         <div class="form-group">
                             <label>付款方式</label>
-                            <select class="form-control" name="paymentType" onchange="togglePaymentFields()">
+                            <select class="form-control" 
+                                    name="paymentType" 
+                                    onchange="togglePaymentFields()">
                                 <option value="cash">現金</option>
                                 <option value="ticket">票券</option>
                             </select>
                         </div>
                     </div>
 
+                    <!-- 現金付款欄位 -->
                     <div id="cashFields">
                         <div class="form-group">
                             <label>金額</label>
-                            <input type="number" class="form-control" name="amount">
+                            <input type="number" 
+                                   class="form-control" 
+                                   name="amount" 
+                                   min="0" 
+                                   step="100">
                         </div>
                     </div>
 
+                    <!-- 票券付款欄位 -->
                     <div id="ticketFields" style="display: none;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>票券類型</label>
                                 <select class="form-control" name="ticketType">
                                     <option value="weekday">平日券</option>
                                     <option value="allday">暢遊券</option>
+                                    <option value="special">特殊票券</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>票券編號</label>
-                                <input type="text" class="form-control" name="ticketNumber">
+                                <input type="text" 
+                                       class="form-control" 
+                                       name="ticketNumber"
+                                       pattern="T\d{11}"
+                                       placeholder="例：T20240114001">
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label>備註</label>
-                        <textarea class="form-control" name="notes" rows="3"></textarea>
+                        <textarea class="form-control" 
+                                 name="notes" 
+                                 rows="3"></textarea>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">確認登記</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> 確認登記
+                    </button>
                 </form>
             </div>
         </div>
     </template>
 
-    <!-- 入場記錄列表 -->
+    <style>
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 1rem;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+    </style>
+    <!-- 入場記錄列表模板 -->
     <template id="recordsTemplate">
         <div class="card">
             <div class="card-header">
                 <h2><i class="fas fa-list"></i> 入場記錄</h2>
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <input type="text" class="form-control" placeholder="搜尋櫃位號碼..." style="width: 200px;">
-                    <select class="form-control" style="width: 150px;">
+                <div class="search-controls">
+                    <input type="text" 
+                           class="form-control" 
+                           id="searchInput" 
+                           placeholder="搜尋櫃位號碼...">
+                    <select class="form-control" id="statusFilter">
                         <option value="">全部狀態</option>
                         <option value="active">使用中</option>
                         <option value="leave">暫時外出</option>
                         <option value="warning">即將到期</option>
+                        <option value="ended">已結束</option>
                     </select>
-                    <button class="btn btn-primary">搜尋</button>
+                    <button class="btn btn-primary" onclick="searchRecords()">
+                        <i class="fas fa-search"></i> 搜尋
+                    </button>
+                    <button class="btn btn-success" onclick="exportRecords()">
+                        <i class="fas fa-file-excel"></i> 匯出
+                    </button>
                 </div>
             </div>
             <div class="card-body">
-                <div class="table-container">
-                    <table>
+                <div class="table-responsive">
+                    <table class="table">
                         <thead>
                             <tr>
                                 <th>櫃位號碼</th>
                                 <th>付款資訊</th>
                                 <th>入場時間</th>
+                                <th>外出時間</th>
+                                <th>返回時間</th>
                                 <th>剩餘時間</th>
                                 <th>狀態</th>
                                 <th>操作</th>
@@ -343,153 +368,1013 @@
                         </tbody>
                     </table>
                 </div>
+                <!-- 分頁控制 -->
+                <div id="pagination" class="pagination-controls"></div>
             </div>
         </div>
     </template>
 
-    <!-- JavaScript -->
-    <script>
-        // 模擬資料
-        let mockRecords = [
+    <style>
+        .search-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .table th, 
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style><!-- 統計報表模板 -->
+    <template id="statsTemplate">
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-chart-bar"></i> 營運統計報表</h2>
+                <div class="report-filters">
+                    <div class="form-group">
+                        <label>開始日期</label>
+                        <input type="date" class="form-control" id="startDate">
+                    </div>
+                    <div class="form-group">
+                        <label>結束日期</label>
+                        <input type="date" class="form-control" id="endDate">
+                    </div>
+                    <div class="form-group">
+                        <label>報表類型</label>
+                        <select class="form-control" id="reportType">
+                            <option value="daily">日報表</option>
+                            <option value="weekly">週報表</option>
+                            <option value="monthly">月報表</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-primary" onclick="generateReport()">
+                            <i class="fas fa-sync"></i> 產生報表
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- 統計卡片 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">今日營收</div>
+                        <div class="stat-value" id="todayIncome">$0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">使用中櫃位</div>
+                        <div class="stat-value" id="activeLockers">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">本月總營收</div>
+                        <div class="stat-value" id="monthlyIncome">$0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">平均使用時間</div>
+                        <div class="stat-value" id="avgUsageTime">0小時</div>
+                    </div>
+                </div>
+
+                <!-- 圖表區域 -->
+                <div class="charts-container">
+                    <div class="chart-box">
+                        <h3>營收趨勢</h3>
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h3>使用率分析</h3>
+                        <canvas id="usageChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 詳細數據表格 -->
+                <div class="detailed-data">
+                    <h3>詳細數據</h3>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>營收</th>
+                                    <th>使用人數</th>
+                                    <th>平均使用時間</th>
+                                    <th>使用率</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody">
+                                <!-- 由JavaScript動態產生 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .report-filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style><!-- 系統設定模板 -->
+    <template id="settingsTemplate">
+        <div class="settings-container">
+            <!-- 設定標籤頁 -->
+            <div class="tabs">
+                <button class="tab-button active" onclick="switchTab('general')">
+                    <i class="fas fa-cog"></i> 一般設定
+                </button>
+                <button class="tab-button" onclick="switchTab('users')">
+                    <i class="fas fa-users"></i> 使用者管理
+                </button>
+                <button class="tab-button" onclick="switchTab('backup')">
+                    <i class="fas fa-database"></i> 資料備份
+                </button>
+            </div>
+
+            <!-- 一般設定內容 -->
+            <div id="generalSettings" class="tab-content active">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>基本設定</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="generalSettingsForm">
+                            <div class="form-group">
+                                <label>系統名稱</label>
+                                <input type="text" class="form-control" name="systemName" 
+                                       value="HiMAN三溫暖管理系統">
+                            </div>
+                            <div class="form-group">
+                                <label>營業時間</label>
+                                <div class="time-range">
+                                    <input type="time" class="form-control" name="openTime" value="06:00">
+                                    <span>至</span>
+                                    <input type="time" class="form-control" name="closeTime" value="23:00">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>基本收費</label>
+                                <input type="number" class="form-control" name="basePrice" 
+                                       value="600" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>超時費率（每30分鐘）</label>
+                                <input type="number" class="form-control" name="overtimeRate" 
+                                       value="100" min="0">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 儲存設定
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 使用者管理內容 -->
+            <div id="usersSettings" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-actions">
+                            <h3>使用者管理</h3>
+                            <button class="btn btn-primary" onclick="showAddUserModal()">
+                                <i class="fas fa-user-plus"></i> 新增使用者
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>帳號</th>
+                                        <th>姓名</th>
+                                        <th>角色</th>
+                                        <th>狀態</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userList">
+                                    <!-- 由JavaScript動態產生 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 資料備份內容 -->
+            <div id="backupSettings" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>資料備份與還原</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="backup-actions">
+                            <button class="btn btn-primary" onclick="backupData()">
+                                <i class="fas fa-download"></i> 匯出備份
+                            </button>
+                            <div class="form-group">
+                                <label>還原備份檔案</label>
+                                <input type="file" class="form-control" id="restoreFile" 
+                                       accept=".json">
+                            </div>
+                            <button class="btn btn-warning" onclick="restoreFromFile()">
+                                <i class="fas fa-upload"></i> 還原資料
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- 新增使用者模態框 -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>新增使用者</h3>
+                <span class="modal-close" onclick="closeModal('addUserModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="form-group">
+                        <label>帳號</label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>密碼</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>確認密碼</label>
+                        <input type="password" class="form-control" name="confirmPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label>姓名</label>
+                        <input type="text" class="form-control" name="displayName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>角色</label>
+                        <select class="form-control" name="role">
+                            <option value="admin">管理員</option>
+                            <option value="operator">操作員</option>
+                            <option value="viewer">檢視者</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">確認新增</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .settings-container {
+            padding: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            border: none;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .tab-button.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+
+        .backup-actions {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+    </style><script>
+// 全域變數和設定
+let mockRecords = [];
+let systemSettings = {
+    systemName: 'HiMAN三溫暖管理系統',
+    openTime: '06:00',
+    closeTime: '23:00',
+    basePrice: 600,
+    overtimeRate: 100,
+    reminderTime: 30
+};
+
+// 頁面載入初始化
+document.addEventListener('DOMContentLoaded', function() {
+    initializeLogin();
+    loadMockData();
+});
+
+// 初始化登入功能
+function initializeLogin() {
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        if (username === 'himan' && password === 'himan') {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('mainSystem').style.display = 'block';
+            showSection('entry');
+            showToast('登入成功！', 'success');
+        } else {
+            showToast('帳號或密碼錯誤！', 'error');
+        }
+    });
+}
+
+// 載入模擬資料
+function loadMockData() {
+    // 從 localStorage 載入資料
+    const savedRecords = Storage.load('records');
+    if (savedRecords) {
+        mockRecords = savedRecords;
+    } else {
+        // 初始模擬資料
+        mockRecords = [
             {
                 id: 1,
                 lockerNumber: "A101",
-                paymentInfo: "現金 $600",
-                entryTime: "2024-01-14 10:00",
+                paymentType: "cash",
+                amount: 600,
+                entryTime: new Date().toISOString(),
                 status: "active"
-            },
-            {
-                id: 2,
-                lockerNumber: "A102",
-                paymentInfo: "票券 #12345",
-                entryTime: "2024-01-14 11:30",
-                status: "leave"
             }
         ];
+    }
+}
 
-        // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            // 處理登入表單
-            document.getElementById('loginForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
+// 本地儲存功能
+const Storage = {
+    save: function(key, data) {
+        localStorage.setItem(key, JSON.stringify(data));
+    },
+    load: function(key) {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+    },
+    clear: function(key) {
+        localStorage.removeItem(key);
+    }
+};
 
-                // 簡單的驗證
-                if (username === 'admin' && password === '123456') {
-                    document.getElementById('loginContainer').style.display = 'none';
-                    document.getElementById('mainSystem').style.display = 'block';
-                    showSection('entry'); // 預設顯示入場登記
-                } else {
-                    alert('帳號或密碼錯誤！');
-                }
-            });
+// 顯示不同區段
+function showSection(sectionId) {
+    const mainContent = document.getElementById('mainContent');
+    mainContent.innerHTML = '';
+
+    switch(sectionId) {
+        case 'entry':
+            const entryTemplate = document.getElementById('entryTemplate');
+            mainContent.appendChild(entryTemplate.content.cloneNode(true));
+            initializeEntryForm();
+            break;
+        case 'records':
+            const recordsTemplate = document.getElementById('recordsTemplate');
+            mainContent.appendChild(recordsTemplate.content.cloneNode(true));
+            updateRecordsList();
+            break;
+        case 'stats':
+            const statsTemplate = document.getElementById('statsTemplate');
+            mainContent.appendChild(statsTemplate.content.cloneNode(true));
+            initializeStats();
+            break;
+        case 'settings':
+            const settingsTemplate = document.getElementById('settingsTemplate');
+            mainContent.appendChild(settingsTemplate.content.cloneNode(true));
+            initializeSettings();
+            break;
+    }
+}
+
+// 顯示提示訊息
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `toast toast-${type}`;
+    toast.style.display = 'block';
+
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 3000);
+}
+
+// 顯示載入中
+function showLoading() {
+    document.getElementById('loading').style.display = 'flex';
+}
+
+// 隱藏載入中
+function hideLoading() {
+    document.getElementById('loading').style.display = 'none';
+}
+
+// 格式化日期時間
+function formatDateTime(dateString) {
+    const date = new Date(dateString);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+// 登出功能
+function logout() {
+    if (confirm('確定要登出系統嗎？')) {
+        document.getElementById('loginContainer').style.display = 'flex';
+        document.getElementById('mainSystem').style.display = 'none';
+        document.getElementById('loginForm').reset();
+        showToast('已登出系統', 'info');
+    }
+}
+</script><script>
+// 初始化入場表單
+function initializeEntryForm() {
+    document.getElementById('entryForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        showLoading();
+
+        setTimeout(() => {
+            const formData = new FormData(e.target);
+            const newEntry = {
+                id: Date.now(),
+                lockerNumber: formData.get('lockerNumber'),
+                paymentType: formData.get('paymentType'),
+                amount: formData.get('paymentType') === 'cash' ? 
+                    parseFloat(formData.get('amount')) : 0,
+                ticketNumber: formData.get('paymentType') === 'ticket' ? 
+                    formData.get('ticketNumber') : '',
+                ticketType: formData.get('paymentType') === 'ticket' ? 
+                    formData.get('ticketType') : '',
+                entryTime: new Date().toISOString(),
+                status: 'active',
+                notes: formData.get('notes')
+            };
+
+            if (!validateEntry(newEntry)) {
+                hideLoading();
+                return;
+            }
+
+            mockRecords.unshift(newEntry);
+            Storage.save('records', mockRecords);
+            
+            hideLoading();
+            showToast('入場登記成功！', 'success');
+            e.target.reset();
+        }, 500);
+    });
+}
+
+// 驗證入場資料
+function validateEntry(entry) {
+    if (!entry.lockerNumber.match(/^[A-Z]\d{3}$/)) {
+        showToast('櫃位號碼格式錯誤（例：A101）', 'error');
+        return false;
+    }
+
+    if (entry.paymentType === 'cash' && (entry.amount <= 0 || entry.amount > 10000)) {
+        showToast('金額必須在1-10000之間', 'error');
+        return false;
+    }
+
+    if (entry.paymentType === 'ticket' && !entry.ticketNumber.match(/^T\d{11}$/)) {
+        showToast('票券編號格式錯誤（例：T20240114001）', 'error');
+        return false;
+    }
+
+    return true;
+}
+
+// 切換付款欄位
+function togglePaymentFields() {
+    const paymentType = document.querySelector('select[name="paymentType"]').value;
+    document.getElementById('cashFields').style.display = 
+        paymentType === 'cash' ? 'block' : 'none';
+    document.getElementById('ticketFields').style.display = 
+        paymentType === 'ticket' ? 'block' : 'none';
+}
+</script><script>
+// 更新記錄列表
+function updateRecordsList() {
+    const tbody = document.getElementById('recordsList');
+    if (!tbody) return;
+
+    tbody.innerHTML = mockRecords.map(record => `
+        <tr class="${getRowClass(record)}">
+            <td>${record.lockerNumber}</td>
+            <td>${getPaymentInfo(record)}</td>
+            <td>${formatDateTime(record.entryTime)}</td>
+            <td>${record.leaveTime ? formatDateTime(record.leaveTime) : '-'}</td>
+            <td>${record.returnTime ? formatDateTime(record.returnTime) : '-'}</td>
+            <td>${calculateTimeLeft(record.entryTime)}</td>
+            <td>
+                <span class="status status-${record.status}">
+                    ${getStatusText(record.status)}
+                </span>
+            </td>
+            <td>
+                ${getActionButtons(record)}
+            </td>
+        </tr>
+    `).join('');
+}
+
+// 取得付款資訊
+function getPaymentInfo(record) {
+    if (record.paymentType === 'cash') {
+        return `現金 $${record.amount}`;
+    }
+    return `票券 ${record.ticketType} #${record.ticketNumber}`;
+}
+
+// 計算剩餘時間
+function calculateTimeLeft(entryTime) {
+    const entry = new Date(entryTime);
+    const now = new Date();
+    const diff = systemSettings.defaultDuration * 60 - 
+                Math.floor((now - entry) / (1000 * 60));
+    
+    if (diff <= 0) return '已超時';
+    const hours = Math.floor(diff / 60);
+    const minutes = diff % 60;
+    return `${hours}小時${minutes}分鐘`;
+}
+
+// 取得狀態文字
+function getStatusText(status) {
+    const statusMap = {
+        active: '使用中',
+        leave: '暫時外出',
+        warning: '即將到期',
+        ended: '已結束'
+    };
+    return statusMap[status] || status;
+}
+
+// 取得操作按鈕
+function getActionButtons(record) {
+    if (record.status === 'active') {
+        return `
+            <button class="btn btn-sm btn-warning" onclick="handleLeave(${record.id})">
+                <i class="fas fa-sign-out-alt"></i> 暫時外出
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="handleCheckout(${record.id})">
+                <i class="fas fa-door-open"></i> 結帳離場
+            </button>
+        `;
+    }
+    if (record.status === 'leave') {
+        return `
+            <button class="btn btn-sm btn-success" onclick="handleReturn(${record.id})">
+                <i class="fas fa-sign-in-alt"></i> 返回
+            </button>
+        `;
+    }
+    return '';
+}
+
+// 處理暫時外出
+function handleLeave(id) {
+    const record = mockRecords.find(r => r.id === id);
+    if (record) {
+        record.status = 'leave';
+        record.leaveTime = new Date().toISOString();
+        Storage.save('records', mockRecords);
+        updateRecordsList();
+        showToast('已登記暫時外出', 'info');
+    }
+}
+
+// 處理返回
+function handleReturn(id) {
+    const record = mockRecords.find(r => r.id === id);
+    if (record) {
+        record.status = 'active';
+        record.returnTime = new Date().toISOString();
+        Storage.save('records', mockRecords);
+        updateRecordsList();
+        showToast('已登記返回', 'success');
+    }
+}
+
+// 處理結帳離場
+function handleCheckout(id) {
+    if (!confirm('確定要結帳離場？')) return;
+    
+    const record = mockRecords.find(r => r.id === id);
+    if (record) {
+        record.status = 'ended';
+        record.exitTime = new Date().toISOString();
+        
+        // 計算超時費用
+        const timeUsed = (new Date(record.exitTime) - new Date(record.entryTime)) / (1000 * 60);
+        const overtimeMinutes = Math.max(0, timeUsed - (systemSettings.defaultDuration * 60));
+        const overtimeFee = Math.ceil(overtimeMinutes / 30) * systemSettings.overtimeRate;
+        
+        if (overtimeFee > 0) {
+            record.overtimeFee = overtimeFee;
+            showToast(`超時費用：$${overtimeFee}`, 'warning');
+        }
+        
+        Storage.save('records', mockRecords);
+        updateRecordsList();
+        showToast('已完成結帳離場', 'success');
+    }
+}
+
+// 搜尋記錄
+function searchRecords() {
+    const keyword = document.getElementById('searchInput').value.toLowerCase();
+    const status = document.getElementById('statusFilter').value;
+    
+    const filteredRecords = mockRecords.filter(record => {
+        const matchKeyword = record.lockerNumber.toLowerCase().includes(keyword);
+        const matchStatus = !status || record.status === status;
+        return matchKeyword && matchStatus;
+    });
+
+    const tbody = document.getElementById('recordsList');
+    if (tbody) {
+        tbody.innerHTML = filteredRecords.map(record => /* 上述的記錄行HTML */);
+    }
+}
+
+// 導出記錄
+function exportRecords() {
+    const data = mockRecords.map(record => ({
+        櫃位號碼: record.lockerNumber,
+        付款方式: record.paymentType === 'cash' ? '現金' : '票券',
+        金額: record.amount || '',
+        票券編號: record.ticketNumber || '',
+        入場時間: formatDateTime(record.entryTime),
+        狀態: getStatusText(record.status)
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '入場記錄');
+    
+    const fileName = `入場記錄_${formatDateTime(new Date())}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+}
+</script>
+
+<style>
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 15px;
+    font-size: 0.875rem;
+}
+
+.status-active { background-color: #2ecc71; color: white; }
+.status-leave { background-color: #f1c40f; color: black; }
+.status-warning { background-color: #e74c3c; color: white; }
+.status-ended { background-color: #95a5a6; color: white; }
+</style><script>
+class ReportGenerator {
+    constructor() {
+        this.charts = {};
+    }
+
+    // 初始化報表
+    initialize() {
+        this.setDefaultDates();
+        this.generateReport();
+    }
+
+    // 設定預設日期範圍（最近30天）
+    setDefaultDates() {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+
+        document.getElementById('startDate').value = this.formatDate(startDate);
+        document.getElementById('endDate').value = this.formatDate(endDate);
+    }
+
+    // 產生報表
+    generateReport() {
+        showLoading();
+        const startDate = new Date(document.getElementById('startDate').value);
+        const endDate = new Date(document.getElementById('endDate').value);
+        const reportType = document.getElementById('reportType').value;
+
+        try {
+            // 計算統計數據
+            const stats = this.calculateStats(startDate, endDate);
+            
+            // 更新各個區塊
+            this.updateStatCards(stats);
+            this.updateCharts(stats, reportType);
+            this.updateReportTable(stats);
+
+            showToast('報表產生成功！', 'success');
+        } catch (error) {
+            console.error('報表產生錯誤:', error);
+            showToast('報表產生失敗', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // 計算統計數據
+    calculateStats(startDate, endDate) {
+        const relevantRecords = mockRecords.filter(record => {
+            const recordDate = new Date(record.entryTime);
+            return recordDate >= startDate && recordDate <= endDate;
         });
 
-        // 顯示不同區段
-        function showSection(sectionId) {
-            const mainContent = document.getElementById('mainContent');
-            mainContent.innerHTML = '';
-
-            switch(sectionId) {
-                case 'entry':
-                    const entryTemplate = document.getElementById('entryTemplate');
-                    mainContent.appendChild(entryTemplate.content.cloneNode(true));
-                    initializeEntryForm();
-                    break;
-                case 'records':
-                    const recordsTemplate = document.getElementById('recordsTemplate');
-                    mainContent.appendChild(recordsTemplate.content.cloneNode(true));
-                    updateRecordsList();
-                    break;
-                // 其他區段可以在這裡添加
+        const dailyStats = {};
+        relevantRecords.forEach(record => {
+            const date = this.formatDate(new Date(record.entryTime));
+            if (!dailyStats[date]) {
+                dailyStats[date] = {
+                    revenue: 0,
+                    users: 0,
+                    totalTime: 0
+                };
             }
+
+            dailyStats[date].users++;
+            if (record.paymentType === 'cash') {
+                dailyStats[date].revenue += Number(record.amount);
+            }
+
+            // 計算使用時間
+            const exitTime = record.exitTime ? new Date(record.exitTime) : new Date();
+            const entryTime = new Date(record.entryTime);
+            dailyStats[date].totalTime += (exitTime - entryTime) / (1000 * 60 * 60);
+        });
+
+        // 計算總計和平均值
+        let totalRevenue = 0;
+        let totalUsers = 0;
+        let totalTime = 0;
+
+        Object.values(dailyStats).forEach(stat => {
+            totalRevenue += stat.revenue;
+            totalUsers += stat.users;
+            totalTime += stat.totalTime;
+        });
+
+        return {
+            dailyStats,
+            totalRevenue,
+            totalUsers,
+            averageTime: totalUsers > 0 ? totalTime / totalUsers : 0,
+            usageRate: (totalUsers / (Object.keys(dailyStats).length * 100)) * 100
+        };
+    }
+
+    // 更新統計卡片
+    updateStatCards(stats) {
+        document.getElementById('todayIncome').textContent = 
+            `$${stats.totalRevenue.toFixed(0)}`;
+        document.getElementById('activeLockers').textContent = 
+            stats.totalUsers.toString();
+        document.getElementById('avgUsageTime').textContent = 
+            `${stats.averageTime.toFixed(1)}小時`;
+        document.getElementById('lockerUsage').textContent = 
+            `${stats.usageRate.toFixed(1)}%`;
+    }
+
+    // 更新圖表
+    updateCharts(stats, reportType) {
+        this.updateRevenueChart(stats.dailyStats);
+        this.updateUsageChart(stats.dailyStats);
+    }
+
+    // 更新營收圖表
+    updateRevenueChart(dailyStats) {
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        
+        if (this.charts.revenue) {
+            this.charts.revenue.destroy();
         }
 
-        // 初始化入場表單
-        function initializeEntryForm() {
-            document.getElementById('entryForm')?.addEventListener('submit', function(e) {
-                e.preventDefault();
-                // 這裡處理表單提交
-                alert('入場登記成功！');
-                this.reset();
-            });
+        const dates = Object.keys(dailyStats).sort();
+        const revenues = dates.map(date => dailyStats[date].revenue);
+
+        this.charts.revenue = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: '每日營收',
+                    data: revenues,
+                    borderColor: '#2ecc71',
+                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '營收趨勢圖'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: value => `$${value}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 更新使用率圖表
+    updateUsageChart(dailyStats) {
+        const ctx = document.getElementById('usageChart').getContext('2d');
+        
+        if (this.charts.usage) {
+            this.charts.usage.destroy();
         }
 
-        // 切換付款欄位
-        function togglePaymentFields() {
-            const paymentType = document.querySelector('select[name="paymentType"]').value;
-            document.getElementById('cashFields').style.display = 
-                paymentType === 'cash' ? 'block' : 'none';
-            document.getElementById('ticketFields').style.display = 
-                paymentType === 'ticket' ? 'block' : 'none';
-        }
+        const dates = Object.keys(dailyStats).sort();
+        const users = dates.map(date => dailyStats[date].users);
 
-        // 更新記錄列表
-        function updateRecordsList() {
-            const tbody = document.getElementById('recordsList');
-            if (!tbody) return;
+        this.charts.usage = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: '每日使用人數',
+                    data: users,
+                    backgroundColor: '#3498db'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '使用人數統計'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
 
-            tbody.innerHTML = mockRecords.map(record => `
+    // 更新報表表格
+    updateReportTable(stats) {
+        const tbody = document.getElementById('reportTableBody');
+        if (!tbody) return;
+
+        const rows = Object.entries(stats.dailyStats)
+            .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
+            .map(([date, stat]) => `
                 <tr>
-                    <td>${record.lockerNumber}</td>
-                    <td>${record.paymentInfo}</td>
-                    <td>${record.entryTime}</td>
-                    <td>${calculateTimeLeft(record.entryTime)}</td>
-                    <td>
-                        <span class="status status-${record.status}">
-                            ${getStatusText(record.status)}
-                        </span>
-                    </td>
-                    <td>
-                        ${getActionButtons(record)}
-                    </td>
+                    <td>${date}</td>
+                    <td>$${stat.revenue.toFixed(0)}</td>
+                    <td>${stat.users}</td>
+                    <td>${(stat.totalTime / stat.users).toFixed(1)}小時</td>
+                    <td>${((stat.users / 100) * 100).toFixed(1)}%</td>
                 </tr>
             `).join('');
-        }
 
-        // 計算剩餘時間
-        function calculateTimeLeft(entryTime) {
-            const entry = new Date(entryTime);
-            const now = new Date();
-            const diff = 24 * 60 - Math.floor((now - entry) / (1000 * 60));
-            return `${Math.floor(diff / 60)}小時${diff % 60}分鐘`;
-        }
+        tbody.innerHTML = rows;
+    }
 
-        // 取得狀態文字
-        function getStatusText(status) {
-            const statusMap = {
-                active: '使用中',
-                leave: '暫時外出',
-                warning: '即將到期'
-            };
-            return statusMap[status] || status;
-        }
+    // 格式化日期
+    formatDate(date) {
+        return date.toISOString().split('T')[0];
+    }
+}
 
-        // 取得操作按鈕
-        function getActionButtons(record) {
-            if (record.status === 'active') {
-                return `
-                    <button class="btn btn-warning" onclick="handleLeave(${record.id})">暫時外出</button>
-                    <button class="btn btn-danger" onclick="handleCheckout(${record.id})">結帳離場</button>
-                `;
-            }
-            if (record.status === 'leave') {
-                return `
-                    <button class="btn btn-success" onclick="handleReturn(${record.id})">返回</button>
-                `;
-            }
-            return '';
-        }
+// 建立報表生成器實例
+const reportGenerator = new ReportGenerator();
 
-        // 登出函數
-        function logout() {
-            if (confirm('確定要登出系統嗎？')) {
-                document.getElementById('loginContainer').style.display = 'flex';
-                document.getElementById('mainSystem').style.display = 'none';
-                document.getElementById('loginForm').reset();
-            }
-        }
-    </script>
+// 初始化統計報表
+function initializeStats() {
+    reportGenerator.initialize();
+}
+</script>
+
+<style>
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: 2rem;
+}
+
+.stats-card {
+    transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style></script>
 </body>
 </html>

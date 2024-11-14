@@ -169,3 +169,45 @@ function formatDateTime(dateString) {
         minute: '2-digit'
     });
 }
+const Validator = {
+    // 櫃位號碼驗證 (1-300)
+    validateLockerNumber: function(number) {
+        const num = parseInt(number);
+        return !isNaN(num) && num >= 1 && num <= 300;
+    },
+
+    // 票券號碼驗證 (允許英數字)
+    validateTicketNumber: function(number) {
+        return /^[A-Za-z0-9]{4,20}$/.test(number);
+    },
+
+    // 金額驗證
+    validateAmount: function(amount) {
+        const num = parseFloat(amount);
+        return !isNaN(num) && num > 0 && num <= 10000;
+    }
+};
+
+// 入場表單驗證
+function validateEntry(entry) {
+    // 櫃位號碼驗證
+    if (!Validator.validateLockerNumber(entry.lockerNumber)) {
+        showToast('櫃位號碼必須是1-300之間的數字', 'error');
+        return false;
+    }
+
+    // 付款方式驗證
+    if (entry.paymentType === 'cash') {
+        if (!Validator.validateAmount(entry.amount)) {
+            showToast('金額必須在1-10000之間', 'error');
+            return false;
+        }
+    } else if (entry.paymentType === 'ticket') {
+        if (!Validator.validateTicketNumber(entry.ticketNumber)) {
+            showToast('票券號碼格式不正確(需4-20位英數字)', 'error');
+            return false;
+        }
+    }
+
+    return true;
+}

@@ -1,42 +1,24 @@
-# 三溫暖管理系統
+# HiMAN 三溫暖管理系統
 
-一個簡單的三溫暖客人管理系統，使用純 HTML、CSS 和 JavaScript 開發。
+## 專案簡介
+HiMAN 三溫暖管理系統是一個專門設計用於管理三溫暖/SPA 場所的網頁應用程式。提供入場登記、客戶管理、使用記錄追蹤等功能。
 
-## 功能
+## 功能特點
+- 📝 入場登記與管理
+- 👥 客戶使用記錄追蹤
+- 📊 統計報表生成
+- ⚙️ 系統設定管理
+- 💾 資料備份還原
+- 🔐 用戶權限管理
 
-- 客人入場登記
-  - 置物櫃分配
-  - 現金/票券付款
-  - 備註功能
-- 客人管理
-  - 即時顯示在場客人
-  - 使用時間計算
-  - 超時提醒
-- 結帳功能
-  - 自動計算費用
-  - 超時費用計算
-  - 結帳明細
+## 技術架構
+- HTML5
+- CSS3 & Responsive Design
+- JavaScript (ES6+)
+- Chart.js for data visualization
+- Local Storage for data persistence
 
-## 安裝與使用
-
-1. 下載或克隆此專案
-2. 直接開啟 index.html 檔案
-3. 無需額外設定，即可使用
-
-## 技術說明
-
-- 使用 localStorage 儲存資料
-- 使用 Tailwind CSS 進行樣式設計
-- 純 JavaScript 實現，無需後端支援
-
-## 注意事項
-
-- 資料儲存在瀏覽器本地
-- 請定期備份重要資料
-- 建議定期清理舊資料
-
-## 更新紀錄
-
-### v1.0.0 (2024/03/13)
-- 初始版本發布
-- 基本功能實現
+## 安裝說明
+1. 克隆專案
+```bash
+git clone https://github.com/yourusername/HiMAN-Spa-Management-System.git

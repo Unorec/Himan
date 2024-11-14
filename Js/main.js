@@ -134,8 +134,9 @@ function initializeEntryForm() {
 
 // 驗證入場資料
 function validateEntry(entry) {
-    if (!entry.lockerNumber.match(/^[A-Z]\d{3}$/)) {
-        showToast('櫃位號碼格式錯誤', 'error');
+  const lockerNum = parseInt(entry.lockerNumber);
+    if (isNaN(lockerNum) || lockerNum < 1 || lockerNum > 300) {
+        showToast('櫃位號碼必須是1-300之間的數字', 'error');
         return false;
     }
 
@@ -179,6 +180,7 @@ const Validator = {
     // 票券號碼驗證 (允許英數字)
     validateTicketNumber: function(number) {
         return /^[A-Za-z0-9]{4,20}$/.test(number);
+        
     },
 
     // 金額驗證

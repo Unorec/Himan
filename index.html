@@ -1375,6 +1375,828 @@ function initializeStats() {
     transform: translateY(-5px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
-</style></script>
+</style>
+<script>
+class SettingsManager {
+    constructor() {
+        this.settings = {
+            systemName: 'HiMAN三溫暖管理系統',
+            openTime: '06:00',
+            closeTime: '23:00',
+            basePrice: 600,
+            overtimeRate: 100,
+            reminderTime: 30
+        };
+        
+        // 用戶資料
+        this.users = [
+            {
+                id: 1,
+                username: 'himan',
+                displayName: 'HiMAN管理員',
+                role: 'admin',
+                status: 'active'
+            }
+        ];
+    }
+
+    // 初始化設定
+    initialize() {
+        this.loadSettings();
+        this.initializeEventListeners();
+        this.updateUserList();
+    }
+
+    // 載入設定
+    loadSettings() {
+        const savedSettings = Storage.load('systemSettings');
+        if (savedSettings) {
+            this.settings = { ...this.settings, ...savedSettings };
+        }
+        this.fillSettingsForm();
+    }
+
+    // 填充設定表單
+    fillSettingsForm() {
+        const form = document.getElementById('generalSettingsForm');
+        if (!form) return;
+
+        Object.entries(this.settings).forEach(([key, value]) => {
+            const input = form.elements[key];
+            if (input) {
+                input.value = value;
+            }
+        });
+    }
+
+    // 初始化事件監聽器
+    initializeEventListeners() {
+        // 一般設定表單提交
+        document.getElementById('generalSettingsForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveGeneralSettings(new FormData(e.target));
+        });
+
+        // 新增用戶表單提交
+        document.getElementById('addUserForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.addUser(new FormData(e.target));
+        });
+    }
+
+    // 儲存一般設定
+    saveGeneralSettings(formData) {
+        showLoading();
+        setTimeout(() => {
+            const newSettings = {};
+            formData.forEach((value, key) => {
+                newSettings[key] = value;
+            });
+
+            this.settings = { ...this.settings, ...newSettings };
+            Storage.save('systemSettings', this.settings);
+            
+            hideLoading();
+            showToast('設定已儲存', 'success');
+        }, 500);
+    }
+
+    // 新增用戶
+    addUser(formData) {
+        const username = formData.get('username');
+        const password = formData.get('password');
+        const confirmPassword = formData.get('confirmPassword');
+        const displayName = formData.get('displayName');
+        const role = formData.get('role');
+
+        // 驗證
+        if (password !== confirmPassword) {
+            showToast('密碼不一致', 'error');
+            return;
+        }
+
+        if (this.users.some(u => u.username === username)) {
+            showToast('用戶名已存在', 'error');
+            return;
+        }
+
+        const newUser = {
+            id: Date.now(),
+            username,
+            displayName,
+            role,
+            status: 'active'
+        };
+
+        this.users.push(newUser);
+        Storage.save('users', this.users);
+        this.updateUserList();
+        closeModal('addUserModal');
+        showToast('用戶新增成功', 'success');
+    }
+
+    // 更新用戶列表
+    updateUserList() {
+        const tbody = document.getElementById('userList');
+        if (!tbody) return;
+
+        tbody.innerHTML = this.users.map(user => `
+            <tr>
+                <td>${user.username}</td>
+                <td>${user.displayName}</td>
+                <td>${this.getRoleName(user.role)}</td>
+                <td>
+                    <span class="status status-${user.status}">
+                        ${user.status === 'active' ? '啟用' : '停用'}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="editUser(${user.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    ${user.username !== 'himan' ? `
+                        <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : ''}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // 取得角色名稱
+    getRoleName(role) {
+        const roleNames = {
+            admin: '管理員',
+            operator: '操作員',
+            viewer: '檢視者'
+        };
+        return roleNames[role] || role;
+    }
+
+    // 備份系統資料
+    backupData() {
+        const backupData = {
+            settings: this.settings,
+            users: this.users,
+            records: mockRecords,
+            timestamp: new Date().toISOString()
+        };
+
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], 
+            { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup-${this.formatDate(new Date())}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast('備份檔案已下載', 'success');
+    }
+
+    // 還原系統資料
+    async restoreData(file) {
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            // 驗證備份資料格式
+            if (!data.settings || !data.users || !data.records) {
+                throw new Error('無效的備份檔案格式');
+            }
+
+            // 還原資料
+            this.settings = data.settings;
+            this.users = data.users;
+            mockRecords = data.records;
+
+            // 儲存到本地儲存
+            Storage.save('systemSettings', this.settings);
+            Storage.save('users', this.users);
+            Storage.save('records', mockRecords);
+
+            // 更新界面
+            this.fillSettingsForm();
+            this.updateUserList();
+            updateRecordsList();
+
+            showToast('系統資料還原成功', 'success');
+        } catch (error) {
+            console.error('還原失敗:', error);
+            showToast('還原失敗：' + error.message, 'error');
+        }
+    }
+
+    // 格式化日期
+    formatDate(date) {
+        return date.toISOString().split('T')[0];
+    }
+}
+
+// 建立設定管理器實例
+const settingsManager = new SettingsManager();
+
+// 視窗相關函數
+function showModal(modalId) {
+    document.getElementById(modalId).style.display = 'block';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+// 切換設定標籤
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+    
+    document.getElementById(tabId + 'Settings').style.display = 'block';
+    event.target.classList.add('active');
+}
+
+// 初始化設定頁面
+function initializeSettings() {
+    settingsManager.initialize();
+}
+</script>
+
+<style>
+.settings-tab {
+    display: none;
+}
+
+.settings-tab.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+.user-table td {
+    vertical-align: middle;
+}
+
+.role-badge {
+    padding: 0.25em 0.75em;
+    border-radius: 1em;
+    font-size: 0.85em;
+    background: #e9ecef;
+}
+
+.backup-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-top: 1rem;
+}
+</style>
+<script>
+// 工具類：資料驗證
+class Validator {
+    static validateLockerNumber(number) {
+        return /^[A-Z]\d{3}$/.test(number);
+    }
+
+    static validateAmount(amount) {
+        const num = parseFloat(amount);
+        return !isNaN(num) && num > 0 && num <= 10000;
+    }
+
+    static validateTicketNumber(number) {
+        return /^T\d{11}$/.test(number);
+    }
+
+    static validateTime(time) {
+        return /^([01]\d|2[0-3]):([0-5]\d)$/.test(time);
+    }
+
+    static validateUsername(username) {
+        return /^[a-zA-Z0-9_]{3,20}$/.test(username);
+    }
+
+    static validatePassword(password) {
+        return password.length >= 6;
+    }
+}
+
+// 工具類：時間管理
+class TimeManager {
+    static calculateDuration(startTime, endTime) {
+        const start = new Date(startTime);
+        const end = endTime ? new Date(endTime) : new Date();
+        return Math.floor((end - start) / (1000 * 60)); // 返回分鐘數
+    }
+
+    static formatDuration(minutes) {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours}小時${mins}分鐘`;
+    }
+
+    static isBusinessHours() {
+        const now = new Date();
+        const hour = now.getHours();
+        return hour >= 6 && hour < 23;
+    }
+
+    static getNextBusinessDay() {
+        const date = new Date();
+        date.setDate(date.getDate() + 1);
+        date.setHours(6, 0, 0, 0);
+        return date;
+    }
+}
+
+// 工具類：監視器
+class Monitor {
+    static init() {
+        this.startPeriodicCheck();
+        this.setupEventListeners();
+    }
+
+    static startPeriodicCheck() {
+        setInterval(() => {
+            this.checkExpiringRecords();
+            this.checkSystemStatus();
+        }, 60000); // 每分鐘檢查一次
+    }
+
+    static checkExpiringRecords() {
+        const warningTime = systemSettings.reminderTime;
+        mockRecords.forEach(record => {
+            if (record.status !== 'active') return;
+
+            const timeLeft = TimeManager.calculateDuration(record.entryTime);
+            const remainingMinutes = systemSettings.defaultDuration * 60 - timeLeft;
+
+            if (remainingMinutes <= warningTime && !record.warned) {
+                this.sendNotification(`櫃位 ${record.lockerNumber} 即將到期`, 'warning');
+                record.warned = true;
+            }
+        });
+    }
+
+    static checkSystemStatus() {
+        // 檢查系統狀態
+        const activeUsers = mockRecords.filter(r => r.status === 'active').length;
+        const totalLockers = 100; // 假設總櫃位數
+        const usageRate = (activeUsers / totalLockers) * 100;
+
+        if (usageRate > 90) {
+            this.sendNotification('櫃位使用率超過90%', 'warning');
+        }
+
+        if (!TimeManager.isBusinessHours()) {
+            this.sendNotification('目前非營業時間', 'info');
+        }
+    }
+
+    static setupEventListeners() {
+        // 監聽系統事件
+        window.addEventListener('online', () => {
+            this.sendNotification('網路連線已恢復', 'success');
+        });
+
+        window.addEventListener('offline', () => {
+            this.sendNotification('網路連線中斷', 'error');
+        });
+
+        // 定期自動儲存
+        setInterval(() => {
+            this.autoSave();
+        }, 300000); // 每5分鐘自動儲存
+    }
+
+    static sendNotification(message, type = 'info') {
+        // 檢查瀏覽器是否支援通知
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('HiMAN三溫暖管理系統', {
+                body: message,
+                icon: '/path/to/icon.png'
+            });
+        }
+        
+        showToast(message, type);
+    }
+
+    static autoSave() {
+        try {
+            Storage.save('records', mockRecords);
+            Storage.save('systemSettings', systemSettings);
+            console.log('自動儲存完成:', new Date().toLocaleString());
+        } catch (error) {
+            console.error('自動儲存失敗:', error);
+        }
+    }
+}
+
+// 工具類：資料匯出
+class ExportManager {
+    static exportToExcel(data, filename) {
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, '資料');
+        XLSX.writeFile(workbook, filename);
+    }
+
+    static exportToPDF(content, filename) {
+        const pdf = new jsPDF();
+        pdf.text(content, 10, 10);
+        pdf.save(filename);
+    }
+
+    static exportToCSV(data, filename) {
+        const headers = Object.keys(data[0]);
+        const csvContent = [
+            headers.join(','),
+            ...data.map(row => headers.map(header => row[header]).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+    }
+}
+
+// 工具類：快取管理
+class CacheManager {
+    static cache = new Map();
+
+    static set(key, value, expirationMinutes = 30) {
+        const expirationTime = Date.now() + expirationMinutes * 60 * 1000;
+        this.cache.set(key, {
+            value,
+            expirationTime
+        });
+    }
+
+    static get(key) {
+        const item = this.cache.get(key);
+        if (!item) return null;
+        
+        if (Date.now() > item.expirationTime) {
+            this.cache.delete(key);
+            return null;
+        }
+        
+        return item.value;
+    }
+
+    static clear() {
+        this.cache.clear();
+    }
+
+    static cleanup() {
+        const now = Date.now();
+        for (const [key, item] of this.cache.entries()) {
+            if (now > item.expirationTime) {
+                this.cache.delete(key);
+            }
+        }
+    }
+}
+
+// 初始化監視器
+Monitor.init();
+
+// 設定定期清理快取
+setInterval(() => {
+    CacheManager.cleanup();
+}, 1800000); // 每30分鐘清理一次快取
+</script>
+
+<style>
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+</style>
+<script>
+// 全局事件處理器
+class EventHandler {
+    static initialize() {
+        this.setupGlobalListeners();
+        this.setupKeyboardShortcuts();
+        this.setupDragAndDrop();
+        this.setupFormValidation();
+    }
+
+    // 設置全局事件監聽器
+    static setupGlobalListeners() {
+        // 自動儲存
+        window.addEventListener('beforeunload', (e) => {
+            Storage.save('records', mockRecords);
+            Storage.save('systemSettings', systemSettings);
+        });
+
+        // 響應式調整
+        window.addEventListener('resize', this.handleResize.bind(this));
+
+        // 錯誤處理
+        window.addEventListener('error', this.handleError.bind(this));
+
+        // 網絡狀態
+        window.addEventListener('online', () => showToast('網路連線已恢復', 'success'));
+        window.addEventListener('offline', () => showToast('網路連線中斷', 'error'));
+    }
+
+    // 設置鍵盤快捷鍵
+    static setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl + N: 新增入場記錄
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                showSection('entry');
+            }
+            // Ctrl + L: 查看入場記錄
+            if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                showSection('records');
+            }
+            // Ctrl + R: 重新整理資料
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                this.refreshData();
+            }
+            // Esc: 關閉模態框
+            if (e.key === 'Escape') {
+                this.closeAllModals();
+            }
+        });
+    }
+
+    // 設置拖放功能
+    static setupDragAndDrop() {
+        const dropZone = document.getElementById('fileDropZone');
+        if (!dropZone) return;
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                this.handleFileUpload(files[0]);
+            }
+        });
+    }
+
+    // 設置表單驗證
+    static setupFormValidation() {
+        document.addEventListener('submit', (e) => {
+            if (e.target.classList.contains('needs-validation')) {
+                e.preventDefault();
+                
+                if (!this.validateForm(e.target)) {
+                    showToast('請檢查輸入資料', 'error');
+                    return;
+                }
+                
+                // 提交表單
+                this.handleFormSubmit(e.target);
+            }
+        });
+    }
+
+    // 處理表單提交
+    static handleFormSubmit(form) {
+        showLoading();
+        
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        try {
+            switch (form.id) {
+                case 'entryForm':
+                    this.handleEntrySubmit(data);
+                    break;
+                case 'settingsForm':
+                    this.handleSettingsSubmit(data);
+                    break;
+                case 'userForm':
+                    this.handleUserSubmit(data);
+                    break;
+            }
+            
+            form.reset();
+            showToast('資料已儲存', 'success');
+        } catch (error) {
+            showToast('儲存失敗: ' + error.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // 驗證表單
+    static validateForm(form) {
+        let isValid = true;
+        const inputs = form.querySelectorAll('input, select, textarea');
+        
+        inputs.forEach(input => {
+            if (input.hasAttribute('required') && !input.value.trim()) {
+                this.showInputError(input, '此欄位必填');
+                isValid = false;
+                return;
+            }
+
+            if (input.pattern && !new RegExp(input.pattern).test(input.value)) {
+                this.showInputError(input, '格式不正確');
+                isValid = false;
+                return;
+            }
+
+            // 特殊驗證
+            switch (input.name) {
+                case 'lockerNumber':
+                    if (!Validator.validateLockerNumber(input.value)) {
+                        this.showInputError(input, '櫃位號碼格式錯誤');
+                        isValid = false;
+                    }
+                    break;
+                case 'amount':
+                    if (!Validator.validateAmount(input.value)) {
+                        this.showInputError(input, '金額必須在1-10000之間');
+                        isValid = false;
+                    }
+                    break;
+                case 'ticketNumber':
+                    if (input.value && !Validator.validateTicketNumber(input.value)) {
+                        this.showInputError(input, '票券編號格式錯誤');
+                        isValid = false;
+                    }
+                    break;
+            }
+        });
+
+        return isValid;
+    }
+
+    // 顯示輸入錯誤
+    static showInputError(input, message) {
+        input.classList.add('is-invalid');
+        
+        // 移除舊的錯誤訊息
+        const oldError = input.nextElementSibling;
+        if (oldError && oldError.classList.contains('invalid-feedback')) {
+            oldError.remove();
+        }
+        
+        // 添加新的錯誤訊息
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.textContent = message;
+        input.parentNode.insertBefore(errorDiv, input.nextSibling);
+        
+        // 自動移除錯誤狀態
+        input.addEventListener('input', () => {
+            input.classList.remove('is-invalid');
+            errorDiv.remove();
+        }, { once: true });
+    }
+
+    // 處理視窗大小變化
+    static handleResize() {
+        const width = window.innerWidth;
+        document.body.classList.toggle('mobile', width < 768);
+        
+        // 調整表格顯示
+        const tables = document.querySelectorAll('.table-responsive');
+        tables.forEach(table => {
+            if (width < 768) {
+                table.classList.add('table-mobile');
+            } else {
+                table.classList.remove('table-mobile');
+            }
+        });
+    }
+
+    // 處理錯誤
+    static handleError(error) {
+        console.error('系統錯誤:', error);
+        showToast('系統發生錯誤，請稍後再試', 'error');
+    }
+
+    // 重新整理資料
+    static refreshData() {
+        showLoading();
+        
+        setTimeout(() => {
+            // 重新載入資料
+            const savedRecords = Storage.load('records');
+            if (savedRecords) {
+                mockRecords = savedRecords;
+            }
+            
+            // 更新顯示
+            updateRecordsList();
+            hideLoading();
+            showToast('資料已重新整理', 'success');
+        }, 500);
+    }
+
+    // 關閉所有模態框
+    static closeAllModals() {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            modal.style.display = 'none';
+        });
+    }
+
+    // 處理檔案上傳
+    static handleFileUpload(file) {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                settingsManager.restoreData(data);
+                showToast('檔案上傳成功', 'success');
+            } catch (error) {
+                showToast('檔案格式錯誤', 'error');
+            }
+        };
+        
+        reader.readAsText(file);
+    }
+}
+
+// 初始化事件處理器
+EventHandler.initialize();
+</script>
+
+<style>
+.is-invalid {
+    border-color: #dc3545 !important;
+}
+
+.invalid-feedback {
+    color: #dc3545;
+    font-size: 0.875em;
+    margin-top: 0.25rem;
+}
+
+.drag-over {
+    border: 2px dashed #007bff !important;
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.table-mobile {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+    .mobile .card {
+        margin: 0.5rem 0;
+        border-radius: 0;
+    }
+    
+    .mobile .form-row {
+        flex-direction: column;
+    }
+    
+    .mobile .btn {
+        width: 100%;
+        margin: 0.25rem 0;
+    }
+}
+</style>
 </body>
 </html>

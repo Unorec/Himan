@@ -838,33 +838,7 @@ body {
         padding: 1rem;
     }
 }
-/* 表格樣式 */
-.table-responsive {
-    overflow-x: auto;
-    margin-top: 1rem;
-}
 
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    white-space: nowrap;
-}
-
-.table th,
-.table td {
-    padding: 0.75rem;
-    border-bottom: 1px solid var(--border-color);
-    text-align: left;
-}
-
-.table th {
-    background-color: #f8f9fa;
-    font-weight: 500;
-}
-
-.table tbody tr:hover {
-    background-color: #f8f9fa;
-}
 
 /* 狀態標籤 */
 .status-badge {
@@ -1115,4 +1089,251 @@ body {
     .time-record {
         padding: 0.75rem;
     }
+}
+/* 時段選擇卡片樣式 */
+.time-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.time-slot-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #fff;
+}
+
+.time-slot-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.time-slot-card.selected {
+    border-color: #3498db;
+    background-color: #ebf5fb;
+}
+
+.slot-header {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.slot-time {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.slot-price {
+    font-size: 1.2rem;
+    color: #e74c3c;
+    font-weight: bold;
+    margin: 0.5rem 0;
+}
+
+.slot-hours {
+    color: #2980b9;
+    font-weight: bold;
+}
+
+.slot-description {
+    font-size: 0.8rem;
+    color: #95a5a6;
+    margin-top: 0.5rem;
+}
+
+/* 時數輸入組件樣式 */
+.hours-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.unit {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+/* 提示標籤樣式 */
+.time-limit-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-left: 0.5rem;
+}
+
+.time-limit-badge.warning {
+    background-color: #f1c40f;
+    color: #fff;
+}
+
+.time-limit-badge.danger {
+    background-color: #e74c3c;
+    color: #fff;
+}
+/* 記錄表格樣式 */
+.table-responsive {
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+.table th,
+.table td {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* 記錄列樣式 */
+.record-row {
+    transition: background-color 0.2s;
+}
+
+.record-row:hover {
+    background-color: #f8f9fa;
+}
+
+.record-row.active {
+    border-left: 4px solid #2ecc71;
+}
+
+.record-row.temporary {
+    border-left: 4px solid #f1c40f;
+}
+
+.record-row.completed {
+    border-left: 4px solid #95a5a6;
+    background-color: #f9f9f9;
+}
+
+/* 時間資訊樣式 */
+.time-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.time-info > div {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* 狀態標籤樣式 */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-badge.active {
+    background-color: #e8f8f5;
+    color: #27ae60;
+}
+
+.status-badge.temporary {
+    background-color: #fef9e7;
+    color: #f39c12;
+}
+
+.status-badge.completed {
+    background-color: #f2f3f4;
+    color: #7f8c8d;
+}
+/* 時間記錄樣式 */
+.time-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.time-record {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #3498db;
+}
+
+.time-label {
+    font-weight: 500;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.time-value {
+    color: #666;
+    line-height: 1.5;
+}
+
+/* 櫃位更換樣式 */
+.current-locker-info {
+    padding: 0.75rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.required {
+    color: #e74c3c;
+    margin-left: 0.25rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+/* 更換記錄樣式 */
+.change-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.change-record {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+.change-time {
+    font-size: 0.875rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.change-details {
+    margin-bottom: 0.5rem;
+}
+
+.change-reason {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.change-remarks {
+    font-size: 0.875rem;
+    color: #666;
+    margin-top: 0.5rem;
 }

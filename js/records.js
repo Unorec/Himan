@@ -1,3 +1,7 @@
+// Import dependencies
+import { storageManager } from './storage.js';
+import { showLoading, showToast, showModal, closeModal } from './ui.js';
+
 // 記錄相關配置
 const recordsConfig = {
     itemsPerPage: 10,
@@ -34,7 +38,17 @@ const loadRecordsSection = async () => {
                         </div>
                     </div>
                 </div>
+                <!-- 新增圖表區塊 -->
                 <div class="card-body">
+                    <div class="dashboard-charts">
+                        <div class="chart-container">
+                            <canvas id="lockerStatusChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="hourlyOccupancyChart"></canvas>
+                        </div>
+                    </div>
+                    
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
@@ -62,6 +76,7 @@ const loadRecordsSection = async () => {
         // 初始化事件監聽和更新顯示
         initializeRecordsEvents();
         updateRecordsDisplay();
+        initializeCharts(); // 初始化圖表
 
     } catch (error) {
         console.error('Error loading records section:', error);
@@ -152,6 +167,8 @@ const updateRecordsDisplay = () => {
                 </td>
             </tr>
         `).join('');
+
+        updateCharts(); // 添加更新圖表的調用
 
     } catch (error) {
         console.error('Error updating records display:', error);
@@ -868,14 +885,225 @@ const formatChargeType = (type) => {
     return typeMap[type] || type;
 };
 
-// 將所有需要的函數掛載到全域
-window.loadRecordsSection = loadRecordsSection;
-window.showActionOptions = showActionOptions;
-window.handleActionSelect = handleActionSelect;
-window.handleRecordAction = handleRecordAction;
-window.showConsumptionHistory = showConsumptionHistory;
-window.showAddChargeModal = showAddChargeModal;
-window.confirmAddCharge = confirmAddCharge;
-window.showTimeHistory = showTimeHistory;
-window.showLockerChangeHistory = showLockerChangeHistory;
-window.confirmCompleteUse = confirmCompleteUse;
+// 顯示更換記錄歷史
+const showLockerChangeHistory = (recordId) => {
+    try {
+        const record = getRecordById(recordId);
+        if (!record || !record.changeHistory?.length) {
+            throw new Error('沒有更換記錄');
+        }
+
+        const modalContent = `
+            <div class="modal-header">
+                <h3>置物櫃更換記錄</h3>
+                <button onclick="closeModal()" class="close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="change-history-list">
+                    ${record.changeHistory.map(change => `
+                        <div class="change-record">
+                            <div class="change-time">${formatDateTime(change.timestamp)}</div>
+                            <div class="change-details">
+                                <div>從 ${change.oldLocker} 號櫃位更換至 ${change.newLocker} 號櫃位</div>
+                                <div>原因：${formatChangeReason(change.reason)}</div>
+                                ${change.remarks ? `<div>備註：${change.remarks}</div>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        showModal(modalContent);
+    } catch (error) {
+        console.error('Error showing locker change history:', error);
+        showToast(error.message || '顯示更換記錄失敗', 'error');
+    }
+};
+
+// 格式化更換原因
+const formatChangeReason = (reason) => {
+    const reasonMap = {
+        'maintenance': '維修需求',
+        'customer': '客戶要求',
+        'upgrade': '升級櫃位',
+        'other': '其他原因'
+    };
+    return reasonMap[reason] || reason;
+};
+
+// 初始化圖表
+const initializeCharts = () => {
+    try {
+        const statistics = calculateLockerStatistics();
+        
+        // 櫃位狀態圓餅圖
+        const statusCtx = document.getElementById('lockerStatusChart').getContext('2d');
+        new Chart(statusCtx, {
+            type: 'pie',
+            data: {
+                labels: ['可用', '使用中', '暫時外出'],
+                datasets: [{
+                    data: [
+                        statistics.available,
+                        statistics.active,
+                        statistics.temporary
+                    ],
+                    backgroundColor: [
+                        '#4CAF50', // 綠色 - 可用
+                        '#2196F3', // 藍色 - 使用中
+                        '#FFC107'  // 黃色 - 暫時外出
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '櫃位使用狀態分布'
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // 時段使用率長條圖
+        const hourlyData = calculateHourlyOccupancy();
+        const hourlyCtx = document.getElementById('hourlyOccupancyChart').getContext('2d');
+        new Chart(hourlyCtx, {
+            type: 'bar',
+            data: {
+                labels: hourlyData.labels,
+                datasets: [{
+                    label: '使用數量',
+                    data: hourlyData.data,
+                    backgroundColor: '#2196F3'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '各時段使用情況'
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '櫃位數量'
+                        }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error initializing charts:', error);
+        showToast('圖表初始化失敗', 'error');
+    }
+};
+
+// 計算櫃位統計資料
+const calculateLockerStatistics = () => {
+    try {
+        const entries = storageManager.getEntries() || [];
+        const settings = storageManager.getSettings();
+        const totalLockers = settings.lockerCount || 500;
+
+        const active = entries.filter(e => e.status === 'active').length;
+        const temporary = entries.filter(e => e.status === 'temporary').length;
+        const available = totalLockers - active - temporary;
+
+        return {
+            total: totalLockers,
+            available: available,
+            active: active,
+            temporary: temporary
+        };
+    } catch (error) {
+        console.error('Error calculating locker statistics:', error);
+        return {
+            total: 0,
+            available: 0,
+            active: 0,
+            temporary: 0
+        };
+    }
+};
+
+// 計算時段使用率
+const calculateHourlyOccupancy = () => {
+    try {
+        const entries = storageManager.getEntries() || [];
+        const activeEntries = entries.filter(e => e.status === 'active' || e.status === 'temporary');
+        
+        // 定義時段
+        const timeSlots = [
+            '6-9', '9-12', '12-15', '15-18', '18-21', '21-24', '0-3', '3-6'
+        ];
+        
+        // 初始化數據
+        const hourlyCount = new Array(timeSlots.length).fill(0);
+
+        // 統計各時段使用數量
+        const now = new Date();
+        activeEntries.forEach(entry => {
+            const entryTime = new Date(entry.entryTime);
+            const hour = entryTime.getHours();
+            const slotIndex = Math.floor((hour + 18) % 24 / 3); // 從早上6點開始算
+            hourlyCount[slotIndex]++;
+        });
+
+        return {
+            labels: timeSlots,
+            data: hourlyCount
+        };
+    } catch (error) {
+        console.error('Error calculating hourly occupancy:', error);
+        return {
+            labels: [],
+            data: []
+        };
+    }
+};
+
+// 更新圖表
+const updateCharts = () => {
+    try {
+        initializeCharts();
+    } catch (error) {
+        console.error('Error updating charts:', error);
+    }
+};
+
+// Export functions and assign to window
+const recordsExports = {
+    loadRecordsSection,
+    showActionOptions,
+    handleActionSelect,
+    handleRecordAction,
+    showConsumptionHistory,
+    showAddChargeModal,
+    confirmAddCharge,
+    showTimeHistory,
+    showLockerChangeHistory,
+    confirmCompleteUse
+};
+
+// Assign functions to window object
+Object.assign(window, {
+    confirmAddCharge,
+    showTimeHistory,
+    showLockerChangeHistory,
+    confirmCompleteUse
+});
+
+export default exports;

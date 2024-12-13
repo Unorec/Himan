@@ -32,7 +32,9 @@ class ModalSystem {
         const modalOverlay = document.getElementById('modalOverlay');
         const modalContent = document.getElementById('modalContent');
         if (modalOverlay && modalContent) {
-            modalContent.innerHTML = content;
+            const sanitizedContent = typeof content === 'string' ? 
+                content.replace(/</g, '&lt;').replace(/>/g, '&gt;') : content;
+            modalContent.innerHTML = sanitizedContent;
             modalOverlay.style.display = 'flex';
         }
     }

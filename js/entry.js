@@ -1,3 +1,6 @@
+import { showToast, showLoading } from '../js/ui.js';
+import { storageManager } from '../js/storage.js';
+
 // 載入入場登記區段
 async function loadEntrySection() {
     const mainContent = document.getElementById('mainContent');
@@ -11,7 +14,7 @@ async function loadEntrySection() {
             <div class="card-body">
                 <div class="form-group">
                     <label for="lockerNumber">櫃位號碼 <span class="required">*</span></label>
-                    <input type="number" id="lockerNumber" min="1" max="100" class="form-control" required>
+                    <input type="number" id="lockerNumber" min="1" max="500" class="form-control" required>
                 </div>
                 
                 <div class="form-group">
@@ -118,49 +121,10 @@ function setAmount(amount) {
     amountInput.value = Math.round(amount); // 四捨五入到整數
 }
 
-// 處理入場登記提交
-async function handleEntrySubmit() {
-    try {
-        showLoading(true);
-
-        // 取得表單數據
-        const formData = {
-            lockerNumber: parseInt(document.getElementById('lockerNumber').value),
-            paymentType: document.querySelector('input[name="paymentType"]:checked').value,
-            amount: document.getElementById('amount').value,
-            ticketType: document.getElementById('ticketType')?.value,
-            ticketNumber: document.getElementById('ticketNumber')?.value,
-            remarks: document.getElementById('remarks').value,
-            entryTime: new Date().toISOString(),
-            status: 'active',
-            id: generateEntryId()
-        };
-
-        // 驗證表單
-        if (!validateEntryForm(formData)) {
-            return;
-        }
-
-        // 儲存記錄
-        if (storageManager.addEntry(formData)) {
-            showToast('入場登記成功！');
-            resetEntryForm();
-        } else {
-            throw new Error('儲存失敗');
-        }
-
-    } catch (error) {
-        console.error('Entry registration error:', error);
-        showToast(error.message || '登記失敗，請重試', 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
 // 驗證表單
 function validateEntryForm(formData) {
-    if (!formData.lockerNumber || formData.lockerNumber < 1 || formData.lockerNumber > 100) {
-        showToast('請輸入有效的櫃位號碼 (1-100)', 'error');
+    if (!formData.lockerNumber || formData.lockerNumber < 1 || formData.lockerNumber > 500) {
+        showToast('請輸入有效的櫃位號碼 (1-500)', 'error');
         return false;
     }
 
@@ -271,11 +235,11 @@ function validateLockerNumber() {
     if (!lockerInput) return false;
 
     const lockerNumber = parseInt(lockerInput.value);
-    const settings = storageManager.getSettings();
+    const maxLockers = 500; // 修改為500個櫃位
     
     // 檢查是否為有效數字
-    if (!lockerNumber || lockerNumber < 1 || lockerNumber > settings.lockerCount) {
-        showToast(`請輸入有效的櫃位號碼 (1-${settings.lockerCount})`, 'error');
+    if (!lockerNumber || lockerNumber < 1 || lockerNumber > maxLockers) {
+        showToast(`請輸入有效的櫃位號碼 (1-${maxLockers})`, 'error');
         return false;
     }
 
@@ -286,15 +250,6 @@ function validateLockerNumber() {
     }
 
     return true;
-}
-
-// 檢查櫃位是否被使用
-function isLockerOccupied(lockerNumber) {
-    const entries = storageManager.getEntries() || [];
-    return entries.some(entry => 
-        entry.lockerNumber === lockerNumber && 
-        (entry.status === 'active' || entry.status === 'temporary')
-    );
 }
 
 // 處理入場登記提交
@@ -322,93 +277,6 @@ async function handleEntrySubmit() {
         if (storageManager.addEntry(entry)) {
             resetEntryForm();
             showToast('入場登記成功！');
-        } else {
-            throw new Error('儲存記錄失敗');
-        }
-
-    } catch (error) {
-        console.error('Entry registration error:', error);
-        showToast('登記失敗，請重試', 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-// 取得表單數據
-function getEntryFormData() {
-    return {
-        lockerNumber: parseInt(document.getElementById('lockerNumber').value),
-        paymentType: document.querySelector('input[name="paymentType"]:checked').value,
-        amount: document.getElementById('amount').value,
-        ticketType: document.getElementById('ticketType')?.value,
-        ticketNumber: document.getElementById('ticketNumber')?.value,
-        remarks: document.getElementById('remarks').value
-    };
-}
-
-// 驗證入場表單
-function validateEntryForm(formData) {
-    if (!validateLockerNumber()) {
-        return false;
-    }
-
-    if (formData.paymentType === 'ticket' && !formData.ticketNumber) {
-        showToast('請輸入票券號碼', 'error');
-        return false;
-    }
-
-    return true;
-}
-
-// 重置入場表單
-function resetEntryForm() {
-    const settings = storageManager.getSettings();
-    document.getElementById('lockerNumber').value = '';
-    document.getElementById('remarks').value = '';
-    document.querySelector('input[name="paymentType"][value="cash"]').checked = true;
-    handlePaymentTypeChange({ target: { value: 'cash' } });
-    document.getElementById('amount').value = settings.basePrice;
-}
-
-// 生成入場記錄ID
-function generateEntryId() {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
-    return `entry_${timestamp}_${random}`;
-}
-
-// 處理入場登記提交
-async function handleEntrySubmit() {
-    showLoading(true);
-
-    try {
-        // 取得表單數據
-        const formData = getEntryFormData();
-
-        // 驗證表單
-        if (!validateEntryForm(formData)) {
-            return;
-        }
-
-        // 建立入場記錄
-        const entry = {
-            ...formData,
-            id: generateEntryId(), // 使用新的 ID 生成函數
-            entryTime: new Date().toISOString(),
-            status: 'active'
-        };
-
-        console.log('Creating new entry:', entry); // 調試用
-
-        // 儲存記錄
-        if (storageManager.addEntry(entry)) {
-            resetEntryForm();
-            showToast('入場登記成功！');
-            
-            // 如果在同一頁面，更新記錄顯示
-            if (typeof updateRecordsDisplay === 'function') {
-                updateRecordsDisplay();
-            }
         } else {
             throw new Error('儲存記錄失敗');
         }
@@ -509,7 +377,7 @@ async function loadEntrySection() {
             <div class="card-body">
                 <div class="form-group">
                     <label for="lockerNumber">櫃位號碼 <span class="required">*</span></label>
-                    <input type="number" id="lockerNumber" min="1" max="100" class="form-control" required>
+                    <input type="number" id="lockerNumber" min="1" max="500" class="form-control" required>
                 </div>
                 
                 <!-- 時段選擇 -->
@@ -517,7 +385,7 @@ async function loadEntrySection() {
                     <label>入場時段及時數</label>
                     <div class="time-slots">
                         ${Object.entries(timeSlotPrices).map(([key, slot]) => `
-                            <div class="time-slot-card" onclick="selectTimeSlot('${key}')">
+                            <div class="time-slot-card" onclick="selectTimeSlot('${key}', event)">
                                 <div class="slot-header">${slot.name}</div>
                                 <div class="slot-time">${slot.startTime} - ${slot.endTime}</div>
                                 <div class="slot-price">$${slot.price}</div>
@@ -599,9 +467,8 @@ async function loadEntrySection() {
     mainContent.innerHTML = entryHTML;
     initializeEntryEvents();
 }
-
 // 選擇時段
-function selectTimeSlot(slotKey) {
+function selectTimeSlot(slotKey, e) {
     const slot = timeSlotPrices[slotKey];
     if (!slot) return;
 
@@ -613,7 +480,7 @@ function selectTimeSlot(slotKey) {
     document.querySelectorAll('.time-slot-card').forEach(card => {
         card.classList.remove('selected');
     });
-    event.currentTarget.classList.add('selected');
+    e.currentTarget.classList.add('selected');
 }
 
 // 處理票券類型變更
@@ -633,8 +500,8 @@ function handleTicketTypeChange() {
 
 // 修改表單驗證
 function validateEntryForm(formData) {
-    if (!formData.lockerNumber || formData.lockerNumber < 1 || formData.lockerNumber > 100) {
-        showToast('請輸入有效的櫃位號碼 (1-100)', 'error');
+    if (!formData.lockerNumber || formData.lockerNumber < 1 || formData.lockerNumber > 500) {
+        showToast('請輸入有效的櫃位號碼 (1-500)', 'error');
         return false;
     }
 
@@ -684,3 +551,24 @@ function getEntryFormData() {
 // 將新函數掛載到全域
 window.selectTimeSlot = selectTimeSlot;
 window.handleTicketTypeChange = handleTicketTypeChange;
+
+// 修改模組導出
+const entryModule = {
+    loadEntrySection,
+    handlePaymentTypeChange,
+    adjustAmount,
+    setAmount,
+    handleEntrySubmit,
+    selectTimeSlot,
+    handleTicketTypeChange
+};
+
+// 將函數掛載到全域
+window.handlePaymentTypeChange = handlePaymentTypeChange;
+window.adjustAmount = adjustAmount;
+window.setAmount = setAmount;
+window.handleEntrySubmit = handleEntrySubmit;
+window.selectTimeSlot = selectTimeSlot;
+window.handleTicketTypeChange = handleTicketTypeChange;
+
+export default entryModule;

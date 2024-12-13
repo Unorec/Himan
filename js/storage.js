@@ -256,8 +256,74 @@ class StorageManager {
     }
 }
 
-// 創建全域實例
-const storageManager = new StorageManager();
+// 儲存管理器
+export const storageManager = {
+    // 新增入場記錄
+    addEntry(entry) {
+        try {
+            const entries = this.getEntries() || [];
+            entries.push(entry);
+            localStorage.setItem('entries', JSON.stringify(entries));
+            return true;
+        } catch (error) {
+            console.error('Error adding entry:', error);
+            return false;
+        }
+    },
 
-// 導出全域實例
-window.storageManager = storageManager;
+    // 取得所有入場記錄
+    getEntries() {
+        try {
+            return JSON.parse(localStorage.getItem('entries')) || [];
+        } catch (error) {
+            console.error('Error getting entries:', error);
+            return [];
+        }
+    },
+
+    // 更新入場記錄
+    updateEntry(entryId, updatedEntry) {
+        try {
+            const entries = this.getEntries();
+            const index = entries.findIndex(e => e.id === entryId);
+            if (index !== -1) {
+                entries[index] = updatedEntry;
+                localStorage.setItem('entries', JSON.stringify(entries));
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error updating entry:', error);
+            return false;
+        }
+    },
+
+    // 取得系統設定
+    getSettings() {
+        try {
+            return JSON.parse(localStorage.getItem('settings')) || {
+                basePrice: 300,
+                lockerCount: 500
+            };
+        } catch (error) {
+            console.error('Error getting settings:', error);
+            return {
+                basePrice: 300,
+                lockerCount: 500
+            };
+        }
+    },
+
+    // 儲存系統設定
+    saveSettings(settings) {
+        try {
+            localStorage.setItem('settings', JSON.stringify(settings));
+            return true;
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            return false;
+        }
+    }
+};
+
+export default storageManager;

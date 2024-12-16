@@ -432,7 +432,6 @@ body {
 
 .history-content p {
     margin: 0.25rem 0;
-    color: var(--text-color);
 }
 
 /* 響應式設計 */
@@ -470,143 +469,6 @@ body {
 
 .modal-container {
     animation: modalFadeIn 0.3s ease-out;
-}
-/* 操作按鈕容器 */
-.action-buttons {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-/* 下拉選單容器 */
-.action-dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-/* 主要操作按鈕 */
-.action-button {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* 快速操作按鈕 */
-.quick-button {
-    background-color: #f8f9fa;
-    color: var(--text-color);
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.quick-button:hover {
-    background-color: #e9ecef;
-}
-
-/* 操作選單 */
-.action-menu {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    z-index: 100;
-    min-width: 160px;
-    margin-top: 0.25rem;
-}
-
-.action-menu.show {
-    display: block;
-}
-
-/* 選單項目 */
-.menu-item {
-    padding: 0.75rem 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.menu-item:hover {
-    background-color: #f8f9fa;
-}
-
-.menu-item i {
-    font-size: 1.1rem;
-    width: 20px;
-    text-align: center;
-}
-
-.menu-item.warning {
-    color: var(--error-color);
-}
-
-.menu-item.warning:hover {
-    background-color: #fff5f5;
-}
-
-/* 選單分隔線 */
-.menu-divider {
-    height: 1px;
-    background-color: var(--border-color);
-    margin: 0.25rem 0;
-}
-
-/* 響應式設計 */
-@media (max-width: 768px) {
-    .action-buttons {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.5rem;
-    }
-
-    .action-button,
-    .quick-button {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .action-menu {
-        position: fixed;
-        left: 1rem;
-        right: 1rem;
-        bottom: 1rem;
-        top: auto;
-        margin: 0;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .menu-item {
-        padding: 1rem;
-    }
-
-    /* 背景遮罩 */
-    .action-menu.show::before {
-        content: '';
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: -1;
-    }
 }
 /* 操作按鈕容器 */
 .action-buttons {
@@ -1011,7 +873,7 @@ body {
 }
 
 .history-time {
-    color: var(--secondary-color);
+    color: var (--secondary-color);
     font-size: 0.875rem;
     margin-bottom: 0.5rem;
 }
@@ -1336,4 +1198,255 @@ body {
     font-size: 0.875rem;
     color: #666;
     margin-top: 0.5rem;
+}
+
+/* 櫃位狀態網格 */
+.locker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 8px;
+    padding: 16px;
+}
+
+.locker-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.locker-cell.available {
+    background-color: #e8f5e9;
+    border: 1px solid #81c784;
+}
+
+.locker-cell.occupied {
+    background-color: #ffebee;
+    border: 1px solid #e57373;
+}
+
+.locker-number {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.locker-status {
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* 記錄列表樣式 */
+.records-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 16px;
+}
+
+.records-filters {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.search-input {
+    flex: 1;
+}
+
+/* 付款方式選擇 */
+.payment-type {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.radio-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.radio-button input[type="radio"] {
+    margin: 0;
+}
+
+/* 超時提醒樣式 */
+.overtime-warning {
+    text-align: center;
+    padding: 1rem;
+}
+
+.overtime-warning h3 {
+    color: var(--error-color);
+    margin-bottom: 1rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+/* 操作選項樣式 */
+.action-options {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.action-options ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.action-options li {
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+.action-options li:hover {
+    background-color: #f5f5f5;
+}
+
+/* 記錄操作相關樣式 */
+.record-actions {
+    position: relative;
+    display: inline-block;
+}
+
+.action-menu {
+    position: absolute;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    min-width: 200px;
+}
+
+/* 延長時間表單樣式 */
+.time-extension-form {
+    padding: 1rem;
+}
+
+.extension-hours {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.hour-option {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.hour-option:hover,
+.hour-option.selected {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* 櫃位更換表單樣式 */
+.locker-change-form {
+    padding: 1rem;
+}
+
+.available-lockers {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 0.5rem;
+    margin: 1rem 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.locker-option {
+    text-align: center;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.locker-option:hover,
+.locker-option.selected {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* 歷史記錄樣式 */
+.history-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.history-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.history-time {
+    min-width: 150px;
+    color: var(--secondary-color);
+}
+
+/* 加收費用表單樣式 */
+.charge-form {
+    padding: 1rem;
+}
+
+.charge-options {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.charge-preset {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.charge-preset:hover,
+.charge-preset.selected {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+    .action-menu {
+        position: fixed;
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+        transform: none;
+    }
+
+    .extension-hours,
+    .charge-options {
+        flex-direction: column;
+    }
+
+    .available-lockers {
+        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    }
 }

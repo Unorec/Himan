@@ -14,18 +14,32 @@ export const showToast = (message, type = 'info') => {
     }, 3000);
 };
 
-// 顯示/隱藏載入中動畫
-export const showLoading = (show = true) => {
-    const loading = document.getElementById('loading');
-    if (loading) {
-        loading.style.display = show ? 'flex' : 'none';
+/**
+ * 顯示/隱藏載入中動畫
+ * @param {boolean|string} param - 若為 boolean 則控制顯示/隱藏，若為 string 則為顯示訊息
+ */
+export const showLoading = (param = true) => {
+    // 如果已存在 loading overlay，先移除
+    const existingOverlay = document.querySelector('.loading-overlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
     }
+
+    // 如果參數為 false，直接返回（相當於 hideLoading）
+    if (param === false) return;
+
+    // 建立新的 loading 元素
+    const loading = document.createElement('div');
+    loading.className = 'loading-overlay';
+    loading.innerHTML = `
+        <div class="loading-spinner"></div>
+        <div class="loading-message">${typeof param === 'string' ? param : '處理中...'}</div>
+    `;
+    document.body.appendChild(loading);
 };
 
-// 顯示確認對話框
-export const showConfirm = (message) => {
-    return confirm(message);
-};
+// 為了保持向後相容，建立 hideLoading 作為 showLoading(false) 的別名
+export const hideLoading = () => showLoading(false);
 
 // 切換模組顯示
 export const switchModule = (moduleName) => {
@@ -80,9 +94,44 @@ export const closeModal = (modal) => {
     }
 };
 
+/**
+ * 顯示確認對話框
+ * @param {string} message - 確認訊息
+ * @param {Function} onConfirm - 確認回調
+ * @param {Function} onCancel - 取消回調
+ */
+export const showConfirm = (message, onConfirm, onCancel) => {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-container">
+            <div class="modal-body">
+                <p>${message}</p>
+                <div class="form-actions">
+                    <button class="primary-button" id="confirmBtn">確認</button>
+                    <button class="secondary-button" id="cancelBtn">取消</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('confirmBtn').onclick = () => {
+        modal.remove();
+        onConfirm?.();
+    };
+
+    document.getElementById('cancelBtn').onclick = () => {
+        modal.remove();
+        onCancel?.();
+    };
+};
+
 export default {
     showToast,
     showLoading,
+    hideLoading,  // 加入 hideLoading 到預設導出
     showConfirm,
     switchModule,
     showModal,

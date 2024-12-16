@@ -1,5 +1,10 @@
 // 修改導入路徑
 import { showToast, showLoading } from '../js/ui.js';
+import { 
+    initializeRecords, 
+    displayRecords, 
+    updateRecord 
+} from './records.js';
 
 // Storage Manager implementation
 const storageManager = {

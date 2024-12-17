@@ -1,600 +1,722 @@
-// Import dependencies
-import { storageManager } from './storage.js';
-import { showLoading, showToast, showModal, closeModal } from './ui.js';
-import { lockerManager } from './lockers.js';
-
-// 記錄相關配置
-const recordsConfig = {
-    itemsPerPage: 10,
-    currentPage: 1,
-    currentFilter: 'all'
+// 建立全域命名空間
+window.recordsModule = {
+    config: {
+        itemsPerPage: 10,
+        currentPage: 1,
+        currentFilter: 'all'
+    },
+    utils: {},
+    handlers: {}
 };
 
-// 載入入場記錄和櫃位狀態
-export async function loadRecordsSection() {
-    const mainContent = document.getElementById('mainContent');
-    
-    const recordsHTML = `
-        <div class="records-container">
-            <div class="status-panel">
-                <h2>即時櫃位狀態</h2>
-                <div class="locker-grid" id="lockerGrid"></div>
-            </div>
-            <div class="records-panel">
-                <h2>入場記錄列表</h2>
-                <div class="records-filters">
-                    <input type="text" id="searchInput" placeholder="搜尋櫃位或備註..." class="search-input">
-                    <select id="statusFilter" class="status-filter">
-                        <option value="all">全部狀態</option>
-                        <option value="active">使用中</option>
-                        <option value="completed">已結束</option>
-                    </select>
-                </div>
-                <div class="records-list" id="recordsList"></div>
-            </div>
-        </div>
-    `;
-
-    mainContent.innerHTML = recordsHTML;
-    initializeRecordsEvents();
-    updateLockerGrid();
-    updateRecordsList();
-}
-
-// 更新櫃位狀態顯示
-export function updateLockerGrid() {
-    const grid = document.getElementById('lockerGrid');
-    const lockerStatus = lockerManager.getLockerStatus();
-    const maxLockers = 500;
-    
-    let gridHTML = '';
-    for (let i = 1; i <= maxLockers; i++) {
-        const status = lockerStatus[i] ? 'occupied' : 'available';
-        const statusText = lockerStatus[i] ? '使用中' : '可使用';
-        
-        gridHTML += `
-            <div class="locker-cell ${status}" data-locker="${i}">
-                <span class="locker-number">${i}</span>
-                <span class="locker-status">${statusText}</span>
-            </div>
-        `;
-    }
-    
-    grid.innerHTML = gridHTML;
-
-    // 添加點擊事件
-    grid.querySelectorAll('.locker-cell').forEach(cell => {
-        cell.addEventListener('click', () => showLockerDetail(cell.dataset.locker));
-    });
-}
-
-// 更新入場記錄列表
-export function updateRecordsList(filter = 'all', searchTerm = '') {
-    const records = storageManager.getEntries() || [];
-    const recordsList = document.getElementById('recordsList');
-    
-    const filteredRecords = records.filter(record => {
-        const matchesFilter = filter === 'all' || record.status === filter;
-        const matchesSearch = !searchTerm || 
-            record.lockerNumber.toString().includes(searchTerm) ||
-            (record.remarks && record.remarks.includes(searchTerm));
-        return matchesFilter && matchesSearch;
-    });
-
-    const recordsHTML = filteredRecords.map(record => `
-        <div class="record-item ${record.status}">
-            <div class="record-header">
-                <span class="locker-number">櫃位 #${record.lockerNumber}</span>
-                <span class="record-status ${record.status}">
-                    ${record.status === 'active' ? '使用中' : '已結束'}
-                </span>
-            </div>
-            <div class="record-details">
-                <div>入場時間: ${new Date(record.entryTime).toLocaleString()}</div>
-                ${record.status === 'completed' ? 
-                    `<div>離場時間: ${new Date(record.exitTime).toLocaleString()}</div>` : 
-                    `<div>預計結束: ${new Date(record.expectedEndTime).toLocaleString()}</div>`
-                }
-                <div>付款方式: ${record.paymentType === 'cash' ? 
-                    `現金 $${record.amount}` : 
-                    `票券 (${record.ticketType})`}</div>
-                ${record.remarks ? `<div>備註: ${record.remarks}</div>` : ''}
-            </div>
-            ${record.status === 'active' ? 
-                `<button class="exit-button" onclick="handleExit('${record.id}')">
-                    登記離場
-                </button>` : ''
-            }
-        </div>
-    `).join('');
-
-    recordsList.innerHTML = recordsHTML || '<div class="no-records">目前無入場記錄</div>';
-}
-
-// 顯示櫃位詳細資訊
-export function showLockerDetail(lockerId) {
-    const records = storageManager.getEntries() || [];
-    const activeRecord = records.find(r => 
-        r.lockerNumber.toString() === lockerId && 
-        r.status === 'active'
-    );
-
-    if (activeRecord) {
-        showModal(`
-            <div class="locker-detail">
-                <h3>櫃位 #${lockerId} 使用狀態</h3>
-                <div class="detail-content">
-                    <p>入場時間: ${new Date(activeRecord.entryTime).toLocaleString()}</p>
-                    <p>預計結束: ${new Date(activeRecord.expectedEndTime).toLocaleString()}</p>
-                    <p>付款方式: ${activeRecord.paymentType === 'cash' ? 
-                        `現金 $${activeRecord.amount}` : 
-                        `票券 (${activeRecord.ticketType})`}</p>
-                    ${activeRecord.remarks ? `<p>備註: ${activeRecord.remarks}</p>` : ''}
-                    <button class="primary-button" 
-                            onclick="handleExit('${activeRecord.id}')">
-                        登記離場
-                    </button>
-                </div>
-            </div>
-        `, '櫃位詳細資訊');
-    } else {
-        showModal(`
-            <div class="locker-detail">
-                <h3>櫃位 #${lockerId}</h3>
-                <p class="available-status">目前可使用</p>
-            </div>
-        `, '櫃位詳細資訊');
-    }
-}
-
-// 初始化事件監聽
-export function initializeRecordsEvents() {
-    const searchInput = document.getElementById('searchInput');
-    const statusFilter = document.getElementById('statusFilter');
-
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            updateRecordsList(statusFilter.value, e.target.value);
-        });
-    }
-
-    if (statusFilter) {
-        statusFilter.addEventListener('change', (e) => {
-            updateRecordsList(e.target.value, searchInput.value);
-        });
-    }
-
-    // 將事件處理函數添加到全域
-    window.handleExit = handleExit;
-}
-
-// 處理離場
-export async function handleExit(recordId) {
-    const records = storageManager.getEntries() || [];
-    const recordIndex = records.findIndex(r => r.id === recordId);
-    
-    if (recordIndex === -1) {
-        showToast('找不到該入場記錄', 'error');
-        return;
-    }
-
-    const record = records[recordIndex];
-    record.status = 'completed';
-    record.exitTime = new Date().toISOString();
-
-    // 更新記錄
-    storageManager.updateEntry(recordId, record);
-    
-    // 釋放櫃位
-    lockerManager.releaseLocker(record.lockerNumber);
-
-    // 更新顯示
-    updateLockerGrid();
-    updateRecordsList();
-    showToast('已完成離場登記');
-}
-
-// 顯示記錄操作選項
-function showActionOptions(element, record) {
-    const options = document.createElement('div');
-    options.className = 'action-options';
-    
-    // 建立選項清單
-    const actionsList = document.createElement('ul');
-    
-    // 新增查看詳情選項
-    const viewDetails = document.createElement('li');
-    viewDetails.textContent = '查看詳情';
-    viewDetails.onclick = () => showRecordDetails(record);
-    
-    // 新增編輯選項
-    const editRecord = document.createElement('li');
-    editRecord.textContent = '編輯記錄';
-    editRecord.onclick = () => editRecordData(record);
-    
-    // 新增刪除選項
-    const deleteRecord = document.createElement('li');
-    deleteRecord.textContent = '刪除記錄';
-    deleteRecord.onclick = () => deleteRecordData(record.id);
-    
-    // 組合選項
-    actionsList.appendChild(viewDetails);
-    actionsList.appendChild(editRecord);
-    actionsList.appendChild(deleteRecord);
-    options.appendChild(actionsList);
-    
-    // 設定位置
-    const rect = element.getBoundingClientRect();
-    options.style.position = 'absolute';
-    options.style.top = `${rect.bottom + window.scrollY}px`;
-    options.style.left = `${rect.left}px`;
-    
-    // 添加到文件中
-    document.body.appendChild(options);
-    
-    // 點擊外部關閉選項
-    const closeOptions = (e) => {
-        if (!options.contains(e.target) && e.target !== element) {
-            options.remove();
-            document.removeEventListener('click', closeOptions);
+// 工具函數
+recordsModule.utils = {
+    formatDateTime: (dateString) => {
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            console.error('Error formatting date time:', error);
+            return '無效日期';
         }
-    };
-    
-    document.addEventListener('click', closeOptions);
-}
+    },
 
-// 處理操作選項的選擇
-function handleActionSelect(action, record) {
-    switch (action) {
-        case 'view':
-            showRecordDetails(record);
-            break;
-        case 'edit':
-            showEditModal(record);
-            break;
-        case 'delete':
-            showDeleteConfirm(record);
-            break;
-        case 'extend':
-            showExtendTimeModal(record);
-            break;
-        case 'change':
-            showLockerChangeModal(record);
-            break;
-        default:
-            console.warn('未知的操作類型:', action);
+    calculateRemainingTime: (record) => {
+        if (!record || !record.entryTime || !record.hours) return '時間資料錯誤';
+        
+        const now = new Date();
+        const entryTime = new Date(record.entryTime);
+        const endTime = new Date(entryTime.getTime() + record.hours * 60 * 60 * 1000);
+        
+        if (now > endTime) return '已超時';
+        
+        const remaining = endTime - now;
+        const hours = Math.floor(remaining / (60 * 60 * 1000));
+        const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+        
+        return `剩餘 ${hours}時${minutes}分`;
+    },
+
+    debounce: (func, wait) => {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    },
+
+    formatPaymentInfo: (record) => {
+        if (record.paymentType === 'cash') {
+            return `現金 $${record.amount}`;
+        }
+        return `票券：${record.ticketType || ''} ${record.ticketNumber ? `(${record.ticketNumber})` : ''}`;
+    },
+
+    formatExitReturnTime: (record) => {
+        let html = '';
+        if (record.temporaryExits?.length > 0) {
+            const lastExit = record.temporaryExits[record.temporaryExits.length - 1];
+            html += `
+                <div>外出：${recordsModule.utils.formatDateTime(lastExit.exitTime)}</div>
+                ${lastExit.returnTime ? `<div>返回：${recordsModule.utils.formatDateTime(lastExit.returnTime)}</div>` : ''}
+            `;
+        }
+        return html;
+    },
+
+    formatStatus: (status) => {
+        const statusMap = {
+            'active': '使用中',
+            'temporary': '暫時外出',
+            'completed': '已結束',
+            'nearExpiry': '即將超時',
+            'overtime': '已超時',
+            'unpaid': '未結消費'
+        };
+        return statusMap[status] || status;
+    },
+
+    generateQuickActionButtons: (record) => {
+        if (record.status === 'active') {
+            return `
+                <button onclick="recordsModule.handlers.handleRecordAction('${record.id}', 'temporaryExit')" 
+                        class="secondary-button">
+                    暫時外出
+                </button>
+            `;
+        } else if (record.status === 'temporary') {
+            return `
+                <button onclick="recordsModule.handlers.handleRecordAction('${record.id}', 'return')" 
+                        class="secondary-button">
+                    返回使用
+                </button>
+            `;
+        }
+        return '';
+    },
+
+    statusStyles: {
+        active: 'status-active',
+        temporary: 'status-temporary',
+        completed: 'status-completed',
+        nearExpiry: 'status-near-expiry',
+        overtime: 'status-overtime',
+        unpaid: 'status-unpaid'
+    },
+
+    getTimeStatus: (record) => {
+        if (record.status === 'completed') return 'completed';
+        if (record.status === 'temporary') return 'temporary';
+        if (record.unpaidCharges?.length > 0) return 'unpaid';
+
+        const now = new Date();
+        const entryTime = new Date(record.entryTime);
+        const endTime = new Date(entryTime.getTime() + record.hours * 60 * 60 * 1000);
+        
+        const timeDiff = endTime - now;
+        const thirtyMinutes = 30 * 60 * 1000;
+
+        if (timeDiff < 0) return 'overtime';
+        if (timeDiff <= thirtyMinutes) return 'nearExpiry';
+        return 'active';
+    },
+
+    getRecordById: (recordId) => {
+        try {
+            const entries = window.storageManager.getEntries() || [];
+            return entries.find(entry => entry.id === recordId);
+        } catch (error) {
+            console.error('Error getting record by ID:', error);
+            return null;
+        }
+    },
+
+    getAvailableLockers: async (currentLocker) => {
+        try {
+            const entries = window.storageManager.getEntries() || [];
+            
+            // 取得已使用的櫃位
+            const occupiedLockers = entries
+                .filter(entry => 
+                    entry.status !== 'completed' && 
+                    entry.lockerNumber !== parseInt(currentLocker)
+                )
+                .map(entry => entry.lockerNumber);
+            
+            // 生成可用櫃位清單
+            const availableLockers = [];
+            const maxLockers = 300; // 固定設置為 300 個櫃位
+            
+            for (let i = 1; i <= maxLockers; i++) {
+                if (!occupiedLockers.includes(i)) {
+                    availableLockers.push(i);
+                }
+            }
+            
+            return availableLockers;
+        } catch (error) {
+            console.error('Error getting available lockers:', error);
+            return [];
+        }
     }
-}
-
-/**
- * 處理記錄操作
- * @param {string} action - 操作類型
- * @param {Object} record - 記錄資料
- */
-function handleRecordAction(action, record) {
-    switch (action) {
-        case 'extend':
-            // 延長使用時間
-            handleTimeExtension(record);
-            break;
-        case 'change':
-            // 更換櫃位
-            handleLockerChange(record);
-            break;
-        case 'charge':
-            // 加收費用
-            handleAdditionalCharge(record);
-            break;
-        case 'exit':
-            // 登記離場
-            handleExit(record.id);
-            break;
-        default:
-            console.warn('未知的操作類型:', action);
-    }
-}
-
-/**
- * 處理時間延長
- * @param {Object} record - 記錄資料
- */
-function handleTimeExtension(record) {
-    showModal(`
-        <div class="time-extension">
-            <h3>延長使用時間</h3>
-            <div class="form-group">
-                <label>延長時數</label>
-                <input type="number" id="extensionHours" min="1" max="24" value="1" class="form-control">
-            </div>
-            <div class="form-actions">
-                <button class="primary-button" onclick="confirmTimeExtension('${record.id}')">確認延長</button>
-                <button class="secondary-button" onclick="closeModal()">取消</button>
-            </div>
-        </div>
-    `, '延長使用時間');
-}
-
-/**
- * 處理櫃位更換
- * @param {Object} record - 記錄資料
- */
-function handleLockerChange(record) {
-    const availableLockers = lockerManager.getAvailableLockers();
-    showModal(`
-        <div class="locker-change">
-            <h3>更換櫃位</h3>
-            <div class="form-group">
-                <label>選擇新櫃位</label>
-                <select id="newLocker" class="form-control">
-                    ${availableLockers.map(locker => 
-                        `<option value="${locker}">${locker}號櫃</option>`
-                    ).join('')}
-                </select>
-            </div>
-            <div class="form-group">
-                <label>更換原因</label>
-                <textarea id="changeReason" class="form-control" rows="3"></textarea>
-            </div>
-            <div class="form-actions">
-                <button class="primary-button" onclick="confirmLockerChange('${record.id}')">確認更換</button>
-                <button class="secondary-button" onclick="closeModal()">取消</button>
-            </div>
-        </div>
-    `, '更換櫃位');
-}
-
-/**
- * 處理額外收費
- * @param {Object} record - 記錄資料
- */
-function handleAdditionalCharge(record) {
-    showModal(`
-        <div class="additional-charge">
-            <h3>加收費用</h3>
-            <div class="form-group">
-                <label>金額</label>
-                <input type="number" id="additionalAmount" min="0" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>原因說明</label>
-                <textarea id="chargeReason" class="form-control" rows="3"></textarea>
-            </div>
-            <div class="form-actions">
-                <button class="primary-button" onclick="confirmAdditionalCharge('${record.id}')">確認收費</button>
-                <button class="secondary-button" onclick="closeModal()">取消</button>
-            </div>
-        </div>
-    `, '加收費用');
-}
-
-/**
- * 確認延長使用時間
- * @param {string} recordId - 記錄ID
- */
-function confirmTimeExtension(recordId) {
-    const hours = parseInt(document.getElementById('extensionHours').value);
-    if (!hours || hours < 1 || hours > 24) {
-        showToast('請輸入有效的延長時數(1-24小時)', 'error');
-        return;
-    }
-
-    const records = storageManager.getEntries() || [];
-    const record = records.find(r => r.id === recordId);
-    if (!record) {
-        showToast('找不到該記錄', 'error');
-        return;
-    }
-
-    // 計算新的結束時間
-    const currentEndTime = new Date(record.expectedEndTime);
-    const newEndTime = new Date(currentEndTime.getTime() + hours * 60 * 60 * 1000);
-    
-    // 計算額外費用
-    const extraCharge = calculateExtraCharge(hours);
-
-    // 更新記錄
-    record.expectedEndTime = newEndTime.toISOString();
-    record.amount += extraCharge;
-    record.extensions = record.extensions || [];
-    record.extensions.push({
-        time: new Date().toISOString(),
-        hours: hours,
-        charge: extraCharge
-    });
-
-    // 儲存更新
-    storageManager.updateEntry(recordId, record);
-    
-    // 關閉modal並更新顯示
-    closeModal();
-    updateRecordsList();
-    showToast(`已成功延長${hours}小時，額外費用: $${extraCharge}`);
-}
-
-/**
- * 確認更換櫃位
- * @param {string} recordId - 記錄ID
- */
-function confirmLockerChange(recordId) {
-    const newLockerId = document.getElementById('newLocker').value;
-    const reason = document.getElementById('changeReason').value;
-
-    if (!reason.trim()) {
-        showToast('請輸入更換原因', 'error');
-        return;
-    }
-
-    const records = storageManager.getEntries() || [];
-    const record = records.find(r => r.id === recordId);
-    if (!record) {
-        showToast('找不到該記錄', 'error');
-        return;
-    }
-
-    // 釋放原櫃位
-    lockerManager.releaseLocker(record.lockerNumber);
-    
-    // 佔用新櫃位
-    if (!lockerManager.occupyLocker(parseInt(newLockerId))) {
-        showToast('無法使用選擇的櫃位', 'error');
-        return;
-    }
-
-    // 記錄更換歷史
-    const oldLockerId = record.lockerNumber;
-    record.lockerNumber = parseInt(newLockerId);
-    record.changes = record.changes || [];
-    record.changes.push({
-        time: new Date().toISOString(),
-        from: oldLockerId,
-        to: parseInt(newLockerId),
-        reason: reason
-    });
-
-    // 儲存更新
-    storageManager.updateEntry(recordId, record);
-    
-    // 關閉modal並更新顯示
-    closeModal();
-    updateLockerGrid();
-    updateRecordsList();
-    showToast(`已將櫃位從 ${oldLockerId} 號更換至 ${newLockerId} 號`);
-}
-
-/**
- * 確認額外收費
- * @param {string} recordId - 記錄ID
- */
-function confirmAdditionalCharge(recordId) {
-    const amount = parseInt(document.getElementById('additionalAmount').value);
-    const reason = document.getElementById('chargeReason').value;
-
-    if (!amount || amount <= 0) {
-        showToast('請輸入有效的金額', 'error');
-        return;
-    }
-
-    if (!reason.trim()) {
-        showToast('請輸入收費原因', 'error');
-        return;
-    }
-
-    const records = storageManager.getEntries() || [];
-    const record = records.find(r => r.id === recordId);
-    if (!record) {
-        showToast('找不到該記錄', 'error');
-        return;
-    }
-
-    // 更新記錄
-    record.amount += amount;
-    record.charges = record.charges || [];
-    record.charges.push({
-        time: new Date().toISOString(),
-        amount: amount,
-        reason: reason
-    });
-
-    // 儲存更新
-    storageManager.updateEntry(recordId, record);
-    
-    // 關閉modal並更新顯示
-    closeModal();
-    updateRecordsList();
-    showToast(`已加收費用 $${amount}`);
-}
-
-/**
- * 計算額外費用
- * @param {number} hours - 延長時數
- * @returns {number} - 計算後的費用
- */
-function calculateExtraCharge(hours) {
-    // 這裡可以根據實際的收費標準進行計算
-    const hourlyRate = 100; // 每小時收費
-    return hours * hourlyRate;
-}
-
-// Export functions and assign to window
-const recordsExports = {
-    loadRecordsSection,
-    showActionOptions,
-    handleActionSelect,
-    handleRecordAction,
-    showConsumptionHistory,
-    showAddChargeModal,
-    confirmAddCharge,
-    showTimeHistory,
-    showLockerChangeHistory,
-    confirmCompleteUse
 };
 
-// Assign functions to window object
-Object.assign(window, {
-    confirmAddCharge,
-    showTimeHistory,
-    showLockerChangeHistory,
-    confirmCompleteUse,
-    handleActionSelect,
-    showRecordDetails,
-    handleRecordAction,
-    handleTimeExtension,
-    handleLockerChange,
-    handleAdditionalCharge,
-    confirmTimeExtension,
-    confirmLockerChange,
-    confirmAdditionalCharge
-});
-
-/**
- * 顯示消費歷史記錄
- * @param {string} customerId - 客戶ID
- */
-const showConsumptionHistory = async (customerId) => {
+// 初始化入場記錄部分
+async function initializeRecords() {
     try {
-        const records = await getCustomerRecords(customerId);
-        const content = `
-            <div class="history-container">
-                <h3>消費歷史記錄</h3>
-                <div class="records-list">
-                    ${records.map(record => `
-                        <div class="record-item">
-                            <div class="record-date">${new Date(record.timestamp).toLocaleString()}</div>
-                            <div class="record-details">
-                                <div>櫃號：${record.lockerId}</div>
-                                <div>消費項目：${record.items.join(', ')}</div>
-                                <div>金額：$${record.amount}</div>
+        // 檢查依賴
+        if (!window.storageManager?.isInitialized) {
+            throw new Error('Storage manager not initialized');
+        }
+        if (typeof showToast !== 'function') {
+            throw new Error('Toast function not found');
+        }
+        if (typeof showLoading !== 'function') {
+            throw new Error('Loading function not found');
+        }
+
+        // 初始化事件處理器
+        recordsModule.handlers = {
+            handleStatusFilter: () => {
+                recordsModule.updateRecordsDisplay();
+            },
+            handleSearch: recordsModule.utils.debounce(() => {
+                recordsModule.updateRecordsDisplay();
+            }, 300),
+
+            // 新增操作處理函數
+            showActionOptions: (recordId) => {
+                try {
+                    const record = recordsModule.utils.getRecordById(recordId);
+                    if (!record) {
+                        throw new Error('找不到記錄');
+                    }
+
+                    const modalContent = `
+                        <div class="modal-header">
+                            <h3>櫃位 ${record.lockerNumber} - 操作選項</h3>
+                            <button onclick="closeModal()" class="close-button">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="action-list">
+                                <button onclick="recordsModule.handlers.showTimeHistory('${record.id}')" 
+                                        class="menu-button">
+                                    <i class="icon">⏱️</i>
+                                    <span>時間記錄</span>
+                                </button>
+
+                                ${record.status === 'active' ? `
+                                    <button onclick="recordsModule.handlers.showChangeLockerModal('${record.id}')" 
+                                            class="menu-button">
+                                        <i class="icon">🔄</i>
+                                        <span>換置物櫃</span>
+                                    </button>
+
+                                    <button onclick="recordsModule.handlers.showAddChargeModal('${record.id}')" 
+                                            class="menu-button">
+                                        <i class="icon">💰</i>
+                                        <span>新增消費</span>
+                                    </button>
+                                ` : ''}
+
+                                ${['active', 'overtime'].includes(record.status) ? `
+                                    <button onclick="recordsModule.handlers.handleOvertimeAction('${record.id}')" 
+                                            class="menu-button warning">
+                                        <i class="icon">⚠️</i>
+                                        <span>處理超時</span>
+                                    </button>
+                                ` : ''}
+
+                                ${record.status === 'active' ? `
+                                    <div class="menu-divider"></div>
+                                    <button onclick="recordsModule.handlers.handleRecordAction('${record.id}', 'complete')" 
+                                            class="menu-button warning">
+                                        <i class="icon">✓</i>
+                                        <span>結束使用</span>
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
+                    `;
+
+                    showModal(modalContent);
+                } catch (error) {
+                    console.error('Error showing action options:', error);
+                    showToast('顯示操作選項失敗', 'error');
+                }
+            },
+
+            handleRecordAction: async (recordId, action) => {
+                try {
+                    showLoading(true);
+                    const record = recordsModule.utils.getRecordById(recordId);
+                    if (!record) {
+                        throw new Error('找不到記錄');
+                    }
+
+                    const updatedRecord = { ...record };
+                    const now = new Date().toISOString();
+
+                    switch (action) {
+                        case 'temporaryExit':
+                            updatedRecord.status = 'temporary';
+                            updatedRecord.temporaryExits = [
+                                ...(updatedRecord.temporaryExits || []),
+                                { exitTime: now, returnTime: null }
+                            ];
+                            break;
+
+                        case 'return':
+                            updatedRecord.status = 'active';
+                            if (updatedRecord.temporaryExits?.length) {
+                                updatedRecord.temporaryExits[updatedRecord.temporaryExits.length - 1].returnTime = now;
+                            }
+                            break;
+
+                        case 'complete':
+                            if (confirm('確定要結束使用嗎？此操作無法復原。')) {
+                                updatedRecord.status = 'completed';
+                                updatedRecord.endTime = now;
+                            } else {
+                                return;
+                            }
+                            break;
+
+                        default:
+                            throw new Error('無效的操作');
+                    }
+
+                    if (window.storageManager.updateEntry(recordId, updatedRecord)) {
+                        showToast('操作成功');
+                        closeModal();
+                        recordsModule.updateRecordsDisplay();
+                    } else {
+                        throw new Error('更新失敗');
+                    }
+
+                } catch (error) {
+                    console.error('Record action error:', error);
+                    showToast(error.message || '操作失敗', 'error');
+                } finally {
+                    showLoading(false);
+                }
+            },
+
+            showTimeHistory: (recordId) => {
+                try {
+                    const record = recordsModule.utils.getRecordById(recordId);
+                    if (!record) {
+                        throw new Error('找不到記錄');
+                    }
+
+                    const modalContent = `
+                        <div class="modal-header">
+                            <h3>時間記錄詳情</h3>
+                            <button onclick="closeModal()" class="close-button">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="time-history-list">
+                                <div class="time-item">
+                                    <div class="time-label">入場時間</div>
+                                    <div class="time-value">${recordsModule.utils.formatDateTime(record.entryTime)}</div>
+                                </div>
+                                ${record.temporaryExits?.map((exit, index) => `
+                                    <div class="time-item">
+                                        <div class="time-label">第 ${index + 1} 次外出</div>
+                                        <div class="time-value">
+                                            外出：${recordsModule.utils.formatDateTime(exit.exitTime)}<br>
+                                            ${exit.returnTime ? `返回：${recordsModule.utils.formatDateTime(exit.returnTime)}` : '尚未返回'}
+                                        </div>
+                                    </div>
+                                `).join('') || ''}
+                                ${record.endTime ? `
+                                    <div class="time-item">
+                                        <div class="time-label">結束時間</div>
+                                        <div class="time-value">${recordsModule.utils.formatDateTime(record.endTime)}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+
+                    showModal(modalContent);
+                } catch (error) {
+                    console.error('Error showing time history:', error);
+                    showToast('顯示時間記錄失敗', 'error');
+                }
+            },
+
+            handleOvertimeAction: async (recordId) => {
+                try {
+                    const record = recordsModule.utils.getRecordById(recordId);
+                    if (!record) {
+                        throw new Error('找不到記錄');
+                    }
+            
+                    const overtimeHours = Math.ceil(
+                        (new Date() - new Date(record.entryTime)) / (60 * 60 * 1000) - record.hours
+                    );
+            
+                    const modalContent = `
+                        <div class="modal-header">
+                            <h3>處理超時</h3>
+                            <button onclick="closeModal()" class="close-button">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>超時時數</label>
+                                <div class="info-text">${overtimeHours} 小時</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="overtimeCharge">超時費用</label>
+                                <input type="number" id="overtimeCharge" class="form-control" 
+                                       value="${overtimeHours * 100}" min="0">
+                            </div>
+                            <div class="form-actions">
+                                <button onclick="recordsModule.handlers.confirmOvertimeCharge('${record.id}')" 
+                                        class="primary-button">確認收費</button>
+                                <button onclick="closeModal()" 
+                                        class="secondary-button">取消</button>
+                            </div>
+                        </div>
+                    `;
+            
+                    showModal(modalContent);
+                } catch (error) {
+                    console.error('Error handling overtime:', error);
+                    showToast('處理超時失敗', 'error');
+                }
+            },
+            
+            confirmOvertimeCharge: async (recordId) => {
+                try {
+                    const charge = parseInt(document.getElementById('overtimeCharge').value);
+                    if (!charge || charge < 0) {
+                        throw new Error('請輸入有效金額');
+                    }
+            
+                    const record = recordsModule.utils.getRecordById(recordId);
+                    const updatedRecord = {
+                        ...record,
+                        additionalCharges: [
+                            ...(record.additionalCharges || []),
+                            {
+                                type: 'overtime',
+                                amount: charge,
+                                timestamp: new Date().toISOString(),
+                                description: '超時費用'
+                            }
+                        ]
+                    };
+            
+                    if (window.storageManager.updateEntry(recordId, updatedRecord)) {
+                        showToast('已新增超時費用');
+                        closeModal();
+                        recordsModule.updateRecordsDisplay();
+                    } else {
+                        throw new Error('更新失敗');
+                    }
+                } catch (error) {
+                    console.error('Error confirming overtime charge:', error);
+                    showToast(error.message || '處理超時費用失敗', 'error');
+                }
+            },
+
+            showChangeLockerModal: async (recordId) => {
+                try {
+                    const record = recordsModule.utils.getRecordById(recordId);
+                    if (!record) {
+                        throw new Error('找不到記錄');
+                    }
         
-        showModal(content, '消費歷史');
+                    // 取得可用櫃位
+                    const availableLockers = await recordsModule.utils.getAvailableLockers(record.lockerNumber);
+        
+                    const modalContent = `
+                        <div class="modal-header">
+                            <h3>換置物櫃</h3>
+                            <button onclick="closeModal()" class="close-button">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>目前櫃位</label>
+                                <div class="current-locker">${record.lockerNumber} 號</div>
+                            </div>
+        
+                            <div class="form-group">
+                                <label for="newLockerNumber">新櫃位號碼</label>
+                                <select id="newLockerNumber" class="form-control" required>
+                                    <option value="">請選擇新櫃位</option>
+                                    ${availableLockers.map(number => 
+                                        `<option value="${number}">櫃位 ${number}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+        
+                            <div class="form-group">
+                                <label for="changeReason">更換原因</label>
+                                <select id="changeReason" class="form-control">
+                                    <option value="maintenance">維修需求</option>
+                                    <option value="customer">客戶要求</option>
+                                    <option value="upgrade">升級櫃位</option>
+                                    <option value="other">其他原因</option>
+                                </select>
+                            </div>
+        
+                            <div class="form-group">
+                                <label for="remarks">備註說明</label>
+                                <textarea id="remarks" class="form-control" rows="2"></textarea>
+                            </div>
+        
+                            <div class="form-actions">
+                                <button onclick="recordsModule.handlers.confirmChangeLocker('${record.id}')" 
+                                        class="primary-button">確認更換</button>
+                                <button onclick="closeModal()" 
+                                        class="secondary-button">取消</button>
+                            </div>
+                        </div>
+                    `;
+        
+                    showModal(modalContent);
+                } catch (error) {
+                    console.error('Error showing change locker modal:', error);
+                    showToast('顯示換櫃位視窗失敗', 'error');
+                }
+            },
+        
+            confirmChangeLocker: async (recordId) => {
+                try {
+                    const newLockerNumber = parseInt(document.getElementById('newLockerNumber').value);
+                    const changeReason = document.getElementById('changeReason').value;
+                    const remarks = document.getElementById('remarks').value;
+        
+                    if (!newLockerNumber) {
+                        throw new Error('請選擇新櫃位');
+                    }
+        
+                    showLoading(true);
+        
+                    const record = recordsModule.utils.getRecordById(recordId);
+                    if (!record) {
+                        throw new Error('找不到記錄');
+                    }
+        
+                    const changeHistory = {
+                        timestamp: new Date().toISOString(),
+                        oldLocker: record.lockerNumber,
+                        newLocker: newLockerNumber,
+                        reason: changeReason,
+                        remarks: remarks
+                    };
+        
+                    const updatedRecord = {
+                        ...record,
+                        lockerNumber: newLockerNumber,
+                        lockerHistory: [...(record.lockerHistory || []), changeHistory]
+                    };
+        
+                    if (window.storageManager.updateEntry(recordId, updatedRecord)) {
+                        showToast('櫃位更換成功');
+                        closeModal();
+                        recordsModule.updateRecordsDisplay();
+                    } else {
+                        throw new Error('更新失敗');
+                    }
+                } catch (error) {
+                    console.error('Error confirming locker change:', error);
+                    showToast(error.message || '換櫃位失敗', 'error');
+                } finally {
+                    showLoading(false);
+                }
+            }
+        };
+
+        // 回傳成功
+        return true;
     } catch (error) {
-        console.error('載入消費歷史失敗:', error);
-        showToast('載入消費歷史失敗', 'error');
+        console.error('Records initialization error:', error);
+        return false;
+    }
+}
+
+// 更新記錄顯示
+recordsModule.updateRecordsDisplay = () => {
+    try {
+        const records = recordsModule.getFilteredRecords();
+        const tableBody = document.getElementById('recordsTableBody');
+        
+        if (!tableBody) {
+            throw new Error('Records table body not found');
+        }
+
+        tableBody.innerHTML = records.length === 0 
+            ? '<tr><td colspan="6" class="text-center">目前沒有記錄</td></tr>'
+            : records.map(record => recordsModule.generateRecordRow(record)).join('');
+
+    } catch (error) {
+        console.error('Error updating records display:', error);
+        showToast('更新記錄顯示失敗', 'error');
     }
 };
 
-/**
- * 初始化記錄模組
- */
-export const initializeRecords = () => {
-    loadSection();
+// 新增記錄管理相關函數到 recordsModule
+recordsModule.getFilteredRecords = () => {
+    try {
+        let records = window.storageManager.getEntries() || [];
+        const statusFilter = document.getElementById('statusFilter')?.value;
+        const searchText = document.getElementById('searchInput')?.value?.toLowerCase();
+
+        // 套用狀態篩選
+        if (statusFilter && statusFilter !== 'all') {
+            records = records.filter(record => record.status === statusFilter);
+        }
+
+        // 套用搜尋篩選
+        if (searchText) {
+            records = records.filter(record => 
+                record.lockerNumber.toString().includes(searchText)
+            );
+        }
+
+        // 依照時間排序，最新的在前面
+        return records.sort((a, b) => new Date(b.entryTime) - new Date(a.entryTime));
+    } catch (error) {
+        console.error('Error filtering records:', error);
+        return [];
+    }
 };
 
-/**
- * 載入記錄區段
- */
-const loadSection = () => {
-    // ...原有的記錄區段載入邏輯...
+recordsModule.generateRecordRow = (record) => {
+    try {
+        const timeStatus = recordsModule.utils.getTimeStatus(record);
+        const statusClass = recordsModule.utils.statusStyles[timeStatus] || 'status-active';
+
+        return `
+            <tr class="record-row ${statusClass}">
+                <td>${record.lockerNumber}</td>
+                <td>${recordsModule.utils.formatPaymentInfo(record)}</td>
+                <td>
+                    <div class="time-info">
+                        <div>入場：${recordsModule.utils.formatDateTime(record.entryTime)}</div>
+                        ${recordsModule.utils.formatExitReturnTime(record)}
+                    </div>
+                </td>
+                <td>
+                    <div>使用時數：${record.hours}小時</div>
+                    <div class="${timeStatus === 'nearExpiry' ? 'warning-text' : ''}">
+                        ${recordsModule.utils.calculateRemainingTime(record)}
+                    </div>
+                </td>
+                <td>
+                    <span class="status-badge ${record.status}">
+                        ${recordsModule.utils.formatStatus(record.status)}
+                    </span>
+                </td>
+                <td class="action-cell">
+                    <div class="action-buttons">
+                        <button onclick="recordsModule.handlers.showActionOptions('${record.id}')" 
+                                class="primary-button">
+                            操作選項
+                        </button>
+                        ${recordsModule.utils.generateQuickActionButtons(record)}
+                    </div>
+                </td>
+            </tr>
+        `;
+    } catch (error) {
+        console.error('Error generating record row:', error);
+        return `
+            <tr>
+                <td colspan="6" class="error-row">記錄顯示錯誤</td>
+            </tr>
+        `;
+    }
 };
 
-// 確保導出所需的函數
-export default {
-    loadSection,
-    initializeRecords,
-    showConsumptionHistory
-};
+// 主要載入函數
+async function loadRecordsSection() {
+    try {
+        // 初始化檢查
+        if (!(await initializeRecords())) {
+            throw new Error('Records module initialization failed');
+        }
+
+        const mainContent = document.getElementById('mainContent');
+        if (!mainContent) {
+            throw new Error('Main content container not found');
+        }
+
+        // 設定基本 HTML 結構
+        mainContent.innerHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-between align-center">
+                        <h2>入場記錄</h2>
+                        <div class="header-actions">
+                            <select id="statusFilter" class="form-control">
+                                <option value="all">全部狀態</option>
+                                <option value="active">使用中</option>
+                                <option value="temporary">暫時外出</option>
+                                <option value="nearExpiry">即將超時</option>
+                                <option value="overtime">已超時</option>
+                                <option value="unpaid">未結消費</option>
+                                <option value="completed">已結束</option>
+                            </select>
+                            <input type="text" id="searchInput" class="form-control" 
+                                placeholder="搜尋櫃位號碼...">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>櫃位號碼</th>
+                                    <th>付款資訊</th>
+                                    <th>入場時間</th>
+                                    <th>剩餘時間</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 綁定事件
+        const statusFilter = document.getElementById('statusFilter');
+        const searchInput = document.getElementById('searchInput');
+
+        if (statusFilter) {
+            statusFilter.addEventListener('change', recordsModule.handlers.handleStatusFilter);
+        }
+        if (searchInput) {
+            searchInput.addEventListener('input', recordsModule.handlers.handleSearch);
+        }
+
+        // 更新顯示
+        recordsModule.updateRecordsDisplay();
+
+    } catch (error) {
+        console.error('[Records Section] Failed to load:', error);
+        showToast('載入記錄失敗: ' + error.message, 'error');
+    }
+}
+
+// 將主要函數掛載到全域
+window.loadRecordsSection = loadRecordsSection;
+
+// 標記模組已載入
+window.moduleLoaded = window.moduleLoaded || {};
+window.moduleLoaded.records = true;

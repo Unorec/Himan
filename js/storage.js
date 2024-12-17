@@ -6,23 +6,40 @@ const STORAGE_KEYS = {
     SYSTEM_CONFIG: 'himan_config'
 };
 
-// 基本系統設定
+// 修改默認設定
 const DEFAULT_SETTINGS = {
-    basePrice: 300,           // 基本收費
-    overtimeRate: 100,        // 超時費率（每30分鐘）
+    basePrice: 0,           // 更改基本收費為0
+    overtimeRate: 0,        // 更改超時費率為0
     businessHours: {
         start: '08:00',
         end: '22:00'
     },
-    maxStayHours: 12,         // 最長停留時間
-    lockerCount: 100,         // 櫃位總數
-    lastBackup: null          // 最後備份時間
+    maxStayHours: 24,        // 最長停留時間
+    lockerCount: 300,        // 櫃位總數
+    lastBackup: null         // 最後備份時間
 };
 
 // 資料管理類
 class StorageManager {
     constructor() {
-        this.initializeStorage();
+        this.isInitialized = false;
+        this.defaultSettings = {
+            basePrice: 0,       // 更改基本收費為0
+            lockerCount: 300,   // 固定櫃位數量
+            maxHours: 24
+        };
+        this.initialize();
+    }
+
+    initialize() {
+        try {
+            this.initializeStorage();
+            this.isInitialized = true;
+            console.log('StorageManager initialized successfully');
+        } catch (error) {
+            console.error('StorageManager initialization failed:', error);
+            throw error;
+        }
     }
 
     // 初始化存儲空間
@@ -254,76 +271,23 @@ class StorageManager {
         }
         return false;
     }
+
+    validateEntry(entry) {
+        return (
+            entry &&
+            entry.lockerNumber >= 1 &&
+            entry.lockerNumber <= 300 &&  // 修改櫃位範圍檢查
+            entry.hours >= 1 &&
+            entry.hours <= 24 &&          // 新增時數範圍檢查
+            ['active', 'temporary', 'completed'].includes(entry.status)
+        );
+    }
 }
 
-// 儲存管理器
-export const storageManager = {
-    // 新增入場記錄
-    addEntry(entry) {
-        try {
-            const entries = this.getEntries() || [];
-            entries.push(entry);
-            localStorage.setItem('entries', JSON.stringify(entries));
-            return true;
-        } catch (error) {
-            console.error('Error adding entry:', error);
-            return false;
-        }
-    },
+// 創建並初始化全域實例
+window.storageManager = new StorageManager();
 
-    // 取得所有入場記錄
-    getEntries() {
-        try {
-            return JSON.parse(localStorage.getItem('entries')) || [];
-        } catch (error) {
-            console.error('Error getting entries:', error);
-            return [];
-        }
-    },
-
-    // 更新入場記錄
-    updateEntry(entryId, updatedEntry) {
-        try {
-            const entries = this.getEntries();
-            const index = entries.findIndex(e => e.id === entryId);
-            if (index !== -1) {
-                entries[index] = updatedEntry;
-                localStorage.setItem('entries', JSON.stringify(entries));
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('Error updating entry:', error);
-            return false;
-        }
-    },
-
-    // 取得系統設定
-    getSettings() {
-        try {
-            return JSON.parse(localStorage.getItem('settings')) || {
-                basePrice: 300,
-                lockerCount: 500
-            };
-        } catch (error) {
-            console.error('Error getting settings:', error);
-            return {
-                basePrice: 300,
-                lockerCount: 500
-            };
-        }
-    },
-
-    // 儲存系統設定
-    saveSettings(settings) {
-        try {
-            localStorage.setItem('settings', JSON.stringify(settings));
-            return true;
-        } catch (error) {
-            console.error('Error saving settings:', error);
-            return false;
-        }
-    }
-};
-
-export default storageManager;
+// 確保初始化完成
+if (!window.storageManager.isInitialized) {
+    throw new Error('StorageManager failed to initialize');
+}

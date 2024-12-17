@@ -1,12 +1,11 @@
 /* 登入頁面容器 */
 .login-container {
-    width: 400px;  /* 增加寬度 */
-    min-width: 320px;  /* 設定最小寬度 */
-    margin: 0 auto;
+    max-width: 400px;
+    margin: 100px auto;
     padding: 2rem;
     background-color: white;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* 登入頁面標題 */
@@ -29,7 +28,6 @@
 /* 登入表單元素 */
 .login-container .form-group {
     margin-bottom: 1.5rem;
-    width: 100%;
 }
 
 .login-container label {
@@ -91,8 +89,7 @@
 /* 回應式設計 */
 @media (max-width: 480px) {
     .login-container {
-        width: 90%;
-        margin: 1rem auto;
+        margin: 50px auto;
         padding: 1.5rem;
     }
 

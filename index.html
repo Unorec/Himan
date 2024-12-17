@@ -9,11 +9,39 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/login.css">
     <link rel="stylesheet" href="css/components.css">
-    
-    <!-- 修改 Chart.js 引入方式 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- 增加優惠時段狀態樣式 -->
+    <style>
+        .special-time-status {
+            position: fixed;
+            top: 0;
+            right: 0;
+            padding: 8px 16px;
+            background-color: #ff9800;
+            color: white;
+            z-index: 1000;
+            border-bottom-left-radius: 4px;
+        }
+    </style>
+
+    <script>
+        // 初始化全域模組追蹤
+        window.moduleLoaded = {};
+        window.moduleInitialized = {};
+        
+        // 改進的模組載入檢查
+        window.checkModuleLoaded = function(moduleName) {
+            window.moduleLoaded[moduleName] = true;
+            console.log(`Module ${moduleName} loaded`);
+        };
+    </script>
 </head>
 <body>
+    <!-- 新增優惠時段狀態提示 -->
+    <div id="specialTimeStatus" class="special-time-status" style="display: none;">
+        優惠時段進行中
+    </div>
+
     <!-- 登入區塊 -->
     <div id="loginContainer" class="login-container">
         <div class="login-header">
@@ -31,7 +59,7 @@
             <input type="password" id="password" name="password" placeholder="請輸入密碼">
         </div>
 
-        <button id="loginButton" class="primary-button">登入系統</button>
+        <button type="button" id="loginButton" class="primary-button">登入系統</button>
 
         <div class="login-hint">
             預設帳號/密碼: himan/himan
@@ -43,9 +71,15 @@
         <header class="main-header">
             <div class="header-content">
                 <h1>HiMAN三溫暖管理系統</h1>
-                <div class="user-info">
-                    <span id="currentUser">未登入</span>
-                    <button id="logoutButton" class="secondary-button">登出</button>
+                <div class="system-info">
+                    <!-- 新增營業時間提示 -->
+                    <div class="business-hours">
+                        <span>優惠時段：18:30-19:30</span>
+                    </div>
+                    <div class="user-info">
+                        <span id="currentUser">未登入</span>
+                        <button type="button" id="logoutButton" class="secondary-button">登出</button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -54,7 +88,6 @@
             <ul>
                 <li><a href="#" class="menu-item" data-section="entry">入場登記</a></li>
                 <li><a href="#" class="menu-item" data-section="records">入場記錄</a></li>
-                <li><a href="#" class="menu-item" data-section="lockers">櫃位狀態</a></li>
                 <li><a href="#" class="menu-item" data-section="stats">統計報表</a></li>
                 <li><a href="#" class="menu-item" data-section="settings">系統設定</a></li>
             </ul>
@@ -73,15 +106,61 @@
         <div class="loading-spinner"></div>
     </div>
 
-    <!-- JavaScript 檔案載入 -->
-    <script src="js/config.js" type="module"></script>
-    <script src="js/storage.js" type="module"></script>
-    <script src="js/ui.js" type="module"></script>
-    <script src="js/lockers.js" type="module"></script>
-    <script src="js/auth.js" type="module"></script>
-    <script src="js/entry.js" type="module"></script>
-    <script src="js/records.js" type="module"></script>
-    <script src="js/settings.js" type="module"></script>
-    <script src="js/main.js" type="module"></script>
+    <!-- JavaScript 檔案載入順序調整 -->
+    <script src="js/utils.js"></script>
+    <script>
+        // 等待 utils.js 載入
+        window.addEventListener('load', () => {
+            if (typeof showToast !== 'function') {
+                console.error('Utils not properly loaded');
+            }
+        });
+    </script>
+    <script src="js/storage.js"></script>
+    <script>
+        // 檢查 StorageManager
+        if (!window.storageManager?.isInitialized) {
+            console.error('StorageManager not initialized');
+        }
+    </script>
+    <script src="js/modal.js"></script>
+    <script src="js/records.js"></script>
+    <script src="js/entry.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/settings.js"></script>
+
+    <script>
+        // 檢查模組初始化
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // 等待 StorageManager 初始化
+                if (!window.storageManager?.isInitialized) {
+                    throw new Error('StorageManager not initialized');
+                }
+
+                // 確認必要函數已載入
+                const requiredFunctions = [
+                    'loadRecordsSection',
+                    'loadEntrySection',
+                    'switchSection',
+                    'showToast'
+                ];
+
+                const missingFunctions = requiredFunctions.filter(
+                    fn => typeof window[fn] !== 'function'
+                );
+
+                if (missingFunctions.length > 0) {
+                    throw new Error(`Missing required functions: ${missingFunctions.join(', ')}`);
+                }
+
+                console.log('All modules initialized successfully');
+            } catch (error) {
+                console.error('Module initialization error:', error);
+                showToast('系統初始化失敗，請重新整理頁面', 'error');
+            }
+        });
+    </script>
 </body>
 </html>

@@ -1,22 +1,88 @@
-.dashboard-charts {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 30px;
-    flex-wrap: wrap;
+/* ...existing code... */
+
+/* 記錄狀態相關樣式 */
+.status-active {
+    background-color: #f8f9fa;
 }
 
-.chart-container {
-    flex: 1;
-    min-width: 300px;
-    height: 300px;
-    padding: 15px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+.status-temporary {
+    background-color: #e9ecef;
 }
 
-@media (max-width: 768px) {
-    .chart-container {
-        flex: 100%;
+.status-completed {
+    background-color: #dee2e6;
+}
+
+.status-near-expiry {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
     }
 }
+
+/* 文字樣式 */
+.warning-text {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* 時段提示樣式 */
+.special-time-notice {
+    background-color: #e8f5e9;
+    border-left: 4px solid #4caf50;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 0.9em;
+    border-radius: 4px;
+}
+
+/* 狀態標籤樣式 */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.status-badge.active {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.status-badge.temporary {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.completed {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-badge.near-expiry {
+    background-color: #f8d7da;
+    color: #721c24;
+    animation: flash 1s infinite;
+}
+
+@keyframes flash {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* ...existing code... */

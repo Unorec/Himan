@@ -1,19 +1,3 @@
-// 修改導入路徑
-import { showToast, showLoading } from '../js/ui.js';
-import { 
-    initializeRecords, 
-    displayRecords, 
-    updateRecord 
-} from './records.js';
-
-// Storage Manager implementation
-const storageManager = {
-    getUserSession() {
-        const session = localStorage.getItem('userSession');
-        return session ? JSON.parse(session) : null;
-    }
-};
-
 // 全域狀態管理
 const app = {
     currentUser: null,
@@ -21,23 +5,10 @@ const app = {
     isLoading: false
 };
 
-// 初始化主程式
-const initializeMain = () => {
-    // 註冊選單點擊事件
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const section = e.target.dataset.section;
-            await loadSection(section);
-        });
-    });
-};
-
-// 初始化
+// DOM 載入完成後執行
 document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
     checkLoginStatus();
-    initializeMain();
 });
 
 // 初始化所有事件監聽
@@ -106,85 +77,85 @@ function showLoginForm() {
     document.getElementById('mainSystem').style.display = 'none';
 }
 
-// 載入區段內容
+// 修改載入區段內容函數
 async function loadSectionContent(sectionId) {
     const mainContent = document.getElementById('mainContent');
     if (!mainContent) {
-        console.error('Main content container not found');
-        return;
+        throw new Error('主內容區域未找到');
     }
 
     try {
-        // 動態導入對應模組
-        const module = await import(`../js/${sectionId}.js`);
-        if (module.default && module.default.loadSection) {
-            await module.default.loadSection();
-        } else {
-            mainContent.innerHTML = getDefaultContent(sectionId);
-        }
-    } catch (error) {
-        console.error('Error loading section content:', error);
-        mainContent.innerHTML = getErrorContent(error);
-        showToast('載入內容失敗', 'error');
-    }
-}
-
-// 取得預設內容
-function getDefaultContent(sectionId) {
-    const contentMap = {
-        stats: '<div class="card"><div class="card-header"><h2>統計報表</h2></div><div class="card-body">統計報表功能開發中...</div></div>',
-        settings: '<div class="card"><div class="card-header"><h2>系統設定</h2></div><div class="card-body">系統設定功能開發中...</div></div>',
-        default: '<div class="card"><div class="card-header"><h2>功能不存在</h2></div><div class="card-body">請選擇其他功能</div></div>'
-    };
-    return contentMap[sectionId] || contentMap.default;
-}
-
-// 取得錯誤內容
-function getErrorContent(error) {
-    return `
-        <div class="card">
-            <div class="card-header">
-                <h2>載入失敗</h2>
-            </div>
-            <div class="card-body">
-                <p>載入內容時發生錯誤，請重新整理頁面或聯絡系統管理員。</p>
-                <p>錯誤訊息：${error.message}</p>
-            </div>
-        </div>
-    `;
-}
-
-// 修改載入區段函數
-const loadSection = async (sectionName) => {
-    try {
-        const mainContent = document.getElementById('mainContent');
-        if (!mainContent) return;
-
         showLoading(true);
-        // 修改模組導入路徑
-        const module = await import(`../js/${sectionName}.js`);
-        if (module.default && typeof module.default.loadSection === 'function') {
-            await module.default.loadSection();
-        } else {
-            throw new Error(`模組 ${sectionName} 載入失敗`);
+
+        // 檢查必要函數是否已載入
+        if (sectionId === 'records' && typeof window.loadRecordsSection !== 'function') {
+            throw new Error('記錄功能尚未載入完成，請稍後再試');
+        }
+
+        switch (sectionId) {
+            case 'entry':
+                await loadEntrySection();
+                break;
+            case 'records':
+                await window.loadRecordsSection();
+                break;
+            case 'stats':
+                mainContent.innerHTML = '<div class="card"><div class="card-header"><h2>統計報表</h2></div><div class="card-body">統計報表功能開發中...</div></div>';
+                break;
+                
+            case 'settings':
+                mainContent.innerHTML = '<div class="card"><div class="card-header"><h2>系統設定</h2></div><div class="card-body">系統設定功能開發中...</div></div>';
+                break;
+                
+            default:
+                mainContent.innerHTML = '<div class="card"><div class="card-header"><h2>功能不存在</h2></div><div class="card-body">請選擇其他功能</div></div>';
         }
     } catch (error) {
-        console.error('Section loading error:', error);
-        showToast(`載入 ${sectionName} 失敗`, 'error');
+        console.error('Error loading section:', error);
+        mainContent.innerHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h2>載入失敗</h2>
+                </div>
+                <div class="card-body error-message">
+                    <p>${error.message}</p>
+                    <button onclick="location.reload()" class="primary-button">
+                        重新整理頁面
+                    </button>
+                </div>
+            </div>
+        `;
+        showToast(error.message, 'error');
     } finally {
         showLoading(false);
     }
-};
+}
 
 // 將需要的函數和物件掛載到 window 上
-Object.assign(window, {
-    app,
-    showMainSystem,
-    showLoginForm,
-    switchSection
-});
+window.app = app;
+window.showToast = showToast;
+window.showLoading = showLoading;
+window.showMainSystem = showMainSystem;
+window.showLoginForm = showLoginForm;
+window.switchSection = switchSection;
 
-export default {
-    initializeMain,
-    loadSection
-};
+// 輔助函數
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.textContent = message;
+        toast.className = `toast ${type}`;
+        toast.style.display = 'block';
+
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
+}
+
+function showLoading(show = true) {
+    const loader = document.getElementById('loading');
+    if (loader) {
+        loader.style.display = show ? 'flex' : 'none';
+    }
+}

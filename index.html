@@ -34,6 +34,36 @@
             window.moduleLoaded[moduleName] = true;
             console.log(`Module ${moduleName} loaded`);
         };
+
+        // 資源載入錯誤處理
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'LINK' || e.target.tagName === 'SCRIPT') {
+                console.error('資源載入失敗:', e.target.src || e.target.href);
+                const toast = document.getElementById('toast');
+                if (toast) {
+                    toast.textContent = '系統資源載入失敗，請重新整理頁面';
+                    toast.className = 'toast error';
+                    toast.style.display = 'block';
+                }
+            }
+        }, true);
+    </script>
+    <script>
+        // 改進的模組追蹤
+        window.moduleStatus = {
+            loaded: {},
+            initialized: {},
+            timing: {}
+        };
+        
+        // 模組載入記錄
+        window.logModuleLoad = function(moduleName) {
+            moduleStatus.loaded[moduleName] = true;
+            moduleStatus.timing[moduleName] = performance.now();
+            console.log(`模組 ${moduleName} 載入完成，耗時: ${
+                (moduleStatus.timing[moduleName] - performance.timing.navigationStart).toFixed(2)
+            }ms`);
+        };
     </script>
 </head>
 <body>
@@ -107,7 +137,7 @@
     </div>
 
     <!-- JavaScript 檔案載入順序調整 -->
-    <script src="js/utils.js"></script>
+    <script src="js/utils.js" onload="logModuleLoad('utils')"></script>
     <script>
         // 等待 utils.js 載入
         window.addEventListener('load', () => {
@@ -116,19 +146,19 @@
             }
         });
     </script>
-    <script src="js/storage.js"></script>
+    <script src="js/storage.js" onload="logModuleLoad('storage')"></script>
     <script>
         // 檢查 StorageManager
         if (!window.storageManager?.isInitialized) {
             console.error('StorageManager not initialized');
         }
     </script>
-    <script src="js/modal.js"></script>
-    <script src="js/records.js"></script>
-    <script src="js/entry.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/settings.js"></script>
+    <script src="js/modal.js" onload="logModuleLoad('modal')"></script>
+    <script src="js/records.js" onload="logModuleLoad('records')"></script>
+    <script src="js/entry.js" onload="logModuleLoad('entry')"></script>
+    <script src="js/main.js" onload="logModuleLoad('main')"></script>
+    <script src="js/auth.js" onload="logModuleLoad('auth')"></script>
+    <script src="js/settings.js" onload="logModuleLoad('settings')"></script>
 
     <script>
         // 檢查模組初始化

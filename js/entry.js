@@ -1,91 +1,103 @@
 // 載入入場登記區段
 async function loadEntrySection() {
-    const mainContent = document.getElementById('mainContent');
-    const settings = storageManager.getSettings() || { basePrice: 500 };
+    try {
+        const mainContent = document.getElementById('mainContent');
+        if (!mainContent) {
+            throw new Error('找不到主要內容區域');
+        }
 
-    const entryHTML = `
-        <div class="card">
-            <div class="card-header">
-                <h2>入場登記</h2>
-            </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label for="lockerNumber">櫃位號碼 <span class="required">*</span></label>
-                    <input type="number" id="lockerNumber" min="1" max="300" class="form-control" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>付款方式</label>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="paymentType" value="cash" checked 
-                                   onchange="handlePaymentTypeChange()">
-                            現金
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="paymentType" value="ticket" 
-                                   onchange="handlePaymentTypeChange()">
-                            票券
-                        </label>
-                    </div>
-                </div>
+        const settings = storageManager.getSettings() || { basePrice: 500 };
 
-                <!-- 現金付款區塊 -->
-                <div id="cashFields">
+        const entryHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h2>入場登記</h2>
+                </div>
+                <div class="card-body">
                     <div class="form-group">
-                        <label for="amount">金額</label>
-                        <div class="amount-input-group">
-                            <input type="number" id="amount" class="form-control" 
-                                   placeholder="請輸入金額" min="0">
+                        <label for="lockerNumber">櫃位號碼 <span class="required">*</span></label>
+                        <input type="number" id="lockerNumber" min="1" max="300" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>付款方式</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="paymentType" value="cash" checked 
+                                       onchange="handlePaymentTypeChange()">
+                                現金
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="paymentType" value="ticket" 
+                                       onchange="handlePaymentTypeChange()">
+                                票券
+                            </label>
                         </div>
-                        ${isSpecialTimeSlot() ? `
-                            <div class="special-price-notice">
-                                目前為優惠時段：${getCurrentSpecialPrice()}
+                    </div>
+
+                    <!-- 現金付款區塊 -->
+                    <div id="cashFields">
+                        <div class="form-group">
+                            <label for="amount">金額</label>
+                            <div class="amount-input-group">
+                                <input type="number" id="amount" class="form-control" 
+                                       placeholder="請輸入金額" min="0">
                             </div>
-                        ` : ''}
-                    </div>
-                    <div class="form-group">
-                        <label for="hours">使用時數</label>
-                        <div class="hours-input-group">
-                            <input type="number" id="hours" class="form-control" 
-                                   value="24" min="1" max="24">
-                            <span class="unit">小時</span>
+                            ${isSpecialTimeSlot() ? `
+                                <div class="special-price-notice">
+                                    目前為優惠時段：${getCurrentSpecialPrice()}
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="form-group">
+                            <label for="hours">使用時數</label>
+                            <div class="hours-input-group">
+                                <input type="number" id="hours" class="form-control" 
+                                       value="24" min="1" max="24">
+                                <span class="unit">小時</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- 票券付款區塊 -->
-                <div id="ticketFields" style="display: none;">
-                    <div class="form-group">
-                        <label for="ticketType">票券類型</label>
-                        <select id="ticketType" class="form-control" onchange="handleTicketTypeChange()">
-                            <option value="regular">平日券 (24小時)</option>
-                            <option value="unlimited">暢遊券 (24小時)</option>
-                            <option value="event">活動券 (24小時)</option>
-                        </select>
+                    <!-- 票券付款區塊 -->
+                    <div id="ticketFields" style="display: none;">
+                        <div class="form-group">
+                            <label for="ticketType">票券類型</label>
+                            <select id="ticketType" class="form-control" onchange="handleTicketTypeChange()">
+                                <option value="regular">平日券 (24小時)</option>
+                                <option value="unlimited">暢遊券 (24小時)</option>
+                                <option value="event">活動券 (24小時)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ticketNumber">票券號碼</label>
+                            <input type="text" id="ticketNumber" class="form-control" 
+                                   placeholder="請輸入票券號碼">
+                        </div>
                     </div>
+
                     <div class="form-group">
-                        <label for="ticketNumber">票券號碼</label>
-                        <input type="text" id="ticketNumber" class="form-control" 
-                               placeholder="請輸入票券號碼">
+                        <label for="remarks">備註說明</label>
+                        <textarea id="remarks" class="form-control" rows="2" 
+                                 placeholder="可輸入特殊需求或備註說明"></textarea>
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label for="remarks">備註說明</label>
-                    <textarea id="remarks" class="form-control" rows="2" 
-                             placeholder="可輸入特殊需求或備註說明"></textarea>
+                    <button onclick="handleEntrySubmit()" class="primary-button">
+                        確認登記
+                    </button>
                 </div>
-
-                <button onclick="handleEntrySubmit()" class="primary-button">
-                    確認登記
-                </button>
             </div>
-        </div>
-    `;
+        `;
 
-    mainContent.innerHTML = entryHTML;
-    initializeEntryEvents();
+        mainContent.innerHTML = entryHTML;
+        await initializeEntryEvents();
+        updateSpecialTimeStatus();
+        
+        return true;
+    } catch (error) {
+        console.error('載入入場區段失敗:', error);
+        throw error;
+    }
 }
 
 // 調整金額
@@ -118,8 +130,7 @@ async function handleEntrySubmit() {
 
         // 取得表單數據
         const formData = getEntryFormData();
-        console.log('提交的表單資料:', formData); // 用於除錯
-
+        
         // 驗證表單
         if (!validateEntryForm(formData)) {
             return;
@@ -134,16 +145,18 @@ async function handleEntrySubmit() {
         };
 
         // 儲存記錄
-        const saveResult = storageManager.addEntry(entry);
-        if (!saveResult) {
+        if (!storageManager.addEntry(entry)) {
             throw new Error('儲存記錄失敗');
         }
 
+        // 成功處理
         showToast('入場登記成功！');
         resetEntryForm();
-        
-        // 可選：切換到記錄頁面
-        // switchSection('records');
+
+        // 重新載入入場記錄區段
+        if (typeof window.loadRecordsSection === 'function') {
+            await window.loadRecordsSection();
+        }
 
     } catch (error) {
         console.error('入場登記錯誤:', error);
@@ -230,32 +243,46 @@ window.setAmount = setAmount;
 window.handleEntrySubmit = handleEntrySubmit;
 
 // 初始化入場登記相關事件
-function initializeEntryEvents() {
-    // 付款方式切換事件
-    const paymentRadios = document.querySelectorAll('input[name="paymentType"]');
-    paymentRadios.forEach(radio => {
-        radio.addEventListener('change', handlePaymentTypeChange);
-    });
+async function initializeEntryEvents() {
+    try {
+        // 付款方式切換事件
+        const paymentRadios = document.querySelectorAll('input[name="paymentType"]');
+        if (paymentRadios.length === 0) {
+            throw new Error('找不到付款方式選項');
+        }
 
-    // 櫃位號碼輸入驗證
-    const lockerInput = document.getElementById('lockerNumber');
-    if (lockerInput) {
-        lockerInput.addEventListener('change', validateLockerNumber);
-    }
-
-    // 新增金額輸入框預設值設定
-    const amountInput = document.getElementById('amount');
-    if (amountInput && !amountInput.value) {
-        const settings = storageManager.getSettings() || { basePrice: 500 };
-        amountInput.value = settings.basePrice;
-    }
-
-    // 新增時數輸入事件監聽
-    const hoursInput = document.getElementById('hours');
-    if (hoursInput) {
-        hoursInput.addEventListener('change', () => {
-            updateAmountBasedOnHours();
+        paymentRadios.forEach(radio => {
+            radio.addEventListener('change', handlePaymentTypeChange);
         });
+
+        // 櫃位號碼輸入驗證
+        const lockerInput = document.getElementById('lockerNumber');
+        if (lockerInput) {
+            lockerInput.addEventListener('change', validateLockerNumber);
+        }
+
+        // 新增金額輸入框預設值設定
+        const amountInput = document.getElementById('amount');
+        if (amountInput && !amountInput.value) {
+            const settings = storageManager.getSettings() || { basePrice: 500 };
+            amountInput.value = settings.basePrice;
+        }
+
+        // 新增時數輸入事件監聽
+        const hoursInput = document.getElementById('hours');
+        if (hoursInput) {
+            hoursInput.addEventListener('change', () => {
+                updateAmountBasedOnHours();
+            });
+        }
+
+        // 設定定期更新優惠時段狀態
+        setInterval(updateSpecialTimeStatus, 60000); // 每分鐘更新一次
+
+        return true;
+    } catch (error) {
+        console.error('初始化事件處理失敗:', error);
+        throw error;
     }
 }
 
@@ -399,138 +426,150 @@ function getEntryFormData() {
 }
 
 // 時段費用設定
-const timeSlotPrices = {
+const TIME_SLOTS = {
     weekdayEvening: {
-        name: '平日晚間優惠',
+        name: "平日晚間優惠",
         price: 350,
-        startTime: '18:30',
-        endTime: '19:30',
-        maxStayTime: '06:00', // 隔天早上6點
-        days: [1, 2, 3, 4],  // 週一到週四
-        description: '平日晚間優惠時段 (限制使用至隔日6點)'
+        startTime: "18:30",
+        endTime: "19:30",
+        maxStayTime: "06:00",
+        days: [1, 2, 3, 4],
+        description: "平日晚間優惠時段 (限制使用至隔日6點)"
     },
     weekendEvening: {
-        name: '假日晚間優惠',
+        name: "假日晚間優惠",
         price: 500,
-        startTime: '18:30',
-        endTime: '19:30',
-        maxStayTime: '06:00', // 隔天早上6點
-        days: [5, 6, 0],     // 週五、六、日
-        description: '假日晚間優惠時段 (限制使用至隔日6點)'
+        startTime: "18:30",
+        endTime: "19:30",
+        maxStayTime: "06:00",
+        days: [5, 6, 0],
+        description: "假日晚間優惠時段 (限制使用至隔日6點)"
     }
 };
 
 // 修改入場登記區段載入函數
 async function loadEntrySection() {
-    const mainContent = document.getElementById('mainContent');
-    const settings = storageManager.getSettings() || { basePrice: 500 };
+    try {
+        const mainContent = document.getElementById('mainContent');
+        if (!mainContent) {
+            throw new Error('找不到主要內容區域');
+        }
 
-    const entryHTML = `
-        <div class="card">
-            <div class="card-header">
-                <h2>入場登記</h2>
-            </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label for="lockerNumber">櫃位號碼 <span class="required">*</span></label>
-                    <input type="number" id="lockerNumber" min="1" max="300" class="form-control" required>
-                </div>
-                
-                <!-- 時段選擇 -->
-                <div class="form-group">
-                    <label>入場時段及時數</label>
-                    <div class="time-slots">
-                        ${Object.entries(timeSlotPrices).map(([key, slot]) => `
-                            <div class="time-slot-card" onclick="selectTimeSlot('${key}')">
-                                <div class="slot-header">${slot.name}</div>
-                                <div class="slot-time">${slot.startTime} - ${slot.endTime}</div>
-                                <div class="slot-price">$${slot.price}</div>
-                                <div class="slot-hours">${slot.hours}小時</div>
-                                <div class="slot-description">${slot.description}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
+        const settings = storageManager.getSettings() || { basePrice: 500 };
 
-                <div class="form-group">
-                    <label>付款方式</label>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="paymentType" value="cash" checked 
-                                   onchange="handlePaymentTypeChange()">
-                            現金
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="paymentType" value="ticket" 
-                                   onchange="handlePaymentTypeChange()">
-                            票券
-                        </label>
-                    </div>
+        const entryHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h2>入場登記</h2>
                 </div>
-
-                <!-- 現金付款區塊 -->
-                <div id="cashFields">
+                <div class="card-body">
                     <div class="form-group">
-                        <label for="amount">金額</label>
-                        <div class="amount-input-group">
-                            <input type="number" id="amount" class="form-control" 
-                                   value="${settings.basePrice}" min="0">
-                            <div class="amount-buttons">
-                                <button onclick="adjustAmount('add')" type="button" class="small-button">+</button>
-                                <button onclick="adjustAmount('subtract')" type="button" class="small-button">-</button>
+                        <label for="lockerNumber">櫃位號碼 <span class="required">*</span></label>
+                        <input type="number" id="lockerNumber" min="1" max="300" class="form-control" required>
+                    </div>
+                    
+                    <!-- 時段選擇 -->
+                    <div class="form-group">
+                        <label>入場時段及時數</label>
+                        <div class="time-slots">
+                            ${Object.entries(TIME_SLOTS).map(([key, slot]) => `
+                                <div class="time-slot-card" onclick="selectTimeSlot('${key}')">
+                                    <div class="slot-header">${slot.name}</div>
+                                    <div class="slot-time">${slot.startTime} - ${slot.endTime}</div>
+                                    <div class="slot-price">$${slot.price}</div>
+                                    <div class="slot-hours">${slot.hours}小時</div>
+                                    <div class="slot-description">${slot.description}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>付款方式</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="paymentType" value="cash" checked 
+                                       onchange="handlePaymentTypeChange()">
+                                現金
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="paymentType" value="ticket" 
+                                       onchange="handlePaymentTypeChange()">
+                                票券
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 現金付款區塊 -->
+                    <div id="cashFields">
+                        <div class="form-group">
+                            <label for="amount">金額</label>
+                            <div class="amount-input-group">
+                                <input type="number" id="amount" class="form-control" 
+                                       value="${settings.basePrice}" min="0">
+                                <div class="amount-buttons">
+                                    <button onclick="adjustAmount('add')" type="button" class="small-button">+</button>
+                                    <button onclick="adjustAmount('subtract')" type="button" class="small-button">-</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="hours">使用時數</label>
+                            <div class="hours-input-group">
+                                <input type="number" id="hours" class="form-control" 
+                                       value="3" min="1" max="24">
+                                <span class="unit">小時</span>
                             </div>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="hours">使用時數</label>
-                        <div class="hours-input-group">
-                            <input type="number" id="hours" class="form-control" 
-                                   value="3" min="1" max="24">
-                            <span class="unit">小時</span>
+
+                    <!-- 票券付款區塊 -->
+                    <div id="ticketFields" style="display: none;">
+                        <div class="form-group">
+                            <label for="ticketType">票券類型</label>
+                            <select id="ticketType" class="form-control" onchange="handleTicketTypeChange()">
+                                <option value="regular">平日券 (24小時)</option>
+                                <option value="unlimited">暢遊券 (24小時)</option>
+                                <option value="event">活動券 (24小時)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ticketNumber">票券號碼</label>
+                            <input type="text" id="ticketNumber" class="form-control" 
+                                   placeholder="請輸入票券號碼">
                         </div>
                     </div>
-                </div>
 
-                <!-- 票券付款區塊 -->
-                <div id="ticketFields" style="display: none;">
                     <div class="form-group">
-                        <label for="ticketType">票券類型</label>
-                        <select id="ticketType" class="form-control" onchange="handleTicketTypeChange()">
-                            <option value="regular">平日券 (24小時)</option>
-                            <option value="unlimited">暢遊券 (24小時)</option>
-                            <option value="event">活動券 (24小時)</option>
-                        </select>
+                        <label for="remarks">備註說明</label>
+                        <textarea id="remarks" class="form-control" rows="2" 
+                                 placeholder="可輸入特殊需求或備註說明"></textarea>
                     </div>
-                    <div class="form-group">
-                        <label for="ticketNumber">票券號碼</label>
-                        <input type="text" id="ticketNumber" class="form-control" 
-                               placeholder="請輸入票券號碼">
-                    </div>
-                </div>
 
-                <div class="form-group">
-                    <label for="remarks">備註說明</label>
-                    <textarea id="remarks" class="form-control" rows="2" 
-                             placeholder="可輸入特殊需求或備註說明"></textarea>
+                    <button onclick="handleEntrySubmit()" class="primary-button">確認登記</button>
                 </div>
-
-                <button onclick="handleEntrySubmit()" class="primary-button">確認登記</button>
             </div>
-        </div>
-    `;
+        `;
 
-    mainContent.innerHTML = entryHTML;
-    initializeEntryEvents();
+        mainContent.innerHTML = entryHTML;
+        await initializeEntryEvents();
+        updateSpecialTimeStatus();
+        
+        return true;
+    } catch (error) {
+        console.error('載入入場區段失敗:', error);
+        throw error;
+    }
 }
 
 // 選擇時段
 function selectTimeSlot(slotKey) {
-    const slot = timeSlotPrices[slotKey];
+    const slot = TIME_SLOTS[slotKey];
     if (!slot) return;
 
     // 更新金額和時數
     document.getElementById('amount').value = slot.price;
-    document.getElementById('hours').value = slot.hours;
+    document.getElementById('hours').value = 3; // 預設3小時
 
     // 視覺反饋
     document.querySelectorAll('.time-slot-card').forEach(card => {
@@ -625,21 +664,26 @@ window.handleTicketTypeChange = handleTicketTypeChange;
 
 // 判斷是否為優惠時段
 function isSpecialTimeSlot() {
-    const now = new Date();
-    const day = now.getDay(); // 0-6，0是週日
-    const time = now.getHours() * 100 + now.getMinutes();
+    try {
+        const now = new Date();
+        const day = now.getDay();
+        const currentTime = now.getHours() * 100 + now.getMinutes();
 
-    const isInTimeRange = time >= 1830 && time <= 1930;
-    
-    if (!isInTimeRange) return false;
-
-    if ([1, 2, 3, 4].includes(day)) {
-        return 'weekdayEvening';
-    } else if ([5, 6, 0].includes(day)) {
-        return 'weekendEvening';
+        for (const [key, slot] of Object.entries(TIME_SLOTS)) {
+            const startTime = parseInt(slot.startTime.replace(':', ''));
+            const endTime = parseInt(slot.endTime.replace(':', ''));
+            
+            if (currentTime >= startTime && 
+                currentTime <= endTime && 
+                slot.days.includes(day)) {
+                return key;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error('檢查優惠時段錯誤:', error);
+        return false;
     }
-
-    return false;
 }
 
 // 獲取當前優惠價格
@@ -647,8 +691,8 @@ function getCurrentSpecialPrice() {
     const timeSlotKey = isSpecialTimeSlot();
     if (!timeSlotKey) return null;
 
-    const slot = timeSlotPrices[timeSlotKey];
-    return `${slot.name} - ${slot.price}元 (限制使用至隔日早上6點)`;
+    const slot = TIME_SLOTS[timeSlotKey];
+    return slot ? `${slot.name} - ${slot.price}元 (限制使用至隔日早上6點)` : null;
 }
 
 // 新增根據時數更新金額的函數
@@ -728,3 +772,53 @@ function resetEntryForm() {
     document.querySelector('input[name="paymentType"][value="cash"]').checked = true;
     handlePaymentTypeChange();
 }
+
+// 修改資源檢查和載入
+async function initializeEntrySection() {
+    console.log('開始初始化入場區段');
+    const startTime = performance.now();
+    
+    try {
+        // 檢查必要的依賴是否已載入
+        if (!window.storageManager?.isInitialized) {
+            throw new Error('StorageManager 尚未初始化');
+        }
+
+        // 確保樣式表已載入
+        const styles = document.querySelectorAll('link[rel="stylesheet"]');
+        if (!Array.from(styles).some(style => style.href.includes('components.css'))) {
+            console.warn('組件樣式表可能未正確載入');
+        }
+
+        // 載入入場區段
+        await loadEntrySection();
+        
+        const loadTime = performance.now() - startTime;
+        console.log(`入場區段初始化完成，耗時: ${loadTime.toFixed(2)}ms`);
+        return true;
+
+    } catch (error) {
+        console.error('初始化入場區段失敗:', error);
+        showToast('載入入場區段失敗，請重新整理頁面', 'error');
+        return false;
+    }
+}
+
+// 新增優惠時段狀態更新函數
+function updateSpecialTimeStatus() {
+    const statusElement = document.getElementById('specialTimeStatus');
+    if (!statusElement) return;
+
+    const currentSpecial = isSpecialTimeSlot();
+    if (currentSpecial) {
+        const slot = TIME_SLOTS[currentSpecial];
+        statusElement.textContent = `${slot.name}進行中`;
+        statusElement.style.display = 'block';
+    } else {
+        statusElement.style.display = 'none';
+    }
+}
+
+// 確保全域函數可用
+window.loadEntrySection = loadEntrySection;
+window.initializeEntrySection = initializeEntrySection;

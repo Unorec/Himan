@@ -41,22 +41,37 @@ function checkLoginStatus() {
     }
 }
 
-// 切換頁面區段
-function switchSection(sectionId) {
-    console.log('Switching to section:', sectionId); // 調試用
-    
-    // 更新目前區段
-    app.currentSection = sectionId;
-    
-    // 顯示載入動畫
-    showLoading(true);
+// 修改切換頁面區段函數
+async function switchSection(sectionId) {
+    console.log(`開始切換至區段: ${sectionId}`);
+    const startTime = performance.now();
     
     try {
-        // 載入對應的內容
-        loadSectionContent(sectionId);
+        showLoading(true);
+        app.currentSection = sectionId;
+        
+        // 檢查必要模組
+        if (sectionId === 'entry' && !window.initializeEntrySection) {
+            throw new Error('入場區段模組未正確載入');
+        }
+
+        // 更新選單狀態
+        document.querySelectorAll('.main-menu .menu-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.dataset.section === sectionId) {
+                item.classList.add('active');
+            }
+        });
+
+        // 載入對應內容
+        await loadSectionContent(sectionId);
+        
+        const loadTime = performance.now() - startTime;
+        console.log(`區段 ${sectionId} 載入完成，耗時: ${loadTime.toFixed(2)}ms`);
+
     } catch (error) {
-        console.error('Error switching section:', error);
-        showToast('切換頁面失敗', 'error');
+        console.error('切換區段失敗:', error);
+        showToast('載入頁面失敗: ' + error.message, 'error');
     } finally {
         showLoading(false);
     }

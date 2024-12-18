@@ -87,9 +87,28 @@ class StorageManager {
     // 新增單筆入場記錄
     addEntry(entry) {
         try {
+            if (!this.validateEntry(entry)) {
+                console.error('Invalid entry data:', entry);
+                return false;
+            }
+
             const entries = this.getEntries() || [];
+            
+            // 確保不重複的 ID
+            while (entries.some(e => e.id === entry.id)) {
+                entry.id = 'E' + Date.now();
+            }
+
             entries.push(entry);
-            return this.saveEntries(entries);
+            const result = this.saveEntries(entries);
+            
+            if (!result) {
+                throw new Error('儲存失敗');
+            }
+
+            console.log('Entry added successfully:', entry);
+            return true;
+
         } catch (error) {
             console.error('Add entry error:', error);
             return false;
@@ -275,11 +294,16 @@ class StorageManager {
     validateEntry(entry) {
         return (
             entry &&
+            typeof entry === 'object' &&
             entry.lockerNumber >= 1 &&
-            entry.lockerNumber <= 300 &&  // 修改櫃位範圍檢查
-            entry.hours >= 1 &&
-            entry.hours <= 24 &&          // 新增時數範圍檢查
-            ['active', 'temporary', 'completed'].includes(entry.status)
+            entry.lockerNumber <= 300 &&
+            entry.id &&
+            entry.entryTime &&
+            ['active', 'temporary', 'completed'].includes(entry.status) &&
+            (
+                (entry.paymentType === 'cash' && typeof entry.amount === 'number') ||
+                (entry.paymentType === 'ticket' && entry.ticketNumber)
+            )
         );
     }
 }

@@ -8,8 +8,13 @@ const STORAGE_KEYS = {
 
 // 修改默認設定
 const DEFAULT_SETTINGS = {
+<<<<<<< Updated upstream
     basePrice: 0,           // 更改基本收費為0
     overtimeRate: 0,        // 更改超時費率為0
+=======
+    basePrice: 500,           // 基本收費（3小時）
+    overtimeRate: 100,        // 超時費率（每小時）
+>>>>>>> Stashed changes
     businessHours: {
         start: '08:00',
         end: '22:00'
@@ -22,6 +27,7 @@ const DEFAULT_SETTINGS = {
 // 資料管理類
 class StorageManager {
     constructor() {
+<<<<<<< Updated upstream
         this.isInitialized = false;
         this.defaultSettings = {
             basePrice: 0,       // 更改基本收費為0
@@ -40,6 +46,14 @@ class StorageManager {
             console.error('StorageManager initialization failed:', error);
             throw error;
         }
+=======
+        this.defaultSettings = {
+            basePrice: 500,      
+            lockerCount: 300,    // 固定櫃位數量
+            maxHours: 24
+        };
+        this.initializeStorage();
+>>>>>>> Stashed changes
     }
 
     // 初始化存儲空間
@@ -294,6 +308,7 @@ class StorageManager {
     validateEntry(entry) {
         return (
             entry &&
+<<<<<<< Updated upstream
             typeof entry === 'object' &&
             entry.lockerNumber >= 1 &&
             entry.lockerNumber <= 300 &&
@@ -304,10 +319,18 @@ class StorageManager {
                 (entry.paymentType === 'cash' && typeof entry.amount === 'number') ||
                 (entry.paymentType === 'ticket' && entry.ticketNumber)
             )
+=======
+            entry.lockerNumber >= 1 &&
+            entry.lockerNumber <= 300 &&  // 修改櫃位範圍檢查
+            entry.hours >= 1 &&
+            entry.hours <= 24 &&          // 新增時數範圍檢查
+            ['active', 'temporary', 'completed'].includes(entry.status)
+>>>>>>> Stashed changes
         );
     }
 }
 
+<<<<<<< Updated upstream
 // 創建並初始化全域實例
 window.storageManager = new StorageManager();
 
@@ -315,3 +338,10 @@ window.storageManager = new StorageManager();
 if (!window.storageManager.isInitialized) {
     throw new Error('StorageManager failed to initialize');
 }
+=======
+// 創建全域實例
+const storageManager = new StorageManager();
+
+// 導出全域實例
+window.storageManager = storageManager;
+>>>>>>> Stashed changes

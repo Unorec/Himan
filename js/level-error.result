@@ -1,0 +1,1 @@
+{"type":"test-case-result","name":"level-error","description":"這是顯示錯誤的測試（沒有資料）的結果。","level":"error","metadata":{"startTimestamp":"2024-12-18T04:00:37.369Z","endTimestamp":"2024-12-18T04:00:37.371Z","url":"http://127.0.0.1:5500/index.html"}}

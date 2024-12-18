@@ -23,6 +23,8 @@
             border-bottom-left-radius: 4px;
         }
     </style>
+<<<<<<< Updated upstream
+=======
 
     <script>
         // 初始化全域模組追蹤
@@ -34,37 +36,8 @@
             window.moduleLoaded[moduleName] = true;
             console.log(`Module ${moduleName} loaded`);
         };
-
-        // 資源載入錯誤處理
-        window.addEventListener('error', function(e) {
-            if (e.target.tagName === 'LINK' || e.target.tagName === 'SCRIPT') {
-                console.error('資源載入失敗:', e.target.src || e.target.href);
-                const toast = document.getElementById('toast');
-                if (toast) {
-                    toast.textContent = '系統資源載入失敗，請重新整理頁面';
-                    toast.className = 'toast error';
-                    toast.style.display = 'block';
-                }
-            }
-        }, true);
     </script>
-    <script>
-        // 改進的模組追蹤
-        window.moduleStatus = {
-            loaded: {},
-            initialized: {},
-            timing: {}
-        };
-        
-        // 模組載入記錄
-        window.logModuleLoad = function(moduleName) {
-            moduleStatus.loaded[moduleName] = true;
-            moduleStatus.timing[moduleName] = performance.now();
-            console.log(`模組 ${moduleName} 載入完成，耗時: ${
-                (moduleStatus.timing[moduleName] - performance.timing.navigationStart).toFixed(2)
-            }ms`);
-        };
-    </script>
+>>>>>>> Stashed changes
 </head>
 <body>
     <!-- 新增優惠時段狀態提示 -->
@@ -137,58 +110,87 @@
     </div>
 
     <!-- JavaScript 檔案載入順序調整 -->
-    <script src="js/utils.js" onload="logModuleLoad('utils')"></script>
-    <script>
-        // 等待 utils.js 載入
-        window.addEventListener('load', () => {
-            if (typeof showToast !== 'function') {
-                console.error('Utils not properly loaded');
-            }
-        });
-    </script>
-    <script src="js/storage.js" onload="logModuleLoad('storage')"></script>
-    <script>
-        // 檢查 StorageManager
-        if (!window.storageManager?.isInitialized) {
-            console.error('StorageManager not initialized');
-        }
-    </script>
-    <script src="js/modal.js" onload="logModuleLoad('modal')"></script>
-    <script src="js/records.js" onload="logModuleLoad('records')"></script>
-    <script src="js/entry.js" onload="logModuleLoad('entry')"></script>
-    <script src="js/main.js" onload="logModuleLoad('main')"></script>
-    <script src="js/auth.js" onload="logModuleLoad('auth')"></script>
-    <script src="js/settings.js" onload="logModuleLoad('settings')"></script>
+<<<<<<< Updated upstream
+    <script src="js/utils.js"></script>
+    <script src="js/test-handler.js"></script>
+    <script src="js/modal.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/entry.js"></script>
+    <script src="js/records.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
 
+    <!-- 模組載入檢查和初始化 -->
     <script>
-        // 檢查模組初始化
-        document.addEventListener('DOMContentLoaded', async function() {
+        window.addEventListener('load', async function() {
             try {
-                // 等待 StorageManager 初始化
-                if (!window.storageManager?.isInitialized) {
-                    throw new Error('StorageManager not initialized');
+                // 檢查核心模組
+                if (!window.storageManager || !window.TestResultHandler) {
+                    throw new Error('核心模組未載入');
                 }
 
-                // 確認必要函數已載入
-                const requiredFunctions = [
-                    'loadRecordsSection',
-                    'loadEntrySection',
-                    'switchSection',
-                    'showToast'
-                ];
+                // 等待所有模組載入
+                await new Promise(resolve => setTimeout(resolve, 500));
 
-                const missingFunctions = requiredFunctions.filter(
-                    fn => typeof window[fn] !== 'function'
+                // 檢查必要的功能模組
+                const requiredModules = ['loadRecordsSection', 'loadEntrySection'];
+                const missingModules = requiredModules.filter(
+                    module => typeof window[module] !== 'function'
                 );
 
-                if (missingFunctions.length > 0) {
-                    throw new Error(`Missing required functions: ${missingFunctions.join(', ')}`);
+                if (missingModules.length > 0) {
+                    throw new Error(`未載入的模組: ${missingModules.join(', ')}`);
                 }
-
-                console.log('All modules initialized successfully');
             } catch (error) {
-                console.error('Module initialization error:', error);
-                showToast('系統初始化失敗，請重新整理頁面', 'error');
+                console.error('系統載入錯誤:', error);
+                alert('系統載入不完整，將重新整理頁面');
+=======
+    <script src="js/utils.js" onload="checkModuleLoaded('utils')"></script>
+    <script src="js/storage.js" onload="checkModuleLoaded('storage')"></script>
+    <script src="js/modal.js" onload="checkModuleLoaded('modal')"></script>
+    <script src="js/records.js" onload="checkModuleLoaded('records')"></script>
+    <script src="js/entry.js" onload="checkModuleLoaded('entry')"></script>
+    <script src="js/auth.js" onload="checkModuleLoaded('auth')"></script>
+    <script src="js/main.js" onload="checkModuleLoaded('main')"></script>
+
+    <script>
+        // 檢查函數是否成功載入
+        function checkFunctionsLoaded() {
+            return typeof window.loadRecordsSection === 'function' &&
+                   typeof window.loadEntrySection === 'function';
+        }
+
+        // 改進的等待模組載入函數
+        async function waitForModules() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const check = setInterval(() => {
+                    attempts++;
+                    if (checkFunctionsLoaded()) {
+                        clearInterval(check);
+                        console.log('All required functions loaded');
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(check);
+                        reject(new Error('Module loading timeout'));
+                    }
+                }, 100);
+            });
+        }
+
+        // 頁面載入完成後初始化
+        window.addEventListener('load', async () => {
+            try {
+                await waitForModules();
+                console.log('System ready');
+            } catch (error) {
+                console.error('Module loading error:', error);
+                alert('系統載入失敗，請重新整理頁面');
+>>>>>>> Stashed changes
+                location.reload();
             }
         });
     </script>

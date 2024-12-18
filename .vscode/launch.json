@@ -1,0 +1,28 @@
+{
+    // 使用 IntelliSense 以得知可用的屬性。
+    // 暫留以檢視現有屬性的描述。
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "執行程式",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/js/main.js",  // 修正為正確的 JavaScript 進入點
+            "outFiles": [
+                "${workspaceFolder}/js/**/*.js"
+            ],
+            "sourceMaps": true,
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "runtimeExecutable": "/usr/local/bin/node",  // 直接指定 Node.js 執行檔位置
+            "env": {
+                "PATH": "${env:PATH}"
+            }
+        }
+    ]
+}

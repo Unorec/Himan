@@ -6,54 +6,23 @@ const STORAGE_KEYS = {
     SYSTEM_CONFIG: 'himan_config'
 };
 
-// 修改默認設定
+// 基本系統設定
 const DEFAULT_SETTINGS = {
-<<<<<<< Updated upstream
-    basePrice: 0,           // 更改基本收費為0
-    overtimeRate: 0,        // 更改超時費率為0
-=======
-    basePrice: 500,           // 基本收費（3小時）
-    overtimeRate: 100,        // 超時費率（每小時）
->>>>>>> Stashed changes
+    basePrice: 300,           // 基本收費
+    overtimeRate: 100,        // 超時費率（每30分鐘）
     businessHours: {
         start: '08:00',
         end: '22:00'
     },
-    maxStayHours: 24,        // 最長停留時間
-    lockerCount: 300,        // 櫃位總數
-    lastBackup: null         // 最後備份時間
+    maxStayHours: 12,         // 最長停留時間
+    lockerCount: 100,         // 櫃位總數
+    lastBackup: null          // 最後備份時間
 };
 
 // 資料管理類
 class StorageManager {
     constructor() {
-<<<<<<< Updated upstream
-        this.isInitialized = false;
-        this.defaultSettings = {
-            basePrice: 0,       // 更改基本收費為0
-            lockerCount: 300,   // 固定櫃位數量
-            maxHours: 24
-        };
-        this.initialize();
-    }
-
-    initialize() {
-        try {
-            this.initializeStorage();
-            this.isInitialized = true;
-            console.log('StorageManager initialized successfully');
-        } catch (error) {
-            console.error('StorageManager initialization failed:', error);
-            throw error;
-        }
-=======
-        this.defaultSettings = {
-            basePrice: 500,      
-            lockerCount: 300,    // 固定櫃位數量
-            maxHours: 24
-        };
         this.initializeStorage();
->>>>>>> Stashed changes
     }
 
     // 初始化存儲空間
@@ -101,28 +70,9 @@ class StorageManager {
     // 新增單筆入場記錄
     addEntry(entry) {
         try {
-            if (!this.validateEntry(entry)) {
-                console.error('Invalid entry data:', entry);
-                return false;
-            }
-
             const entries = this.getEntries() || [];
-            
-            // 確保不重複的 ID
-            while (entries.some(e => e.id === entry.id)) {
-                entry.id = 'E' + Date.now();
-            }
-
             entries.push(entry);
-            const result = this.saveEntries(entries);
-            
-            if (!result) {
-                throw new Error('儲存失敗');
-            }
-
-            console.log('Entry added successfully:', entry);
-            return true;
-
+            return this.saveEntries(entries);
         } catch (error) {
             console.error('Add entry error:', error);
             return false;
@@ -304,44 +254,107 @@ class StorageManager {
         }
         return false;
     }
+}
 
-    validateEntry(entry) {
-        return (
-            entry &&
-<<<<<<< Updated upstream
-            typeof entry === 'object' &&
-            entry.lockerNumber >= 1 &&
-            entry.lockerNumber <= 300 &&
-            entry.id &&
-            entry.entryTime &&
-            ['active', 'temporary', 'completed'].includes(entry.status) &&
-            (
-                (entry.paymentType === 'cash' && typeof entry.amount === 'number') ||
-                (entry.paymentType === 'ticket' && entry.ticketNumber)
-            )
-=======
-            entry.lockerNumber >= 1 &&
-            entry.lockerNumber <= 300 &&  // 修改櫃位範圍檢查
-            entry.hours >= 1 &&
-            entry.hours <= 24 &&          // 新增時數範圍檢查
-            ['active', 'temporary', 'completed'].includes(entry.status)
->>>>>>> Stashed changes
-        );
+// 統一的儲存管理模組
+export const getStorage = (key) => {
+    try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : null;
+    } catch (error) {
+        console.error('Error getting storage:', error);
+        return null;
     }
-}
+};
 
-<<<<<<< Updated upstream
-// 創建並初始化全域實例
-window.storageManager = new StorageManager();
+export const setStorage = (key, value) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+    } catch (error) {
+        console.error('Error setting storage:', error);
+        return false;
+    }
+};
 
-// 確保初始化完成
-if (!window.storageManager.isInitialized) {
-    throw new Error('StorageManager failed to initialize');
-}
-=======
-// 創建全域實例
-const storageManager = new StorageManager();
+export const removeStorage = (key) => {
+    try {
+        localStorage.removeItem(key);
+        return true;
+    } catch (error) {
+        console.error('Error removing storage:', error);
+        return false;
+    }
+};
 
-// 導出全域實例
-window.storageManager = storageManager;
->>>>>>> Stashed changes
+// 儲存管理器
+export const storageManager = {
+    // 新增入場記錄
+    addEntry(entry) {
+        try {
+            const entries = this.getEntries() || [];
+            entries.push(entry);
+            localStorage.setItem('entries', JSON.stringify(entries));
+            return true;
+        } catch (error) {
+            console.error('Error adding entry:', error);
+            return false;
+        }
+    },
+
+    // 取得所有入場記錄
+    getEntries() {
+        try {
+            return JSON.parse(localStorage.getItem('entries')) || [];
+        } catch (error) {
+            console.error('Error getting entries:', error);
+            return [];
+        }
+    },
+
+    // 更新入場記錄
+    updateEntry(entryId, updatedEntry) {
+        try {
+            const entries = this.getEntries();
+            const index = entries.findIndex(e => e.id === entryId);
+            if (index !== -1) {
+                entries[index] = updatedEntry;
+                localStorage.setItem('entries', JSON.stringify(entries));
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error updating entry:', error);
+            return false;
+        }
+    },
+
+    // 取得系統設定
+    getSettings() {
+        try {
+            return JSON.parse(localStorage.getItem('settings')) || {
+                basePrice: 300,
+                lockerCount: 500
+            };
+        } catch (error) {
+            console.error('Error getting settings:', error);
+            return {
+                basePrice: 300,
+                lockerCount: 500
+            };
+        }
+    },
+
+    // 儲存系統設定
+    saveSettings(settings) {
+        try {
+            localStorage.setItem('settings', JSON.stringify(settings));
+            return true;
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            return false;
+        }
+    }
+};
+
+export default storageManager;

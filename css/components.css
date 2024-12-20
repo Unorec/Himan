@@ -122,13 +122,13 @@ body {
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
-    font-weight: 500;
+    color: #666;
 }
 
 .form-control {
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 1rem;
 }
@@ -151,9 +151,11 @@ body {
 }
 
 .primary-button {
-    background-color: var(--primary-color);
+    background-color: #1976d2;
     color: white;
     border: none;
+    padding: 0.75rem 1.5rem;
+    width: 100%;
 }
 
 .primary-button:hover {
@@ -162,8 +164,9 @@ body {
 
 .secondary-button {
     background-color: white;
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
+    color: #1976d2;
+    border: 1px solid #1976d2;
+    padding: 0.5rem 1rem;
 }
 
 .secondary-button:hover {
@@ -189,14 +192,105 @@ body {
     color: white;
     z-index: 1000;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: none;
 }
 
 .toast.success {
-    background-color: var(--success-color);
+    background-color: #4caf50;
 }
 
 .toast.error {
-    background-color: var(--error-color);
+    background-color: #f44336;
+}
+
+/* Loading 動畫 */
+.loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #1976d2;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 優惠時段狀態 */
+.special-time-status {
+    position: fixed;
+    top: 0;
+    right: 0;
+    padding: 8px 16px;
+    background-color: #ff9800;
+    color: white;
+    z-index: 1000;
+    border-bottom-left-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.special-time-status .price {
+    font-weight: bold;
+    color: #fff3e0;
+}
+
+.special-time-status .limit {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* 收費表單特定樣式 */
+.amount-input-group,
+.hours-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.amount-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.small-button {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+    cursor: pointer;
+}
+
+.radio-group {
+    display: flex;
+    gap: 1rem;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.required {
+    color: #f44336;
 }
 
 /* 電腦版樣式 (寬度 >= 1024px) */
@@ -347,7 +441,7 @@ body {
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     display: flex;
-    align-items: center;
+    align-items: center;    
     justify-content: center;
     z-index: 1000;
 }
@@ -607,6 +701,143 @@ body {
         z-index: -1;
     }
 }
+/* 操作按鈕容器 */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* 下拉選單容器 */
+.action-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* 主要操作按鈕 */
+.action-button {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* 快速操作按鈕 */
+.quick-button {
+    background-color: #f8f9fa;
+    color: var(--text-color);
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.quick-button:hover {
+    background-color: #e9ecef;
+}
+
+/* 操作選單 */
+.action-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 100;
+    min-width: 160px;
+    margin-top: 0.25rem;
+}
+
+.action-menu.show {
+    display: block;
+}
+
+/* 選單項目 */
+.menu-item {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.menu-item:hover {
+    background-color: #f8f9fa;
+}
+
+.menu-item i {
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+}
+
+.menu-item.warning {
+    color: var(--error-color);
+}
+
+.menu-item.warning:hover {
+    background-color: #fff5f5;
+}
+
+/* 選單分隔線 */
+.menu-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 0.25rem 0;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .action-button,
+    .quick-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .action-menu {
+        position: fixed;
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+        top: auto;
+        margin: 0;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .menu-item {
+        padding: 1rem;
+    }
+
+    /* 背景遮罩 */
+    .action-menu.show::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: -1;
+    }
+}
 /* Menu 按鈕樣式 */
 .menu-button {
     width: 100%;
@@ -694,6 +925,10 @@ body {
 
     .form-actions button {
         width: 100%;
+    }
+
+    .menu-button {
+        padding: 1rem;
     }
 }
 
@@ -869,7 +1104,7 @@ body {
 }
 
 .history-time {
-    color: var (--secondary-color);
+    color: var(--secondary-color);
     font-size: 0.875rem;
     margin-bottom: 0.5rem;
 }
@@ -1196,374 +1431,145 @@ body {
     margin-top: 0.5rem;
 }
 
-/* 櫃位狀態網格 */
-.locker-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 8px;
-    padding: 16px;
+/* 優惠時段卡片樣式 */
+.special-time-card {
+    background-color: #fff3e0;
+    border: 1px solid #ff9800;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
 }
 
-.locker-cell {
+.special-time-header {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    padding: 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    margin-bottom: 0.5rem;
 }
 
-.locker-cell.available {
-    background-color: #e8f5e9;
-    border: 1px solid #81c784;
-}
-
-.locker-cell.occupied {
-    background-color: #ffebee;
-    border: 1px solid #e57373;
-}
-
-.locker-number {
+.special-time-title {
     font-weight: bold;
-    font-size: 14px;
+    color: #f57c00;
 }
 
-.locker-status {
-    font-size: 12px;
-    margin-top: 4px;
+.special-time-price {
+    font-size: 1.2rem;
+    color: #e65100;
 }
 
-/* 記錄列表樣式 */
-.records-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    padding: 16px;
+.special-time-info {
+    font-size: 0.9rem;
+    color: #666;
 }
 
-.records-filters {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 16px;
+.time-limit-warning {
+    color: #f44336;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
 }
 
-.search-input {
-    flex: 1;
-}
-
-/* 付款方式選擇 */
-.payment-type {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.radio-button {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-}
-
-.radio-button input[type="radio"] {
-    margin: 0;
-}
-
-/* 超時提醒樣式 */
-.overtime-warning {
-    text-align: center;
-    padding: 1rem;
-}
-
-.overtime-warning h3 {
-    color: var(--error-color);
-    margin-bottom: 1rem;
-}
-
-.modal-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin-top: 1.5rem;
-}
-
-/* 操作選項樣式 */
-.action-options {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    z-index: 1000;
-}
-
-.action-options ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.action-options li {
-    padding: 8px 16px;
-    cursor: pointer;
-}
-
-.action-options li:hover {
-    background-color: #f5f5f5;
-}
-
-/* 記錄操作相關樣式 */
-.record-actions {
-    position: relative;
-    display: inline-block;
-}
-
-.action-menu {
-    position: absolute;
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    z-index: 1000;
-    min-width: 200px;
-}
-
-/* 延長時間表單樣式 */
-.time-extension-form {
-    padding: 1rem;
-}
-
-.extension-hours {
-    display: flex;
-    gap: 1rem;
-    margin: 1rem 0;
-}
-
-.hour-option {
+/* 優惠時段狀態提示 */
+.special-time-status {
+    background-color: #ff9800;
+    color: white;
     padding: 0.5rem 1rem;
-    border: 1px solid var(--border-color);
     border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.hour-option:hover,
-.hour-option.selected {
-    background-color: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
+.special-time-status .price {
+    font-weight: bold;
+    font-size: 1.1rem;
 }
 
-/* 櫃位更換表單樣式 */
-.locker-change-form {
-    padding: 1rem;
+.special-time-status .time-limit {
+    font-size: 0.9rem;
+    opacity: 0.9;
 }
 
-.available-lockers {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 0.5rem;
-    margin: 1rem 0;
-    max-height: 200px;
-    overflow-y: auto;
+/* 分頁容器 */
+.tab-container {
+    margin-top: 1rem;
 }
 
-.locker-option {
-    text-align: center;
-    padding: 0.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.locker-option:hover,
-.locker-option.selected {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-/* 歷史記錄樣式 */
-.history-list {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.history-item {
+/* 分頁按鈕 */
+.tab-buttons {
     display: flex;
     gap: 1rem;
-    align-items: flex-start;
-    padding: 0.75rem;
+    margin-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
 }
 
-.history-time {
-    min-width: 150px;
-    color: var(--secondary-color);
-}
-
-/* 加收費用表單樣式 */
-.charge-form {
-    padding: 1rem;
-}
-
-.charge-options {
-    display: flex;
-    gap: 1rem;
-    margin: 1rem 0;
-}
-
-.charge-preset {
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    cursor: pointer;
-    text-align: center;
-}
-
-.charge-preset:hover,
-.charge-preset.selected {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-/* 響應式調整 */
-@media (max-width: 768px) {
-    .action-menu {
-        position: fixed;
-        left: 1rem;
-        right: 1rem;
-        bottom: 1rem;
-        transform: none;
-    }
-
-    .extension-hours,
-    .charge-options {
-        flex-direction: column;
-    }
-
-    .available-lockers {
-        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-    }
-}
-
-/* 記錄和櫃位整合視圖 */
-.records-container {
-    padding: 1rem;
-}
-
-.view-controls {
-    margin: 1rem 0;
-    display: flex;
-    gap: 0.5rem;
-}
-
 .tab-button {
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-    border-radius: 4px;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    background: none;
+    color: var(--secondary-color);
     cursor: pointer;
+    font-size: 1rem;
+    position: relative;
 }
 
 .tab-button.active {
-    background: var(--primary-color);
-    color: white;
-}
-
-.status-overview {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.status-card {
-    background: var(--bg-secondary);
-    padding: 1rem;
-    border-radius: 8px;
-    text-align: center;
-}
-
-.status-card .count {
-    font-size: 2rem;
-    font-weight: bold;
     color: var(--primary-color);
 }
 
-.records-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.locker-card {
-    background: var(--bg-secondary);
-    padding: 1rem;
-    border-radius: 8px;
-    text-align: center;
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-
-.locker-card:hover {
-    transform: translateY(-2px);
-}
-
-.locker-card.occupied {
-    background: var(--warning-color);
-    color: white;
-}
-
-.locker-card.available {
-    background: var(--success-color);
-    color: white;
-}
-
-.records-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
-}
-
-.records-table th,
-.records-table td {
-    padding: 0.75rem;
-    border: 1px solid var(--border-color);
-    text-align: left;
-}
-
-.records-table th {
-    background: var(--bg-secondary);
-}
-
-/* 載入動畫容器 */
-.loading {
-    position: fixed;
-    top: 0;
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
     left: 0;
     right: 0;
-    bottom: 0;
-    background-color: rgba(255, 255, 255, 0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
+    height: 2px;
+    background-color: var(--primary-color);
 }
 
-/* 載入動畫圖示 */
-.loading::after {
-    content: '';
-    width: 50px;
-    height: 50px;
-    border: 4px solid #f3f3f3;
-    border-radius: 50%;
-    border-top: 4px solid var(--primary-color);
-    animation: spin 1s linear infinite;
+/* 分頁內容 */
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.tab-content.active {
+    display: block;
+}
+
+/* 優惠時段資訊 */
+.special-time-info {
+    background-color: #fff3e0;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+.special-time-info h3 {
+    color: #f57c00;
+    margin-bottom: 1rem;
+}
+
+.special-time-info ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.special-time-info li {
+    color: #666;
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.special-time-info li::before {
+    content: '•';
+    position: absolute;
+    left: 0.5rem;
+    color: #f57c00;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }

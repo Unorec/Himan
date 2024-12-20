@@ -3,71 +3,99 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAuthEvents();
 });
 
-// 初始化登入相關事件
+// 修改初始化事件監聽時機
 function initializeAuthEvents() {
-    // 登入按鈕事件
+    // 確保 DOM 元素存在
     const loginButton = document.getElementById('loginButton');
-    if (loginButton) {
-        loginButton.addEventListener('click', handleLogin);
+    const logoutButton = document.getElementById('logoutButton');
+    const loginInputs = document.querySelectorAll('#loginContainer input');
+
+    if (!loginButton || !logoutButton) {
+        console.error('找不到必要的登入/登出按鈕');
+        return;
     }
+
+    // 登入按鈕事件
+    loginButton.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await handleLogin();
+    });
 
     // 登出按鈕事件
-    const logoutButton = document.getElementById('logoutButton');
-    if (logoutButton) {
-        logoutButton.addEventListener('click', handleLogout);
-    }
+    logoutButton.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await handleLogout();
+    });
 
     // 監聽輸入框的 Enter 鍵
-    const loginInputs = document.querySelectorAll('#loginContainer input');
     loginInputs.forEach(input => {
-        input.addEventListener('keypress', (e) => {
+        input.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
-                handleLogin();
+                e.preventDefault();
+                await handleLogin();
             }
         });
     });
 }
 
-// 處理登入
+// 修改登入處理函數
 async function handleLogin() {
     try {
         // 取得輸入值
-        const username = document.getElementById('username')?.value?.trim() || '';
-        const password = document.getElementById('password')?.value?.trim() || '';
+        const username = document.getElementById('username')?.value?.trim();
+        const password = document.getElementById('password')?.value?.trim();
 
         // 基本驗證
         if (!username || !password) {
-            showToast('請輸入帳號和密碼', 'error');
+            window.showToast ? window.showToast('請輸入帳號和密碼', 'error') 
+                           : alert('請輸入帳號和密碼');
             return;
         }
 
         // 顯示載入動畫
-        showLoading(true);
+        if (window.showLoading) {
+            window.showLoading(true);
+        }
 
-        // 模擬 API 請求延遲
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 確保儲存系統已初始化
+        if (!window.storageManager) {
+            throw new Error('儲存系統未載入');
+        }
+
+        // 等待儲存系統初始化
+        if (!window.storageManager.isInitialized) {
+            await window.storageManager.init();
+        }
 
         // 簡單的帳號密碼驗證
         if (username === 'himan' && password === 'himan') {
-            // 登入成功
-            loginSuccess(username);
+            await loginSuccess(username);
         } else {
-            // 登入失敗
-            showToast('帳號或密碼錯誤', 'error');
+            throw new Error('帳號或密碼錯誤');
         }
     } catch (error) {
         console.error('Login error:', error);
-        showToast('登入發生錯誤', 'error');
+        window.showToast ? window.showToast(error.message, 'error') 
+                       : alert(error.message);
     } finally {
-        showLoading(false);
+        if (window.showLoading) {
+            window.showLoading(false);
+        }
     }
 }
 
-// 登入成功處理
-function loginSuccess(username) {
+// 修改登入成功處理函數
+async function loginSuccess(username) {
     try {
+        console.log('處理登入成功');
+        
+        // 確保儲存管理器已初始化
+        if (!window.storageManager?.isInitialized) {
+            throw new Error('儲存系統未初始化');
+        }
+
         // 儲存登入狀態
-        storageManager.saveUserSession({
+        await window.storageManager.saveUserSession({
             username: username,
             loginTime: new Date().toISOString()
         });
@@ -79,16 +107,27 @@ function loginSuccess(username) {
         }
 
         // 更新全域狀態
-        window.app.currentUser = username;
+        if (window.app) {
+            window.app.currentUser = username;
+        }
 
-        // 顯示主系統
-        showMainSystem();
+        console.log('準備顯示主系統');
+        // 使用 Promise 確保主系統顯示完成
+        await new Promise((resolve) => {
+            window.showMainSystem();
+            // 給予 DOM 更新的時間
+            setTimeout(resolve, 100);
+        });
 
-        // 顯示成功訊息
-        showToast('登入成功');
+        console.log('主系統顯示完成');
+        // 確保顯示成功訊息
+        if (window.showToast) {
+            window.showToast('登入成功');
+        }
+
     } catch (error) {
-        console.error('Login success handling error:', error);
-        showToast('登入處理發生錯誤', 'error');
+        console.error('登入成功處理錯誤:', error);
+        throw new Error('登入處理發生錯誤: ' + error.message);
     }
 }
 
@@ -110,7 +149,7 @@ async function handleLogout() {
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
         if (usernameInput) usernameInput.value = '';
-        if (passwordInput) passwordInput.value = '';
+        if (passwordInput) usernameInput.value = '';
         
         // 顯示登入表單
         showLoginForm();
@@ -128,3 +167,17 @@ async function handleLogout() {
 // 確保全域函數可用
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
+
+// 確保初始化順序
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        // 等待儲存系統初始化
+        if (window.storageManager && !window.storageManager.isInitialized) {
+            await window.storageManager.init();
+        }
+        initializeAuthEvents();
+        console.log('Auth module initialized');
+    } catch (error) {
+        console.error('Auth initialization error:', error);
+    }
+});

@@ -1,118 +1,99 @@
-/* 登入頁面外層容器 */
-.login-page {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #f5f7fa;
-    padding: 20px;
-}
-
-/* 登入區塊容器 */
+/* 登入頁面容器 */
 .login-container {
-    width: 100%;
     max-width: 400px;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    padding: 32px;
+    margin: 100px auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* 登入頁面標題區 */
+/* 登入頁面標題 */
 .login-header {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: 2rem;
 }
 
 .login-header h2 {
-    color: #1a1a1a;
-    font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 8px;
+    color: #1976d2;
+    margin-bottom: 0.5rem;
+    font-size: 1.8rem;
 }
 
 .login-header p {
     color: #666;
-    font-size: 14px;
+    font-size: 1rem;
 }
 
 /* 登入表單元素 */
-.login-form .form-group {
-    margin-bottom: 24px;
+.login-container .form-group {
+    margin-bottom: 1.5rem;
 }
 
-.login-form label {
+.login-container label {
     display: block;
-    margin-bottom: 8px;
-    color: #1a1a1a;
-    font-size: 14px;
+    margin-bottom: 0.5rem;
+    color: #4a4a4a;
     font-weight: 500;
 }
 
-.login-form input {
+.login-container input {
     width: 100%;
-    padding: 12px 16px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 15px;
-    transition: all 0.3s ease;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-.login-form input:focus {
+.login-container input:focus {
     border-color: #3498db;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
     outline: none;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
 /* 登入按鈕 */
-.login-form .primary-button {
+.login-container .primary-button {
     width: 100%;
-    padding: 12px;
+    padding: 0.8rem;
     background-color: #3498db;
     color: white;
     border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 500;
+    border-radius: 4px;
+    font-size: 1rem;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s;
 }
 
-.login-form .primary-button:hover {
+.login-container .primary-button:hover {
     background-color: #2980b9;
 }
 
-/* 額外提示訊息 */
+/* 提示訊息 */
 .login-hint {
     text-align: center;
-    margin-top: 24px;
     color: #666;
-    font-size: 14px;
+    font-size: 0.875rem;
+    margin-top: 1rem;
 }
 
 /* 錯誤提示 */
 .login-error {
     color: #e74c3c;
     text-align: center;
-    margin-top: 16px;
-    font-size: 14px;
-    padding: 8px;
-    background-color: #fdeaea;
-    border-radius: 4px;
+    margin-top: 1rem;
+    font-size: 0.9rem;
     display: none;
 }
 
-/* 響應式設計調整 */
+/* 回應式設計 */
 @media (max-width: 480px) {
     .login-container {
-        padding: 24px;
+        margin: 50px auto;
+        padding: 1.5rem;
     }
 
     .login-header h2 {
-        font-size: 20px;
-    }
-    
-    .login-form input {
-        padding: 10px 14px;
+        font-size: 1.5rem;
     }
 }

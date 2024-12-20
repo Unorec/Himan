@@ -23,8 +23,6 @@
             border-bottom-left-radius: 4px;
         }
     </style>
-<<<<<<< Updated upstream
-=======
 
     <script>
         // 初始化全域模組追蹤
@@ -37,7 +35,6 @@
             console.log(`Module ${moduleName} loaded`);
         };
     </script>
->>>>>>> Stashed changes
 </head>
 <body>
     <!-- 新增優惠時段狀態提示 -->
@@ -110,45 +107,9 @@
     </div>
 
     <!-- JavaScript 檔案載入順序調整 -->
-<<<<<<< Updated upstream
-    <script src="js/utils.js"></script>
-    <script src="js/test-handler.js"></script>
-    <script src="js/modal.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/entry.js"></script>
-    <script src="js/records.js"></script>
-    <script src="js/settings.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/main.js"></script>
-
-    <!-- 模組載入檢查和初始化 -->
-    <script>
-        window.addEventListener('load', async function() {
-            try {
-                // 檢查核心模組
-                if (!window.storageManager || !window.TestResultHandler) {
-                    throw new Error('核心模組未載入');
-                }
-
-                // 等待所有模組載入
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                // 檢查必要的功能模組
-                const requiredModules = ['loadRecordsSection', 'loadEntrySection'];
-                const missingModules = requiredModules.filter(
-                    module => typeof window[module] !== 'function'
-                );
-
-                if (missingModules.length > 0) {
-                    throw new Error(`未載入的模組: ${missingModules.join(', ')}`);
-                }
-            } catch (error) {
-                console.error('系統載入錯誤:', error);
-                alert('系統載入不完整，將重新整理頁面');
-=======
     <script src="js/utils.js" onload="checkModuleLoaded('utils')"></script>
-    <script src="js/storage.js" onload="checkModuleLoaded('storage')"></script>
     <script src="js/modal.js" onload="checkModuleLoaded('modal')"></script>
+    <script src="js/storage.js" onload="checkModuleLoaded('storage')"></script>
     <script src="js/records.js" onload="checkModuleLoaded('records')"></script>
     <script src="js/entry.js" onload="checkModuleLoaded('entry')"></script>
     <script src="js/auth.js" onload="checkModuleLoaded('auth')"></script>
@@ -189,7 +150,6 @@
             } catch (error) {
                 console.error('Module loading error:', error);
                 alert('系統載入失敗，請重新整理頁面');
->>>>>>> Stashed changes
                 location.reload();
             }
         });

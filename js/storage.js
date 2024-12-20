@@ -6,41 +6,124 @@ const STORAGE_KEYS = {
     SYSTEM_CONFIG: 'himan_config'
 };
 
-// 基本系統設定
+// 修改默認設定
 const DEFAULT_SETTINGS = {
-    basePrice: 300,           // 基本收費
-    overtimeRate: 100,        // 超時費率（每30分鐘）
+    basePrice: 500,           // 更改基本收費為500
+    overtimeRate: 0,        // 更改超時費率為0
     businessHours: {
         start: '08:00',
         end: '22:00'
     },
-    maxStayHours: 12,         // 最長停留時間
-    lockerCount: 100,         // 櫃位總數
-    lastBackup: null          // 最後備份時間
+    timeSlots: {
+        weekdayEvening: {
+            name: '平日晚間優惠',
+            price: 350,
+            startTime: '18:30',
+            endTime: '19:30',
+            maxStayTime: '06:00', // 隔天早上6點
+            days: [1, 2, 3, 4],  // 週一到週四
+            description: '平日晚間優惠時段 (限制使用至隔日6點)'
+        },
+        weekendEvening: {
+            name: '假日晚間優惠',
+            price: 500,
+            startTime: '18:30',
+            endTime: '19:30',
+            maxStayTime: '06:00', // 隔天早上6點
+            days: [5, 6, 0],     // 週五、六、日
+            description: '假日晚間優惠時段 (限制使用至隔日6點)'
+        }
+    },
+    maxStayHours: 24,        // 最長停留時間
+    lockerCount: 300,        // 櫃位總數
+    lastBackup: null         // 最後備份時間
 };
+
+// 修改為全域變數，確保其他模組可以存取
+window.defaultSettings = DEFAULT_SETTINGS;
 
 // 資料管理類
 class StorageManager {
     constructor() {
-        this.initializeStorage();
+        this.isInitialized = false;
+        this.initPromise = null;
     }
 
-    // 初始化存儲空間
-    initializeStorage() {
+    // 初始化本地存儲
+    async initLocalStorage() {
         try {
-            // 檢查並初始化設定
-            if (!this.getSettings()) {
-                this.saveSettings(DEFAULT_SETTINGS);
+            // 檢查 localStorage 是否可用
+            if (!window.localStorage) {
+                throw new Error('LocalStorage 不可用');
             }
 
-            // 檢查並初始化入場記錄
-            if (!this.getEntries()) {
-                this.saveEntries([]);
+            // 初始化必要的存儲項目
+            if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
+                localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
             }
 
+            if (!localStorage.getItem(STORAGE_KEYS.ENTRIES)) {
+                localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify([]));
+            }
+
+            return true;
+        } catch (error) {
+            console.error('LocalStorage initialization error:', error);
+            throw error;
+        }
+    }
+
+    async init() {
+        if (this.initPromise) {
+            return this.initPromise;
+        }
+
+        this.initPromise = new Promise(async (resolve) => {
+            try {
+                await this.initLocalStorage();
+                this.isInitialized = true;
+                console.log('Storage system initialized');
+                resolve(true);
+            } catch (error) {
+                console.error('Storage initialization error:', error);
+                this.isInitialized = false;
+                resolve(false);
+            }
+        });
+
+        return this.initPromise;
+    }
+
+    async initialize() {
+        try {
+            // 檢查必要依賴
+            if (!window.defaultSettings) {
+                throw new Error('系統設定未載入');
+            }
+
+            await this.initializeStorage();
+            this.isInitialized = true;
+            console.log('Storage manager initialized');
+        } catch (error) {
+            console.error('StorageManager initialization failed:', error);
+            // 使用 window.showToast 而不是直接使用 showToast
+            if (window.showToast) {
+                window.showToast('儲存系統初始化失敗', 'error');
+            }
+            throw error;
+        }
+    }
+
+    async initializeStorage() {
+        try {
+            // 確保存在預設設定
+            const settings = this.getSettings();
+            if (!settings) {
+                localStorage.setItem('settings', JSON.stringify(window.defaultSettings));
+            }
         } catch (error) {
             console.error('Storage initialization error:', error);
-            showToast('初始化存儲空間失敗', 'error');
+            throw error;
         }
     }
 
@@ -70,13 +153,80 @@ class StorageManager {
     // 新增單筆入場記錄
     addEntry(entry) {
         try {
+            if (!entry || !entry.lockerNumber) {
+                console.error('Invalid entry data:', entry);
+                return false;
+            }
+
             const entries = this.getEntries() || [];
+            
+            // 檢查櫃位是否已被使用
+            if (entries.some(e => 
+                e.lockerNumber === entry.lockerNumber && 
+                ['active', 'temporary'].includes(e.status)
+            )) {
+                showToast('此櫃位已被使用中', 'error');
+                return false;
+            }
+
+            // 檢查特殊時段
+            const settings = this.getSettings();
+            const timeSlotCheck = isSpecialTimeSlot(new Date(entry.entryTime), settings);
+            
+            // 更新入場記錄資料
+            entry.isSpecialTime = timeSlotCheck.isSpecial;
+            entry.amount = timeSlotCheck.price;
+            
+            if (timeSlotCheck.isSpecial) {
+                entry.specialTimeInfo = {
+                    name: timeSlotCheck.name,
+                    maxStayTime: timeSlotCheck.maxStayTime,
+                    description: timeSlotCheck.description
+                };
+            }
+
+            // 如果是票券，設定24小時
+            if (entry.paymentType === 'ticket') {
+                entry.hours = 24;
+                const endTime = new Date(entry.entryTime);
+                endTime.setHours(endTime.getHours() + 24);
+                entry.expectedEndTime = endTime.toISOString();
+            }
+
             entries.push(entry);
             return this.saveEntries(entries);
         } catch (error) {
             console.error('Add entry error:', error);
             return false;
         }
+    }
+
+    isSpecialTimeSlot(date) {
+        try {
+            const settings = this.getSettings() || DEFAULT_SETTINGS;
+            if (!settings.specialTimeSlot) {
+                settings.specialTimeSlot = DEFAULT_SETTINGS.specialTimeSlot;
+                this.saveSettings(settings);
+            }
+
+            const hour = date.getHours();
+            const minute = date.getMinutes();
+            const time = hour * 100 + minute;
+            
+            const startTime = this.parseTimeString(settings.specialTimeSlot.start);
+            const endTime = this.parseTimeString(settings.specialTimeSlot.end);
+            
+            return time >= startTime && time <= endTime;
+        } catch (error) {
+            console.error('Error checking special time slot:', error);
+            return false;
+        }
+    }
+
+    // 添加時間字串解析輔助函數
+    parseTimeString(timeStr) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 100 + minutes;
     }
 
     // 更新單筆入場記錄
@@ -111,10 +261,11 @@ class StorageManager {
     getSettings() {
         try {
             const settings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-            return settings ? JSON.parse(settings) : null;
+            // 使用 window.defaultSettings 替代 defaultSettings
+            return settings ? JSON.parse(settings) : window.defaultSettings;
         } catch (error) {
             console.error('Get settings error:', error);
-            return null;
+            return window.defaultSettings;
         }
     }
 
@@ -254,107 +405,78 @@ class StorageManager {
         }
         return false;
     }
+
+    validateEntry(entry) {
+        return (
+            entry &&
+            typeof entry === 'object' &&
+            entry.lockerNumber >= 1 &&
+            entry.lockerNumber <= 300 &&
+            entry.id &&
+            entry.entryTime &&
+            ['active', 'temporary', 'completed'].includes(entry.status) &&
+            (
+                (entry.paymentType === 'cash' && typeof entry.amount === 'number') ||
+                (entry.paymentType === 'ticket' && entry.ticketNumber)
+            )
+        );
+    }
 }
 
-// 統一的儲存管理模組
-export const getStorage = (key) => {
+// 修改特殊時段檢查函數
+function isSpecialTimeSlot(date, settings) {
     try {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : null;
-    } catch (error) {
-        console.error('Error getting storage:', error);
-        return null;
-    }
-};
-
-export const setStorage = (key, value) => {
-    try {
-        localStorage.setItem(key, JSON.stringify(value));
-        return true;
-    } catch (error) {
-        console.error('Error setting storage:', error);
-        return false;
-    }
-};
-
-export const removeStorage = (key) => {
-    try {
-        localStorage.removeItem(key);
-        return true;
-    } catch (error) {
-        console.error('Error removing storage:', error);
-        return false;
-    }
-};
-
-// 儲存管理器
-export const storageManager = {
-    // 新增入場記錄
-    addEntry(entry) {
-        try {
-            const entries = this.getEntries() || [];
-            entries.push(entry);
-            localStorage.setItem('entries', JSON.stringify(entries));
-            return true;
-        } catch (error) {
-            console.error('Error adding entry:', error);
-            return false;
-        }
-    },
-
-    // 取得所有入場記錄
-    getEntries() {
-        try {
-            return JSON.parse(localStorage.getItem('entries')) || [];
-        } catch (error) {
-            console.error('Error getting entries:', error);
-            return [];
-        }
-    },
-
-    // 更新入場記錄
-    updateEntry(entryId, updatedEntry) {
-        try {
-            const entries = this.getEntries();
-            const index = entries.findIndex(e => e.id === entryId);
-            if (index !== -1) {
-                entries[index] = updatedEntry;
-                localStorage.setItem('entries', JSON.stringify(entries));
-                return true;
+        const currentHour = date.getHours();
+        const currentMinute = date.getMinutes();
+        const currentDay = date.getDay(); // 0-6, 0 是星期日
+        
+        // 取得時段設定
+        const timeSlots = settings.timeSlots || {};
+        
+        // 檢查每個優惠時段
+        for (const [key, slot] of Object.entries(timeSlots)) {
+            // 檢查是否為該時段的適用日
+            if (!slot.days.includes(currentDay)) {
+                continue;
             }
-            return false;
-        } catch (error) {
-            console.error('Error updating entry:', error);
-            return false;
+            
+            // 解析時間
+            const [startHour, startMinute] = slot.startTime.split(':').map(Number);
+            const [endHour, endMinute] = slot.endTime.split(':').map(Number);
+            
+            // 將當前時間轉換為分鐘以便比較
+            const currentTimeInMinutes = currentHour * 60 + currentMinute;
+            const startTimeInMinutes = startHour * 60 + startMinute;
+            const endTimeInMinutes = endHour * 60 + endMinute;
+            
+            // 檢查是否在時間範圍內
+            if (currentTimeInMinutes >= startTimeInMinutes && 
+                currentTimeInMinutes <= endTimeInMinutes) {
+                return {
+                    isSpecial: true,
+                    price: slot.price,
+                    maxStayTime: slot.maxStayTime,
+                    name: slot.name,
+                    description: slot.description
+                };
+            }
         }
-    },
-
-    // 取得系統設定
-    getSettings() {
-        try {
-            return JSON.parse(localStorage.getItem('settings')) || {
-                basePrice: 300,
-                lockerCount: 500
-            };
-        } catch (error) {
-            console.error('Error getting settings:', error);
-            return {
-                basePrice: 300,
-                lockerCount: 500
-            };
-        }
-    },
-
-    // 儲存系統設定
-    saveSettings(settings) {
-        try {
-            localStorage.setItem('settings', JSON.stringify(settings));
-            return true;
-        } catch (error) {
-            console.error('Error saving settings:', error);
-            return false;
-        }
+        
+        return {
+            isSpecial: false,
+            price: settings.basePrice
+        };
+    } catch (error) {
+        console.error('Error checking special time slot:', error);
+        // 發生錯誤時返回預設價格
+        return {
+            isSpecial: false,
+            price: settings.basePrice || 500
+        };
     }
-};
+}
 
-export default storageManager;
+// 確保初始化順序
+window.defaultSettings = DEFAULT_SETTINGS;
+window.storageManager = new StorageManager();
+window.storageManager.init().catch(console.error);

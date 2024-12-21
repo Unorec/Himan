@@ -1,14 +1,61 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
+    <!-- 最優先載入主要資源初始化 -->
+    <script>
+        (function() {
+            // 立即初始化 mainResource
+            window.mainResource = {
+                id: 'main_' + Date.now(),
+                initialized: false,
+                init() {
+                    if (!this.initialized) {
+                        this.initialized = true;
+                        console.log('Main resource initialized:', this.id);
+                    }
+                    return this;
+                }
+            };
+            
+            // 立即執行初始化
+            window.mainResource.init();
+            
+            // 確保資源已載入
+            window.checkResourceLoaded = function() {
+                return window.mainResource && window.mainResource.initialized;
+            };
+        })();
+    </script>
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HiMAN三溫暖管理系統</title>
     
-    <!-- CSS 檔案載入 -->
+    <!-- 先載入 CSS -->
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/login.css">
     <link rel="stylesheet" href="css/components.css">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- 系統核心模組 -->
+    <script src="js/utils.js"></script>
+    <script src="js/modal.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <!-- 功能模組 -->
+    <script src="js/entry.js"></script>
+    <script src="js/records.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/settings.js"></script>
+    
+    <!-- 主程式 -->
+    <script src="js/main.js"></script>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
 
     <!-- 增加優惠時段狀態樣式 -->
     <style>
@@ -22,6 +69,47 @@
             z-index: 1000;
             border-bottom-left-radius: 4px;
         }
+
+        /* 付款資訊樣式 */
+        .unpaid-amount {
+            color: #f44336;
+            font-weight: bold;
+            margin: 0.25rem 0;
+        }
+
+        .total-amount {
+            font-weight: bold;
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px dashed #ddd;
+        }
+
+        .chart-section {
+            margin-top: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-item {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
     </style>
 
     <script>
@@ -34,8 +122,21 @@
             window.moduleLoaded[moduleName] = true;
             console.log(`Module ${moduleName} loaded`);
         };
+
+        // 新增櫃位檢查函數
+        async function checkLockerAvailable(lockerNumber) {
+            try {
+                const entries = this.getEntries();
+                return !entries.some(entry => 
+                    entry.lockerNumber === lockerNumber && 
+                    entry.status === 'active'
+                );
+            } catch (error) {
+                console.error('Check locker error:', error);
+                return false;
+            }
+        }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- 新增優惠時段狀態提示 -->
@@ -50,17 +151,21 @@
             <p>登入系統</p>
         </div>
         
-        <div class="form-group">
-            <label for="username">帳號</label>
-            <input type="text" id="username" name="username" placeholder="請輸入帳號">
-        </div>
-
-        <div class="form-group">
-            <label for="password">密碼</label>
-            <input type="password" id="password" name="password" placeholder="請輸入密碼">
-        </div>
-
-        <button type="button" id="loginButton" class="primary-button">登入系統</button>
+        <form id="loginForm">
+            <div id="loginError" class="login-error" style="display: none;"></div>
+            
+            <div class="form-group">
+                <label for="username">帳號</label>
+                <input type="text" id="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密碼</label>
+                <input type="password" id="password" required>
+            </div>
+            
+            <button type="submit" id="loginButton" class="login-button">登入</button>
+        </form>
 
         <div class="login-hint">
             預設帳號/密碼: himan/himan
@@ -106,16 +211,6 @@
     <div id="loading" class="loading" style="display: none;">
         <div class="loading-spinner"></div>
     </div>
-
-    <!-- JavaScript 檔案載入順序調整 -->
-    <script src="js/utils.js" onload="checkModuleLoaded('utils')"></script>
-    <script src="js/modal.js" onload="checkModuleLoaded('modal')"></script>
-    <script src="js/storage.js" onload="checkModuleLoaded('storage')"></script>
-    <script src="js/records.js" onload="checkModuleLoaded('records')"></script>
-    <script src="js/entry.js" onload="checkModuleLoaded('entry')"></script>
-    <script src="js/auth.js" onload="checkModuleLoaded('auth')"></script>
-    <script src="js/main.js" onload="checkModuleLoaded('main')"></script>
-    <script src="js/stats.js" onload="checkModuleLoaded('stats')"></script>
 
     <script>
         // 檢查函數是否成功載入

@@ -1,4 +1,3 @@
-// 建立全域命名空間
 window.recordsModule = {
     config: {
         itemsPerPage: 10,
@@ -612,6 +611,9 @@ async function initializeRecords() {
                         note: note,
                         timestamp: new Date().toISOString()
                     });
+        
+                    // 確認是否已結帳
+                    record.isSettled = record.amount <= 0;
         
                     // 儲存更新
                     await window.storageManager.updateEntry(record);

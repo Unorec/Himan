@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 // 定義存儲鍵名
 const STORAGE_KEYS = {
     ENTRIES: 'himan_entries',
@@ -143,7 +146,16 @@ class StorageManager {
     getEntries() {
         try {
             const entries = localStorage.getItem(STORAGE_KEYS.ENTRIES);
-            return entries ? JSON.parse(entries) : null;
+            const parsedEntries = entries ? JSON.parse(entries) : null;
+
+            // 檢查每筆記錄是否已結帳
+            if (parsedEntries) {
+                parsedEntries.forEach(entry => {
+                    entry.isSettled = entry.amount <= 0;
+                });
+            }
+
+            return parsedEntries;
         } catch (error) {
             console.error('Get entries error:', error);
             return null;
@@ -219,6 +231,10 @@ class StorageManager {
             
             if (index !== -1) {
                 entries[index] = { ...entries[index], ...updatedData };
+
+                // 確認是否已結帳
+                entries[index].isSettled = entries[index].amount <= 0;
+
                 return this.saveEntries(entries);
             }
             return false;
@@ -229,9 +245,10 @@ class StorageManager {
     }
 
     // 儲存設定
-    saveSettings(settings) {
+    async saveSettings(settings) {
         try {
-            localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+            const settingsPath = path.join(__dirname, '.vscode', 'settings.json');
+            await fs.promises.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
             return true;
         } catch (error) {
             console.error('Save settings error:', error);
@@ -240,11 +257,11 @@ class StorageManager {
     }
 
     // 取得設定
-    getSettings() {
+    async getSettings() {
         try {
-            const settings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-            // 使用 window.defaultSettings 替代 defaultSettings
-            return settings ? JSON.parse(settings) : window.defaultSettings;
+            const settingsPath = path.join(__dirname, '.vscode', 'settings.json');
+            const settingsData = await fs.promises.readFile(settingsPath, 'utf-8');
+            return JSON.parse(settingsData);
         } catch (error) {
             console.error('Get settings error:', error);
             return window.defaultSettings;

@@ -43,3 +43,16 @@
     font-weight: bold;
     color: #e74c3c;
 }
+.refund-button {
+    background-color: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.refund-button:hover {
+    background-color: #ff4c4c;
+}

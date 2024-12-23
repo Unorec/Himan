@@ -29,160 +29,160 @@ window.statsModule = {
     },
 
     calculateStats(entries) {
-    const stats = {
-        totalRevenue: 0,
-        basicCharges: 0,     // 基本入場費
-        overtimeCharges: 0,  // 超時費用
-        additionalCharges: 0, // 補充消費
-        miscCharges: 0,      // 生活支出
-        ticketSales: 0,      // 售票收入
-        specialTimeCount: 0,  // 優惠時段人數
-        regularCount: 0,      // 一般時段人數
-        monthlyRevenue: {},
-        dailyRevenue: {}
-    };
+        const stats = {
+            totalRevenue: 0,
+            basicCharges: 0,     // 基本入場費
+            overtimeCharges: 0,  // 超時費用
+            additionalCharges: 0, // 補充消費
+            miscCharges: 0,      // 生活支出
+            ticketSales: 0,      // 售票收入
+            specialTimeCount: 0,  // 優惠時段人數
+            regularCount: 0,      // 一般時段人數
+            monthlyRevenue: {},
+            dailyRevenue: {}
+        };
 
-    entries.forEach(entry => {
-        // 基本入場費
-        const baseAmount = entry.amount || 0;
-        stats.basicCharges += baseAmount;
-        stats.totalRevenue += baseAmount;
+        entries.forEach(entry => {
+            // 基本入場費
+            const baseAmount = entry.amount || 0;
+            stats.basicCharges += baseAmount;
+            stats.totalRevenue += baseAmount;
 
-        // 超時費用
-        if (entry.overtimeCharges) {
-            stats.overtimeCharges += entry.overtimeCharges;
-            stats.totalRevenue += entry.overtimeCharges;
-        }
+            // 超時費用
+            if (entry.overtimeCharges) {
+                stats.overtimeCharges += entry.overtimeCharges;
+                stats.totalRevenue += entry.overtimeCharges;
+            }
 
-        // 補充消費
-        if (entry.additionalCharges) {
-            entry.additionalCharges.forEach(charge => {
-                if (charge.type === 'misc') {
-                    stats.miscCharges += charge.amount;
-                } else {
-                    stats.additionalCharges += charge.amount;
-                }
-                stats.totalRevenue += charge.amount;
-            });
-        }
+            // 補充消費
+            if (entry.additionalCharges) {
+                entry.additionalCharges.forEach(charge => {
+                    if (charge.type === 'misc') {
+                        stats.miscCharges += charge.amount;
+                    } else {
+                        stats.additionalCharges += charge.amount;
+                    }
+                    stats.totalRevenue += charge.amount;
+                });
+            }
 
-        // 售票收入
-        if (entry.ticketSales) {
-            stats.ticketSales += entry.ticketSales;
-            stats.totalRevenue += entry.ticketSales;
-        }
+            // 售票收入
+            if (entry.ticketSales) {
+                stats.ticketSales += entry.ticketSales;
+                stats.totalRevenue += entry.ticketSales;
+            }
 
-        // 統計優惠/一般時段使用
-        if (entry.isSpecialTime) {
-            stats.specialTimeCount++;
-        } else {
-            stats.regularCount++;
-        }
+            // 統計優惠/一般時段使用
+            if (entry.isSpecialTime) {
+                stats.specialTimeCount++;
+            } else {
+                stats.regularCount++;
+            }
 
-        // 更新每日收入
-        const entryDate = new Date(entry.entryTime);
-        const dateKey = entryDate.toISOString().split('T')[0];
-        if (!stats.dailyRevenue[dateKey]) {
-            stats.dailyRevenue[dateKey] = {
-                basic: 0,
-                overtime: 0,
-                additional: 0,
-                misc: 0,
-                ticketSales: 0,
-                total: 0
-            };
-        }
-        const dayStats = stats.dailyRevenue[dateKey];
-        dayStats.basic += baseAmount;
-        dayStats.overtime += (entry.overtimeCharges || 0);
-        if (entry.additionalCharges) {
-            entry.additionalCharges.forEach(charge => {
-                if (charge.type === 'misc') {
-                    dayStats.misc += charge.amount;
-                } else {
-                    dayStats.additional += charge.amount;
-                }
-            });
-        }
-        dayStats.ticketSales += (entry.ticketSales || 0);
-        dayStats.total = dayStats.basic + dayStats.overtime + dayStats.additional + dayStats.misc + dayStats.ticketSales;
-    });
+            // 更新每日收入
+            const entryDate = new Date(entry.entryTime);
+            const dateKey = entryDate.toISOString().split('T')[0];
+            if (!stats.dailyRevenue[dateKey]) {
+                stats.dailyRevenue[dateKey] = {
+                    basic: 0,
+                    overtime: 0,
+                    additional: 0,
+                    misc: 0,
+                    ticketSales: 0,
+                    total: 0
+                };
+            }
+            const dayStats = stats.dailyRevenue[dateKey];
+            dayStats.basic += baseAmount;
+            dayStats.overtime += (entry.overtimeCharges || 0);
+            if (entry.additionalCharges) {
+                entry.additionalCharges.forEach(charge => {
+                    if (charge.type === 'misc') {
+                        dayStats.misc += charge.amount;
+                    } else {
+                        dayStats.additional += charge.amount;
+                    }
+                });
+            }
+            dayStats.ticketSales += (entry.ticketSales || 0);
+            dayStats.total = dayStats.basic + dayStats.overtime + dayStats.additional + dayStats.misc + dayStats.ticketSales;
+        });
 
-    return stats;
-}
+        return stats;
+    },
 
-  updateStatsDisplay(stats) {
-    const mainContent = document.getElementById('mainContent');
-    if (!mainContent) return;
+    updateStatsDisplay(stats) {
+        const mainContent = document.getElementById('mainContent');
+        if (!mainContent) return;
 
-    const html = `
-        <div class="stats-container">
-            <div class="stats-header">
-                <h2>營業統計報表</h2>
-                <div class="stats-actions">
-                    <button onclick="statsModule.exportCSV()" class="primary-button">匯出CSV</button>
-                    <button onclick="statsModule.exportTxtLog()" class="secondary-button">匯出記錄檔</button>
+        const html = `
+            <div class="stats-container">
+                <div class="stats-header">
+                    <h2>營業統計報表</h2>
+                    <div class="stats-actions">
+                        <button onclick="statsModule.exportCSV()" class="primary-button">匯出CSV</button>
+                        <button onclick="statsModule.exportTxtLog()" class="secondary-button">匯出記錄檔</button>
+                    </div>
                 </div>
-            </div>
-            <div class="stats-summary">
-                <div class="revenue-breakdown">
-                    <h3>收入明細</h3>
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <span>總營收</span>
-                            <strong>NT$ ${stats.totalRevenue.toLocaleString()}</strong>
+                <div class="stats-summary">
+                    <div class="revenue-breakdown">
+                        <h3>收入明細</h3>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span>總營收</span>
+                                <strong>NT$ ${stats.totalRevenue.toLocaleString()}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>基本入場費</span>
+                                <strong>NT$ ${stats.basicCharges.toLocaleString()}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>超時費用</span>
+                                <strong>NT$ ${stats.overtimeCharges.toLocaleString()}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>補充消費</span>
+                                <strong>NT$ ${stats.additionalCharges.toLocaleString()}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>生活支出</span>
+                                <strong>NT$ ${stats.miscCharges.toLocaleString()}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>售票收入</span>
+                                <strong>NT$ ${stats.ticketSales.toLocaleString()}</strong>
+                            </div>
                         </div>
-                        <div class="summary-item">
-                            <span>基本入場費</span>
-                            <strong>NT$ ${stats.basicCharges.toLocaleString()}</strong>
-                        </div>
-                        <div class="summary-item">
-                            <span>超時費用</span>
-                            <strong>NT$ ${stats.overtimeCharges.toLocaleString()}</strong>
-                        </div>
-                        <div class="summary-item">
-                            <span>補充消費</span>
-                            <strong>NT$ ${stats.additionalCharges.toLocaleString()}</strong>
-                        </div>
-                        <div class="summary-item">
-                            <span>生活支出</span>
-                            <strong>NT$ ${stats.miscCharges.toLocaleString()}</strong>
-                        </div>
-                        <div class="summary-item">
-                            <span>售票收入</span>
-                            <strong>NT$ ${stats.ticketSales.toLocaleString()}</strong>
+                    </div>
+                    <div class="customer-stats">
+                        <h3>客流分析</h3>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span>優惠時段</span>
+                                <strong>${stats.specialTimeCount} 人</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>一般時段</span>
+                                <strong>${stats.regularCount} 人</strong>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="customer-stats">
-                    <h3>客流分析</h3>
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <span>優惠時段</span>
-                            <strong>${stats.specialTimeCount} 人</strong>
-                        </div>
-                        <div class="summary-item">
-                            <span>一般時段</span>
-                            <strong>${stats.regularCount} 人</strong>
-                        </div>
+                <div class="daily-stats">
+                    <h3>當日營收明細</h3>
+                    ${this.renderDailyStats(stats.dailyRevenue)}
+                </div>
+                <div class="stats-charts">
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
                     </div>
                 </div>
             </div>
-            <div class="daily-stats">
-                <h3>當日營收明細</h3>
-                ${this.renderDailyStats(stats.dailyRevenue)}
-            </div>
-            <div class="stats-charts">
-                <div class="chart-container">
-                    <canvas id="revenueChart"></canvas>
-                </div>
-            </div>
-        </div>
-    `;
+        `;
 
-    mainContent.innerHTML = html;
-    this.renderCharts(stats);
-}
+        mainContent.innerHTML = html;
+        this.renderCharts(stats);
+    },
 
     renderDailyStats(dailyRevenue) {
         const today = new Date().toISOString().split('T')[0];
@@ -191,6 +191,7 @@ window.statsModule = {
             overtime: 0,
             additional: 0,
             misc: 0,
+            ticketSales: 0,
             total: 0
         };
 
@@ -211,6 +212,10 @@ window.statsModule = {
                 <div class="stat-item">
                     <span>生活支出</span>
                     <strong>NT$ ${todayStats.misc.toLocaleString()}</strong>
+                </div>
+                <div class="stat-item">
+                    <span>售票收入</span>
+                    <strong>NT$ ${todayStats.ticketSales.toLocaleString()}</strong>
                 </div>
                 <div class="stat-item total">
                     <span>當日總計</span>

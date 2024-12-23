@@ -33,8 +33,13 @@ recordsModule.utils = {
         const entryTime = new Date(record.entryTime);
         const endTime = new Date(entryTime.getTime() + record.hours * 60 * 60 * 1000);
         
-        if (now > endTime) return '已超時';
-        
+        if (now > endTime) {
+            const overtime = now - endTime;
+            const hours = Math.floor(overtime / (60 * 60 * 1000));
+            const minutes = Math.floor((overtime % (60 * 60 * 1000)) / (60 * 1000));
+            return `已超時 ${hours}時${minutes}分`;
+        }
+
         const remaining = endTime - now;
         const hours = Math.floor(remaining / (60 * 60 * 1000));
         const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));

@@ -1,193 +1,278 @@
-// 系統預設設定
-const defaultSettings = {
-    basePrice: 500,
-    maxHours: 24,
+// 設定模組
+window.settingsModule = {
+    initialized: false,
+
+    async init() {
+        try {
+            // 檢查儲存系統
+            if (!window.storageManager?.isInitialized) {
+                await window.storageManager?.init();
+            }
+            
+            this.initialized = true;
+            return true;
+        } catch (error) {
+            console.error('Settings initialization error:', error);
+            return false;
+        }
+    },
+
+    getSettings() {
+        return window.storageManager?.getSettings() || window.defaultSettings;
+    },
+
+    async saveSettings(settings) {
+        try {
+            return await window.storageManager?.saveSettings(settings);
+        } catch (error) {
+            console.error('Save settings error:', error);
+            return false;
+        }
+    }
+};
+
+// 確保模組載入
+window.moduleLoaded = window.moduleLoaded || {};
+window.moduleLoaded.settings = true;
+
+// DOM 載入完成後初始化
+document.addEventListener('DOMContentLoaded', async () => {
+    await window.settingsModule.init();
+});
+
+// 定義入場記錄狀態
+const RECORD_STATUS = {
+    ACTIVE: {
+        code: 'active',
+        name: '使用中',
+        className: 'status-active',
+        color: '#4caf50'
+    },
+    TEMPORARY_EXIT: {
+        code: 'temporary',
+        name: '暫時外出',
+        className: 'status-temporary',
+        color: '#ff9800'
+    },
+    WARNING: {           // 新增快超時狀態
+        code: 'warning',
+        name: '即將超時(1小時)',
+        className: 'status-warning',
+        color: '#ffc107'
+    },
+    NEAR_EXPIRY: {
+        code: 'nearExpiry',
+        name: '即將超時(30分)',
+        className: 'status-near-expiry',
+        color: '#f44336'
+    },
+    OVERTIME: {
+        code: 'overtime',
+        name: '已超時',
+        className: 'status-overtime',
+        color: '#d32f2f'
+    },
+    UNPAID: {
+        code: 'unpaid',
+        name: '未結消費',
+        className: 'status-unpaid',
+        color: '#e91e63'
+    },
+    COMPLETED: {
+        code: 'completed',
+        name: '已結束',
+        className: 'status-completed',
+        color: '#9e9e9e'
+    }
+};
+
+// 定義付款類型
+const PAYMENT_TYPES = {
+    CASH: {
+        code: 'cash',
+        name: '現金'
+    },
+    TICKET: {
+        code: 'ticket',
+        name: '票券'
+    },
+    CARD: {
+        code: 'card',
+        name: '刷卡'
+    }
+};
+
+// 定義票券類型
+const TICKET_TYPES = {
+    REGULAR: {
+        code: 'regular',
+        name: '平日券',
+        hours: 24
+    },
+    UNLIMITED: {
+        code: 'unlimited',
+        name: '暢遊券',
+        hours: 24
+    },
+    EVENT: {
+        code: 'event',
+        name: '優惠券',
+        hours: 24
+    }
+};
+
+// 修改時段設定
+const DEFAULT_SETTINGS = {
+    basePrice: 500,           // 更改基本收費為500
+    overtimeRate: 0,        // 更改超時費率為0
+    businessHours: {
+        start: '08:00',
+        end: '22:00'
+    },
     timeSlots: {
         weekdayEvening: {
             name: '平日晚間優惠',
             price: 350,
             startTime: '18:30',
             endTime: '19:30',
-            days: [1, 2, 3, 4],
-            description: '平日晚間優惠時段'
+            maxStayTime: '06:00', // 隔天早上6點
+            days: [1, 2, 3, 4, 5],  // 週一到週五
+            description: '平日晚間優惠時段 (限制使用至隔日6點)'
         },
         weekendEvening: {
             name: '假日晚間優惠',
             price: 500,
             startTime: '18:30',
             endTime: '19:30',
-            days: [5, 6, 0],
-            description: '假日晚間優惠時段'
+            maxStayTime: '06:00', // 隔天早上6點
+            days: [0, 6],     // 週六、週日
+            description: '假日晚間優惠時段 (限制使用至隔日6點)'
         }
-    }
-};
-
-// 新增優惠時段價格設定
-const timeSlotPrices = {
-    weekday: {
-        regular: 500,    // 平日一般價格
-        special: 350     // 平日優惠價格
     },
-    weekend: {
-        regular: 500,    // 假日一般價格
-        special: 500     // 假日優惠價格
-    }
+    maxStayHours: 24,        // 最長停留時間
+    lockerCount: 300,        // 櫃位總數
+    lastBackup: null         // 最後備份時間
 };
 
-// 掛載到全域
-window.defaultSettings = defaultSettings;
-
-// 修改 settingsModule
+// 擴展 settingsModule
 window.settingsModule = {
     initialized: false,
 
     async init() {
         try {
-            // 檢查必要的依賴項
+            // 檢查儲存系統
             if (!window.storageManager?.isInitialized) {
                 await window.storageManager?.init();
             }
-
+            
             this.initialized = true;
             return true;
         } catch (error) {
             console.error('Settings initialization error:', error);
-            window.showToast?.('設定初始化失敗', 'error');
             return false;
         }
     },
 
-    async loadSettings() {
-        try {
-            const mainContent = document.getElementById('mainContent');
-            if (!mainContent) {
-                throw new Error('找不到主要內容區塊');
-            }
-
-            const settings = window.storageManager.getSettings();
-            
-            // 設定頁面的 HTML 內容
-            mainContent.innerHTML = `
-                <div class="card">
-                    <div class="card-header">
-                        <h2>系統設定</h2>
-                    </div>
-                    <div class="card-body">
-                        <form id="settingsForm" onsubmit="window.settingsModule.handleSaveSettings(event)">
-                            <div class="settings-group">
-                                <h3>基本費率設定</h3>
-                                <div class="form-group">
-                                    <label for="basePrice">一般入場收費</label>
-                                    <div class="input-group">
-                                        <input type="number" id="basePrice" name="basePrice" 
-                                               value="${settings.basePrice}" min="0" step="50" required>
-                                        <span class="unit">元</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="settings-group">
-                                <h3>系統設定</h3>
-                                <div class="form-group">
-                                    <label for="maxLockers">櫃位總數</label>
-                                    <input type="number" id="maxLockers" name="maxLockers" 
-                                           value="${settings.lockerCount}" min="1" max="500">
-                                </div>
-                            </div>
-
-                            <div class="form-actions">
-                                <button type="submit" class="primary-button">儲存設定</button>
-                                <button type="button" onclick="settingsModule.resetSettings()" 
-                                        class="secondary-button">重設預設值</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-
-            return true;
-        } catch (error) {
-            console.error('Load settings error:', error);
-            window.showToast?.('載入設定失敗', 'error');
-            return false;
-        }
+    getSettings() {
+        return window.storageManager?.getSettings() || window.defaultSettings;
     },
 
-    async handleSaveSettings(e) {
-        e.preventDefault();
+    async saveSettings(settings) {
         try {
-            const form = e.target;
-            const settings = window.storageManager.getSettings();
-
-            // 更新基本設定
-            settings.basePrice = parseInt(form.basePrice.value);
-            settings.lockerCount = parseInt(form.maxLockers.value);
-
-            if (this.validateSettings(settings)) {
-                await window.storageManager.saveSettings(settings);
-                window.showToast('設定已儲存');
-            }
+            return await window.storageManager?.saveSettings(settings);
         } catch (error) {
             console.error('Save settings error:', error);
-            window.showToast('儲存設定失敗', 'error');
+            return false;
         }
     },
-
-    validateSettings(settings) {
-        // 基本驗證
-        if (settings.basePrice < 0) {
-            window.showToast('基本收費不能小於0', 'error');
-            return false;
+    RECORD_STATUS,
+    PAYMENT_TYPES,
+    TICKET_TYPES,
+    
+    // 檢查記錄狀態的輔助函數
+    getRecordStatus(record) {
+        if (!record) return RECORD_STATUS.COMPLETED;
+        
+        // 檢查是否已結束
+        if (record.status === 'completed') return RECORD_STATUS.COMPLETED;
+        
+        // 檢查是否暫時外出
+        if (record.status === 'temporary') return RECORD_STATUS.TEMPORARY_EXIT;
+        
+        // 檢查是否有未結消費
+        if (record.unpaidCharges?.length > 0) return RECORD_STATUS.UNPAID;
+        
+        // 檢查是否超時或即將超時
+        const now = new Date();
+        const entryTime = new Date(record.entryTime);
+        const endTime = new Date(entryTime.getTime() + record.hours * 60 * 60 * 1000);
+        const timeDiff = endTime - now;
+        
+        if (timeDiff < 0) {
+            return RECORD_STATUS.OVERTIME;
         }
-
-        if (settings.lockerCount < 1 || settings.lockerCount > 500) {
-            window.showToast('櫃位數量必須在 1-500 之間', 'error');
-            return false;
+        
+        // 剩餘30分鐘內
+        if (timeDiff <= 30 * 60 * 1000) {
+            return RECORD_STATUS.NEAR_EXPIRY;
         }
-
-        // 優惠時段驗證
-        const validateTimeSlot = (slot) => {
-            if (slot.price < 0) {
-                window.showToast('優惠價格不能小於0', 'error');
-                return false;
-            }
-            return true;
-        };
-
-        if (!validateTimeSlot(settings.timeSlots.weekdayEvening) || 
-            !validateTimeSlot(settings.timeSlots.weekendEvening)) {
-            return false;
+        
+        // 剩餘1小時內
+        if (timeDiff <= 60 * 60 * 1000) {
+            return RECORD_STATUS.WARNING;
         }
-
-        return true;
+        
+        return RECORD_STATUS.ACTIVE;
     },
 
-    async resetSettings() {
-        if (confirm('確定要重設為預設值嗎？此操作無法復原。')) {
-            try {
-                await window.storageManager.saveSettings(window.defaultSettings);
-                await this.loadSettings();
-                window.showToast('已重設為預設值');
-            } catch (error) {
-                console.error('Reset settings error:', error);
-                window.showToast('重設失敗', 'error');
+    // 新增取得當前可用優惠時段函數
+    getCurrentTimeSlot() {
+        const now = new Date();
+        const currentDay = now.getDay();
+        const currentTime = now.getHours() * 100 + now.getMinutes();
+
+        const settings = this.getSettings();
+        for (const [key, slot] of Object.entries(settings.timeSlots)) {
+            // 檢查是否為該時段的適用日
+            if (!slot.days.includes(currentDay)) continue;
+
+            // 解析時間
+            const [startHour, startMin] = slot.startTime.split(':').map(Number);
+            const [endHour, endMin] = slot.endTime.split(':').map(Number);
+            const slotStartTime = startHour * 100 + startMin;
+            const slotEndTime = endHour * 100 + endMin;
+
+            // 檢查是否在時間範圍內
+            if (currentTime >= slotStartTime && currentTime <= slotEndTime) {
+                return {
+                    key,
+                    ...slot
+                };
             }
         }
+        return null;
+    },
+
+    // 計算優惠時段結束時間
+    calculateTimeSlotEndTime(timeSlot) {
+        const now = new Date();
+        const endTime = new Date(now);
+        
+        // 解析 maxStayTime
+        const [hours, minutes] = timeSlot.maxStayTime.split(':').map(Number);
+        
+        if (hours < now.getHours() || (hours === now.getHours() && minutes <= now.getMinutes())) {
+            // 如果結束時間在隔天
+            endTime.setDate(endTime.getDate() + 1);
+        }
+        
+        endTime.setHours(hours, minutes, 0, 0);
+        
+        return endTime;
     }
 };
 
-// 修改初始化時機
-window.addEventListener('load', async () => {
-    try {
-        if (!window.settingsModule.initialized) {
-            await window.settingsModule.init();
-            console.log('Settings module initialized');
-        }
-    } catch (error) {
-        console.error('Settings module initialization error:', error);
-    }
-});
-
-// 確保模組被正確載入
-window.moduleLoaded = window.moduleLoaded || {};
-window.moduleLoaded.settings = true;
+// 將狀態常量掛載到全域
+window.RECORD_STATUS = RECORD_STATUS;
+window.PAYMENT_TYPES = PAYMENT_TYPES;
+window.TICKET_TYPES = TICKET_TYPES;

@@ -105,10 +105,71 @@ function clearAllCache() {
     }
 }
 
-// 掛載到全域
+// 全域工具函數命名空間
 window.utils = {
-    checkSpecialTimeSlot,
-    // ...existing code...
+    // 格式化日期時間
+    formatDateTime(date) {
+        if (!(date instanceof Date)) {
+            date = new Date(date);
+        }
+        return date.toLocaleString('zh-TW', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    },
+
+    // 檢查瀏覽器支援
+    checkBrowserSupport() {
+        const features = {
+            localStorage: !!window.localStorage,
+            sessionStorage: !!window.sessionStorage,
+            webSocket: !!window.WebSocket
+        };
+        
+        return features;
+    },
+
+    // 錯誤處理
+    handleError(error, context = '') {
+        console.error(`[${context}] Error:`, error);
+        if (window.showToast) {
+            window.showToast(error.message || '操作失敗', 'error');
+        }
+    },
+
+    // 防抖函數
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    },
+
+    // 載入檢查
+    checkModuleLoaded(moduleName) {
+        return new Promise((resolve) => {
+            const check = () => {
+                if (window[moduleName]) {
+                    resolve(true);
+                    return;
+                }
+                setTimeout(check, 100);
+            };
+            check();
+        });
+    }
 };
+
+// 確保工具函數已載入
+window.moduleLoaded = window.moduleLoaded || {};
+window.moduleLoaded.utils = true;
 
 window.clearAllCache = clearAllCache;

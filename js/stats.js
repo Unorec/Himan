@@ -4,87 +4,237 @@ window.statsModule = {
 
     init() {
         this.bindEvents();
-        return this;
+        this.loadStats();
     },
 
     bindEvents() {
         document.addEventListener('statsModuleReady', () => {
             this.loadStats();
         });
+
+        // 監聽記錄更新事件
+        window.addEventListener('recordsUpdated', () => {
+            this.loadStats();
+        });
     },
 
     async loadStats() {
+        try {
+            const entries = await window.storageManager.getEntries() || [];
+            const stats = this.calculateStats(entries);
+            this.updateStatsDisplay(stats);
+        } catch (error) {
+            console.error('載入統計資料失敗:', error);
+        }
+    },
+
+    calculateStats(entries) {
+        const stats = {
+            totalRevenue: 0,
+            basicCharges: 0,     // 基本入場費
+            overtimeCharges: 0,  // 超時費用
+            additionalCharges: 0, // 補充消費
+            miscCharges: 0,      // 生活支出
+            specialTimeCount: 0,  // 優惠時段人數
+            regularCount: 0,      // 一般時段人數
+            monthlyRevenue: {},
+            dailyRevenue: {}
+        };
+
+        entries.forEach(entry => {
+            // 基本入場費
+            const baseAmount = entry.amount || 0;
+            stats.basicCharges += baseAmount;
+            stats.totalRevenue += baseAmount;
+
+            // 超時費用
+            if (entry.overtimeCharges) {
+                stats.overtimeCharges += entry.overtimeCharges;
+                stats.totalRevenue += entry.overtimeCharges;
+            }
+
+            // 補充消費
+            if (entry.additionalCharges) {
+                entry.additionalCharges.forEach(charge => {
+                    if (charge.type === 'misc') {
+                        stats.miscCharges += charge.amount;
+                    } else {
+                        stats.additionalCharges += charge.amount;
+                    }
+                    stats.totalRevenue += charge.amount;
+                });
+            }
+
+            // 統計優惠/一般時段使用
+            if (entry.isSpecialTime) {
+                stats.specialTimeCount++;
+            } else {
+                stats.regularCount++;
+            }
+
+            // 更新每日收入
+            const entryDate = new Date(entry.entryTime);
+            const dateKey = entryDate.toISOString().split('T')[0];
+            if (!stats.dailyRevenue[dateKey]) {
+                stats.dailyRevenue[dateKey] = {
+                    basic: 0,
+                    overtime: 0,
+                    additional: 0,
+                    misc: 0,
+                    total: 0
+                };
+            }
+            const dayStats = stats.dailyRevenue[dateKey];
+            dayStats.basic += baseAmount;
+            dayStats.overtime += (entry.overtimeCharges || 0);
+            if (entry.additionalCharges) {
+                entry.additionalCharges.forEach(charge => {
+                    if (charge.type === 'misc') {
+                        dayStats.misc += charge.amount;
+                    } else {
+                        dayStats.additional += charge.amount;
+                    }
+                });
+            }
+            dayStats.total = dayStats.basic + dayStats.overtime + dayStats.additional + dayStats.misc;
+        });
+
+        return stats;
+    },
+
+    updateStatsDisplay(stats) {
         const mainContent = document.getElementById('mainContent');
-        mainContent.innerHTML = `
+        if (!mainContent) return;
+
+        const html = `
             <div class="stats-container">
                 <div class="stats-header">
                     <h2>營業統計報表</h2>
-                    <div class="stats-controls">
-                        <select id="timeRange">
-                            <option value="today">今日</option>
-                            <option value="week">本週</option>
-                            <option value="month">本月</option>
-                        </select>
-                        <div class="export-buttons">
-                            <button onclick="statsModule.exportCSV()" class="secondary-button">
-                                <i class="fas fa-file-csv"></i> 匯出CSV
-                            </button>
-                            <button onclick="statsModule.exportPDF()" class="secondary-button">
-                                <i class="fas fa-file-pdf"></i> 匯出PDF
-                            </button>
+                    <div class="stats-actions">
+                        <button onclick="statsModule.exportCSV()" class="primary-button">匯出CSV</button>
+                        <button onclick="statsModule.exportTxtLog()" class="secondary-button">匯出記錄檔</button>
+                    </div>
+                </div>
+                <div class="stats-summary">
+                    <div class="revenue-breakdown">
+                        <h3>收入明細</h3>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span>總營收</span>
+                                <strong>NT$ ${stats.totalRevenue.toLocaleString()}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>基本入場費</span>
+                                <strong>NT$ ${stats.basicCharges.toLocaleString()}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>超時費用</span>
+                                <strong>NT$ ${stats.overtimeCharges.toLocaleString()}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>補充消費</span>
+                                <strong>NT$ ${stats.additionalCharges.toLocaleString()}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>生活支出</span>
+                                <strong>NT$ ${stats.miscCharges.toLocaleString()}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="customer-stats">
+                        <h3>客流分析</h3>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span>優惠時段</span>
+                                <strong>${stats.specialTimeCount} 人</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>一般時段</span>
+                                <strong>${stats.regularCount} 人</strong>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="stats-grid">
-                    <div class="stats-card">
-                        <h3>收入概況</h3>
-                        <div class="stats-summary">
-                            <div class="summary-item">
-                                <span>總營收</span>
-                                <strong id="totalRevenue">0</strong>
-                            </div>
-                            <div class="summary-item">
-                                <span>平均每日</span>
-                                <strong id="avgDailyRevenue">0</strong>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="stats-card">
-                        <h3>使用分析</h3>
-                        <div class="stats-summary">
-                            <div class="summary-item">
-                                <span>總入場人次</span>
-                                <strong id="totalEntries">0</strong>
-                            </div>
-                            <div class="summary-item">
-                                <span>平均停留時間</span>
-                                <strong id="avgStayTime">0</strong>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="stats-card full-width">
-                        <h3>每日營收趨勢</h3>
+                <div class="daily-stats">
+                    <h3>當日營收明細</h3>
+                    ${this.renderDailyStats(stats.dailyRevenue)}
+                </div>
+                <div class="stats-charts">
+                    <div class="chart-container">
                         <canvas id="revenueChart"></canvas>
-                    </div>
-
-                    <div class="stats-card">
-                        <h3>時段分布</h3>
-                        <canvas id="timeDistChart"></canvas>
-                    </div>
-
-                    <div class="stats-card">
-                        <h3>付款方式分析</h3>
-                        <canvas id="paymentChart"></canvas>
                     </div>
                 </div>
             </div>
         `;
 
-        await this.initCharts();
-        this.loadData();
+        mainContent.innerHTML = html;
+        this.renderCharts(stats);
+    },
+
+    renderDailyStats(dailyRevenue) {
+        const today = new Date().toISOString().split('T')[0];
+        const todayStats = dailyRevenue[today] || {
+            basic: 0,
+            overtime: 0,
+            additional: 0,
+            misc: 0,
+            total: 0
+        };
+
+        return `
+            <div class="daily-stats-grid">
+                <div class="stat-item">
+                    <span>基本入場費</span>
+                    <strong>NT$ ${todayStats.basic.toLocaleString()}</strong>
+                </div>
+                <div class="stat-item">
+                    <span>超時費用</span>
+                    <strong>NT$ ${todayStats.overtime.toLocaleString()}</strong>
+                </div>
+                <div class="stat-item">
+                    <span>補充消費</span>
+                    <strong>NT$ ${todayStats.additional.toLocaleString()}</strong>
+                </div>
+                <div class="stat-item">
+                    <span>生活支出</span>
+                    <strong>NT$ ${todayStats.misc.toLocaleString()}</strong>
+                </div>
+                <div class="stat-item total">
+                    <span>當日總計</span>
+                    <strong>NT$ ${todayStats.total.toLocaleString()}</strong>
+                </div>
+            </div>
+        `;
+    },
+
+    renderCharts(stats) {
+        const ctx = document.getElementById('revenueChart')?.getContext('2d');
+        if (!ctx) return;
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Object.keys(stats.dailyRevenue),
+                datasets: [{
+                    label: '每日營收',
+                    data: Object.values(stats.dailyRevenue).map(day => day.total),
+                    borderColor: '#1976d2',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: value => 'NT$ ' + value.toLocaleString()
+                        }
+                    }
+                }
+            }
+        });
     },
 
     async initCharts() {
@@ -269,8 +419,123 @@ window.statsModule = {
             headers.join(','),
             ...rows
         ].join('\n');
+    },
+
+    async exportTxtLog() {
+        try {
+            const entries = await window.storageManager.getEntries();
+            const settings = window.storageManager.getSettings();
+            
+            // 產生文字記錄內容
+            let content = '=== 營業記錄檔 ===\n';
+            content += `產生時間: ${new Date().toLocaleString('zh-TW')}\n\n`;
+            
+            // 依日期分組記錄
+            const groupedEntries = this.groupEntriesByDate(entries);
+            
+            for (const [date, dayEntries] of Object.entries(groupedEntries)) {
+                content += `=== ${date} ===\n`;
+                
+                // 每日統計
+                const dayStats = this.calculateDayStats(dayEntries);
+                content += `營業額: ${dayStats.revenue} 元\n`;
+                content += `入場人數: ${dayStats.count} 人\n`;
+                content += `平均消費: ${dayStats.avgSpend} 元\n\n`;
+                
+                // 詳細記錄
+                dayEntries.forEach(entry => {
+                    content += this.formatEntryLog(entry);
+                });
+                
+                content += '\n';
+            }
+            
+            // 匯出文字檔
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `營業記錄_${new Date().toISOString().slice(0,10)}.txt`;
+            link.click();
+            
+        } catch (error) {
+            console.error('匯出記錄檔失敗:', error);
+            window.showToast('匯出記錄檔失敗', 'error');
+        }
+    },
+
+    groupEntriesByDate(entries) {
+        return entries.reduce((groups, entry) => {
+            const date = new Date(entry.entryTime).toLocaleDateString('zh-TW');
+            if (!groups[date]) {
+                groups[date] = [];
+            }
+            groups[date].push(entry);
+            return groups;
+        }, {});
+    },
+
+    calculateDayStats(entries) {
+        const revenue = entries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+        const count = entries.length;
+        return {
+            revenue,
+            count,
+            avgSpend: count ? Math.round(revenue / count) : 0
+        };
+    },
+
+    formatEntryLog(entry) {
+        const entryTime = new Date(entry.entryTime).toLocaleTimeString('zh-TW');
+        let log = `時間: ${entryTime}\n`;
+        log += `櫃位: ${entry.lockerNumber}\n`;
+        log += `入場費: ${entry.amount} 元\n`;
+        
+        if (entry.overtimeCharges) {
+            log += `超時費: ${entry.overtimeCharges} 元\n`;
+        }
+        
+        if (entry.additionalCharges && entry.additionalCharges.length > 0) {
+            log += '消費明細:\n';
+            let totalAdditional = 0;
+            let totalMisc = 0;
+            
+            entry.additionalCharges.forEach(charge => {
+                if (charge.type === 'misc') {
+                    totalMisc += charge.amount;
+                } else {
+                    totalAdditional += charge.amount;
+                }
+                log += `  - ${charge.amount}元 (${charge.description})\n`;
+            });
+            
+            if (totalAdditional > 0) {
+                log += `補充消費小計: ${totalAdditional} 元\n`;
+            }
+            if (totalMisc > 0) {
+                log += `生活支出小計: ${totalMisc} 元\n`;
+            }
+        }
+        
+        log += `總計金額: ${this.calculateTotalAmount(entry)} 元\n`;
+        log += '-------------------\n';
+        return log;
+    },
+
+    calculateTotalAmount(entry) {
+        let total = entry.amount || 0;
+        total += entry.overtimeCharges || 0;
+        
+        if (entry.additionalCharges) {
+            entry.additionalCharges.forEach(charge => {
+                total += charge.amount;
+            });
+        }
+        
+        return total;
     }
 };
 
 // 初始化統計模組
-window.statsModule.init();
+document.addEventListener('DOMContentLoaded', () => {
+    window.statsModule.init();
+});

@@ -1,5 +1,4 @@
-{
-<<<<<<< Updated upstream
+  {
   "name": "himan",
   "version": "1.0.0",
   "description": "",
@@ -10,10 +9,4 @@
   "devDependencies": {
     "jest": "^29.7.0"
   }
-=======
-    "name": "himan",
-    "version": "1.0.0",
-    "type": "module",
-    "main": "js/main.js"
->>>>>>> Stashed changes
 }

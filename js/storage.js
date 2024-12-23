@@ -1,11 +1,8 @@
-const fs = require('fs');
-const path = require('path');
-
 // 定義存儲鍵名
 const STORAGE_KEYS = {
     ENTRIES: 'himan_entries',
     SETTINGS: 'himan_settings',
-    USER_SESSION: 'himan_session',
+    USER_SESSION: 'himan_user_session',
     SYSTEM_CONFIG: 'himan_config'
 };
 
@@ -45,382 +42,287 @@ const DEFAULT_SETTINGS = {
 // 修改為全域變數，確保其他模組可以存取
 window.defaultSettings = DEFAULT_SETTINGS;
 
-// 資料管理類
+
+// 建立儲存管理類別
 class StorageManager {
     constructor() {
         this.isInitialized = false;
-        this.initPromise = null;
     }
 
-    // 初始化本地存儲
-    async initLocalStorage() {
-        try {
-            // 檢查 localStorage 是否可用
-            if (!window.localStorage) {
-                throw new Error('LocalStorage 不可用');
-            }
-
-            // 初始化必要的存儲項目
-            if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
-                localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
-            }
-
-            if (!localStorage.getItem(STORAGE_KEYS.ENTRIES)) {
-                localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify([]));
-            }
-
-            return true;
-        } catch (error) {
-            console.error('LocalStorage initialization error:', error);
-            throw error;
-        }
-    }
-
+    // 初始化儲存系統
     async init() {
-        if (this.initPromise) {
-            return this.initPromise;
-        }
-
-        this.initPromise = new Promise(async (resolve) => {
-            try {
-                await this.initLocalStorage();
-                this.isInitialized = true;
-                console.log('Storage system initialized');
-                resolve(true);
-            } catch (error) {
-                console.error('Storage initialization error:', error);
-                this.isInitialized = false;
-                resolve(false);
-            }
-        });
-
-        return this.initPromise;
-    }
-
-    async initialize() {
         try {
-            // 檢查必要依賴
-            if (!window.defaultSettings) {
-                throw new Error('系統設定未載入');
+            // 確保本地儲存可用
+            if (typeof localStorage === 'undefined') {
+                throw new Error('本地儲存不可用');
             }
 
-            await this.initializeStorage();
+            // 初始化必要的儲存空間
+            if (!localStorage.getItem(STORAGE_KEYS.ENTRIES)) {
+                localStorage.setItem(STORAGE_KEYS.ENTRIES, '[]');
+            }
+
+            if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
+                const defaultSettings = {
+                    basePrice: 500,
+                    maxHours: 24,
+                    timeSlots: {
+                        weekdayEvening: {
+                            name: '平日晚間優惠',
+                            price: 350,
+                            startTime: '18:30',
+                            endTime: '19:30',
+                            days: [1, 2, 3, 4],
+                            description: '平日晚間優惠時段'
+                        },
+                        weekendEvening: {
+                            name: '假日晚間優惠', 
+                            price: 500,
+                            startTime: '18:30',
+                            endTime: '19:30',
+                            days: [5, 6, 0],
+                            description: '假日晚間優惠時段'
+                        }
+                    }
+                };
+                localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(defaultSettings));
+            }
+
             this.isInitialized = true;
-            console.log('Storage manager initialized');
-        } catch (error) {
-            console.error('StorageManager initialization failed:', error);
-            // 使用 window.showToast 而不是直接使用 showToast
-            if (window.showToast) {
-                window.showToast('儲存系統初始化失敗', 'error');
-            }
-            throw error;
-        }
-    }
-
-    async initializeStorage() {
-        try {
-            // 確保存在預設設定
-            const settings = this.getSettings();
-            if (!settings) {
-                localStorage.setItem('settings', JSON.stringify(window.defaultSettings));
-            }
-        } catch (error) {
-            console.error('Storage initialization error:', error);
-            throw error;
-        }
-    }
-
-    // 儲存入場記錄
-    saveEntries(entries) {
-        try {
-            localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(entries));
+            console.log('儲存系統初始化完成');
             return true;
+
         } catch (error) {
-            console.error('Save entries error:', error);
-            showToast('儲存記錄失敗', 'error');
+            console.error('儲存系統初始化失敗:', error);
             return false;
         }
     }
 
-    // 取得入場記錄
+    // 取得所有入場記錄
     getEntries() {
         try {
             const entries = localStorage.getItem(STORAGE_KEYS.ENTRIES);
-            const parsedEntries = entries ? JSON.parse(entries) : null;
-
-            // 檢查每筆記錄是否已結帳
-            if (parsedEntries) {
-                parsedEntries.forEach(entry => {
-                    entry.isSettled = entry.amount <= 0;
-                });
-            }
-
-            return parsedEntries;
+            return entries ? JSON.parse(entries) : [];
         } catch (error) {
-            console.error('Get entries error:', error);
+            console.error('讀取入場記錄失敗:', error);
+            return [];
+        }
+    }
+
+    // 新增入場記錄
+    addEntry(entry) {
+        try {
+            const entries = this.getEntries();
+            entries.push(entry);
+            localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(entries));
+            return true;
+        } catch (error) {
+            console.error('新增入場記錄失敗:', error);
+            return false;
+        }
+    }
+
+    // 更新入場記錄
+    updateEntry(entryId, updatedEntry) {
+        try {
+            const entries = this.getEntries();
+            const index = entries.findIndex(entry => entry.id === entryId);
+            if (index === -1) {
+                throw new Error('找不到指定的入場記錄');
+            }
+            entries[index] = updatedEntry;
+            localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(entries));
+            return true;
+        } catch (error) {
+            console.error('更新入場記錄失敗:', error);
+            return false;
+        }
+    }
+
+    // 取得系統設定
+    getSettings() {
+        try {
+            const settings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+            return settings ? JSON.parse(settings) : null;
+        } catch (error) {
+            console.error('讀取設定失敗:', error);
             return null;
         }
     }
 
-    // 新增單筆入場記錄
-    addEntry(entry) {
+    // 儲存系統設定
+    saveSettings(settings) {
         try {
-            if (!entry || !entry.lockerNumber) {
-                console.error('Invalid entry data:', entry);
-                return false;
-            }
-
-            const entries = this.getEntries() || [];
-            
-            // 檢查櫃位是否已被使用
-            if (entries.some(e => 
-                e.lockerNumber === entry.lockerNumber && 
-                ['active', 'temporary'].includes(e.status)
-            )) {
-                showToast('此櫃位已被使用中', 'error');
-                return false;
-            }
-
-            // 確保金額已設定
-            if (!entry.amount) {
-                const settings = this.getSettings();
-                entry.amount = settings.basePrice;
-            }
-
-            entries.push(entry);
-            return this.saveEntries(entries);
-        } catch (error) {
-            console.error('Add entry error:', error);
-            return false;
-        }
-    }
-
-    isSpecialTimeSlot(date) {
-        try {
-            const settings = this.getSettings() || DEFAULT_SETTINGS;
-            if (!settings.specialTimeSlot) {
-                settings.specialTimeSlot = DEFAULT_SETTINGS.specialTimeSlot;
-                this.saveSettings(settings);
-            }
-
-            const hour = date.getHours();
-            const minute = date.getMinutes();
-            const time = hour * 100 + minute;
-            
-            const startTime = this.parseTimeString(settings.specialTimeSlot.start);
-            const endTime = this.parseTimeString(settings.specialTimeSlot.end);
-            
-            return time >= startTime && time <= endTime;
-        } catch (error) {
-            console.error('Error checking special time slot:', error);
-            return false;
-        }
-    }
-
-    // 添加時間字串解析輔助函數
-    parseTimeString(timeStr) {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        return hours * 100 + minutes;
-    }
-
-    // 更新單筆入場記錄
-    updateEntry(entryId, updatedData) {
-        try {
-            const entries = this.getEntries() || [];
-            const index = entries.findIndex(entry => entry.id === entryId);
-            
-            if (index !== -1) {
-                entries[index] = { ...entries[index], ...updatedData };
-
-                // 確認是否已結帳
-                entries[index].isSettled = entries[index].amount <= 0;
-
-                return this.saveEntries(entries);
-            }
-            return false;
-        } catch (error) {
-            console.error('Update entry error:', error);
-            return false;
-        }
-    }
-
-    // 儲存設定
-    async saveSettings(settings) {
-        try {
-            const settingsPath = path.join(__dirname, '.vscode', 'settings.json');
-            await fs.promises.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+            localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
             return true;
         } catch (error) {
-            console.error('Save settings error:', error);
+            console.error('儲存設定失敗:', error);
             return false;
         }
     }
 
-    // 取得設定
-    async getSettings() {
+    // 儲存使用者會話
+    saveUserSession(session) {
         try {
-            const settingsPath = path.join(__dirname, '.vscode', 'settings.json');
-            const settingsData = await fs.promises.readFile(settingsPath, 'utf-8');
-            return JSON.parse(settingsData);
-        } catch (error) {
-            console.error('Get settings error:', error);
-            return window.defaultSettings;
-        }
-    }
-
-    // 儲存使用者session
-    saveUserSession(userData) {
-        try {
-            localStorage.setItem(STORAGE_KEYS.USER_SESSION, JSON.stringify({
-                ...userData,
-                timestamp: new Date().getTime()
-            }));
+            localStorage.setItem(STORAGE_KEYS.USER_SESSION, JSON.stringify(session));
             return true;
         } catch (error) {
-            console.error('Save user session error:', error);
+            console.error('儲存使用者會話失敗:', error);
             return false;
         }
     }
 
-    // 取得使用者session
+    // 取得使用者會話
     getUserSession() {
         try {
             const session = localStorage.getItem(STORAGE_KEYS.USER_SESSION);
-            if (!session) return null;
-
-            const sessionData = JSON.parse(session);
-            // 檢查 session 是否過期（預設24小時）
-            if (new Date().getTime() - sessionData.timestamp > 24 * 60 * 60 * 1000) {
-                this.clearUserSession();
-                return null;
-            }
-
-            return sessionData;
+            return session ? JSON.parse(session) : null;
         } catch (error) {
-            console.error('Get user session error:', error);
+            console.error('讀取使用者會話失敗:', error);
             return null;
         }
     }
 
-    // 清除使用者session
+    // 清除使用者會話
     clearUserSession() {
         try {
             localStorage.removeItem(STORAGE_KEYS.USER_SESSION);
             return true;
         } catch (error) {
-            console.error('Clear user session error:', error);
+            console.error('清除使用者會話失敗:', error);
             return false;
         }
     }
 
-    // 資料備份功能
-    createBackup() {
+    // 檢查櫃位是否可用
+    checkLockerAvailable(lockerNumber) {
         try {
-            const backupData = {
-                entries: this.getEntries(),
-                settings: this.getSettings(),
-                timestamp: new Date().toISOString()
-            };
+            const entries = this.getEntries();
+            return !entries.some(entry => 
+                entry.lockerNumber === lockerNumber && 
+                entry.status === 'active'
+            );
+        } catch (error) {
+            console.error('檢查櫃位狀態失敗:', error);
+            return false;
+        }
+    }
 
-            // 創建備份檔案
-            const blob = new Blob([JSON.stringify(backupData, null, 2)], 
-                { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
+    // 新增票卷相關方法
+    getTickets() {
+        try {
+            const tickets = localStorage.getItem('tickets');
+            return tickets ? JSON.parse(tickets) : [];
+        } catch (error) {
+            console.error('Get tickets error:', error);
+            return [];
+        }
+    }
+
+    addTicket(ticket) {
+        try {
+            const tickets = this.getTickets();
+            tickets.push(ticket);
+            localStorage.setItem('tickets', JSON.stringify(tickets));
+            return true;
+        } catch (error) {
+            console.error('Add ticket error:', error);
+            return false;
+        }
+    }
+
+    getTicketById(ticketId) {
+        try {
+            const tickets = this.getTickets();
+            return tickets.find(ticket => ticket.id === ticketId);
+        } catch (error) {
+            console.error('Get ticket error:', error);
+            return null;
+        }
+    }
+
+    updateTicket(ticketId, updatedTicket) {
+        try {
+            const tickets = this.getTickets();
+            const index = tickets.findIndex(ticket => ticket.id === ticketId);
+            if (index === -1) return false;
             
-            // 下載備份檔案
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `himan_backup_${new Date().toISOString()}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            // 更新最後備份時間
-            const settings = this.getSettings();
-            settings.lastBackup = new Date().toISOString();
-            this.saveSettings(settings);
-
+            tickets[index] = updatedTicket;
+            localStorage.setItem('tickets', JSON.stringify(tickets));
             return true;
         } catch (error) {
-            console.error('Create backup error:', error);
+            console.error('Update ticket error:', error);
             return false;
         }
     }
 
-    // 還原備份
-    async restoreFromBackup(file) {
+    deleteTicket(ticketId) {
         try {
-            const fileContent = await this.readBackupFile(file);
-            const backupData = JSON.parse(fileContent);
-
-            // 驗證備份資料格式
-            if (!this.validateBackupData(backupData)) {
-                throw new Error('無效的備份檔案格式');
-            }
-
-            // 還原資料
-            this.saveEntries(backupData.entries);
-            this.saveSettings(backupData.settings);
-
+            const tickets = this.getTickets();
+            const filteredTickets = tickets.filter(ticket => ticket.id !== ticketId);
+            localStorage.setItem('tickets', JSON.stringify(filteredTickets));
             return true;
         } catch (error) {
-            console.error('Restore backup error:', error);
-            throw error;
+            console.error('Delete ticket error:', error);
+            return false;
         }
     }
 
-    // 讀取備份檔案
-    readBackupFile(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(e);
-            reader.readAsText(file);
-        });
-    }
-
-    // 驗證備份資料格式
-    validateBackupData(data) {
-        return data 
-            && Array.isArray(data.entries)
-            && typeof data.settings === 'object'
-            && data.timestamp;
-    }
-
-    // 清除所有資料（用於測試）
-    clearAllData() {
-        if (confirm('確定要清除所有資料嗎？此操作無法復原！')) {
-            try {
-                Object.values(STORAGE_KEYS).forEach(key => {
-                    localStorage.removeItem(key);
-                });
-                this.initializeStorage();
-                return true;
-            } catch (error) {
-                console.error('Clear all data error:', error);
-                return false;
-            }
+    // 新增支出相關方法
+    getExpenses() {
+        try {
+            const expenses = localStorage.getItem('expenses');
+            return expenses ? JSON.parse(expenses) : [];
+        } catch (error) {
+            console.error('Get expenses error:', error);
+            return [];
         }
-        return false;
     }
 
-    validateEntry(entry) {
-        return (
-            entry &&
-            typeof entry === 'object' &&
-            entry.lockerNumber >= 1 &&
-            entry.lockerNumber <= 300 &&
-            entry.id &&
-            entry.entryTime &&
-            ['active', 'temporary', 'completed'].includes(entry.status) &&
-            (
-                (entry.paymentType === 'cash' && typeof entry.amount === 'number') ||
-                (entry.paymentType === 'ticket' && entry.ticketNumber)
-            )
-        );
+    addExpense(expense) {
+        try {
+            const expenses = this.getExpenses();
+            expenses.push(expense);
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            return true;
+        } catch (error) {
+            console.error('Add expense error:', error);
+            return false;
+        }
+    }
+
+    deleteExpense(expenseId) {
+        try {
+            const expenses = this.getExpenses();
+            const filteredExpenses = expenses.filter(expense => expense.id !== expenseId);
+            localStorage.setItem('expenses', JSON.stringify(filteredExpenses));
+            return true;
+        } catch (error) {
+            console.error('Delete expense error:', error);
+            return false;
+        }
     }
 }
+
+// 確保全域變數存在
+window.defaultSettings = DEFAULT_SETTINGS;
+window.storageManager = new StorageManager();
+
+// 確保在文件加載完成後再初始化
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!window.storageManager) {
+        window.storageManager = new StorageManager();
+    }
+    
+    try {
+        await window.storageManager.init();
+        window.moduleLoaded = window.moduleLoaded || {};
+        window.moduleLoaded.storage = true;
+        console.log('Storage system initialized');
+    } catch (error) {
+        console.error('Storage initialization error:', error);
+    }
+});
 
 // 修改特殊時段檢查函數
 function isSpecialTimeSlot(date, settings) {

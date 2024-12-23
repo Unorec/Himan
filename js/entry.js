@@ -73,16 +73,17 @@
 
                                 <div id="ticketFields" style="display: none;">
                                     <div class="form-group">
-                                        <label for="ticketType">票券類型</label>
-                                        <select id="ticketType" name="ticketType" class="form-control">
-                                            <option value="regular">平日券 (24小時)</option>
-                                            <option value="unlimited">暢遊券 (24小時)</option>
-                                            <option value="event">優惠券 (24小時)</option>
-                                        </select>
+                                        <label for="ticketNumber">票券號碼 <span class="required">*</span></label>
+                                        <div class="ticket-input-group">
+                                            <input type="text" id="ticketNumber" name="ticketNumber" 
+                                                class="form-control" 
+                                                placeholder="請輸入完整票券號碼（含前綴）"
+                                                onchange="validateTicketNumber(this.value)">
+                                            <div id="ticketValidationStatus" class="validation-status"></div>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="ticketNumber">票券號碼</label>
-                                        <input type="text" id="ticketNumber" name="ticketNumber" class="form-control">
+                                    <div id="ticketInfo" class="ticket-info-box" style="display: none;">
+                                        <div class="ticket-detail"></div>
                                     </div>
                                 </div>
 
@@ -172,37 +173,20 @@
         const cashFields = document.getElementById('cashFields');
         const ticketFields = document.getElementById('ticketFields');
         const paymentType = document.querySelector('input[name="paymentType"]:checked').value;
+        const amountField = document.getElementById('amount');
+        const hoursField = document.getElementById('hours');
 
         if (paymentType === 'cash') {
             cashFields.style.display = 'block';
             ticketFields.style.display = 'none';
-
-            const settings = window.storageManager.getSettings();
-            const timeSlotKey = checkSpecialTimeSlot(new Date(), settings);
-            
-            if (timeSlotKey) {
-                const slot = settings.timeSlots[timeSlotKey];
-                document.getElementById('amount').value = slot.price;
-                
-                // 計算到隔天早上6點的時數
-                const { hours } = calculateEndTime(new Date(), settings);
-                
-                document.getElementById('hours').value = hours;
-                document.getElementById('hours').max = hours;
-                document.getElementById('hours').disabled = true;
-            } else {
-                document.getElementById('amount').value = settings.basePrice;
-                document.getElementById('hours').value = '24';
-                document.getElementById('hours').max = '24';
-                document.getElementById('hours').disabled = false;
-            }
+            amountField.disabled = false;
+            hoursField.disabled = false;
         } else {
             cashFields.style.display = 'none';
             ticketFields.style.display = 'block';
-
-            // 票券固定24小時
-            document.getElementById('hours').value = '24';
-            document.getElementById('hours').disabled = true;
+            // 票券模式下隱藏金額和時數輸入
+            amountField.disabled = true;
+            hoursField.disabled = true;
         }
     }
 
@@ -245,51 +229,82 @@
     // 修改處理表單提交
     async function handleEntrySubmit(e) {
         e.preventDefault();
+        const paymentType = document.querySelector('input[name="paymentType"]:checked').value;
+        
         try {
-            const settings = window.storageManager.getSettings();
-            const now = new Date();
-            const timeSlotKey = checkSpecialTimeSlot(now, settings);
-            
-            // 計算金額
-            let amount;
-            if (timeSlotKey) {
-                amount = settings.timeSlots[timeSlotKey].price;
+            if (paymentType === 'ticket') {
+                const ticketNumber = document.getElementById('ticketNumber').value;
+                if (!await validateTicketNumber(ticketNumber)) {
+                    window.showToast('請輸入有效的票券號碼', 'error');
+                    return;
+                }
+                
+                // 用票券入場
+                const ticket = await window.ticketsModule.findTicket(ticketNumber);
+                const formData = {
+                    lockerNumber: parseInt(document.getElementById('lockerNumber').value),
+                    paymentType: 'ticket',
+                    ticketNumber: ticketNumber,
+                    hours: 24, // 票券固定24小時
+                    status: 'active',
+                    id: 'E' + Date.now(),
+                    entryTime: new Date().toISOString()
+                };
+
+                if (!window.storageManager.addEntry(formData)) {
+                    throw new Error('儲存入場記錄失敗');
+                }
+
+                // 標記票券為已使用
+                await window.ticketsModule.updateTicketStatus(ticketNumber, 'used');
+
             } else {
-                amount = parseInt(document.getElementById('amount').value) || settings.basePrice;
+                // 現金入場原有邏輯
+                const settings = window.storageManager.getSettings();
+                const now = new Date();
+                const timeSlotKey = checkSpecialTimeSlot(now, settings);
+                
+                // 計算金額
+                let amount;
+                if (timeSlotKey) {
+                    amount = settings.timeSlots[timeSlotKey].price;
+                } else {
+                    amount = parseInt(document.getElementById('amount').value) || settings.basePrice;
+                }
+
+                const formData = {
+                    lockerNumber: parseInt(document.getElementById('lockerNumber').value),
+                    paymentType: document.querySelector('input[name="paymentType"]:checked').value,
+                    amount: amount, // 確保金額被正確設置
+                    hours: parseInt(document.getElementById('hours').value) || 24,
+                    status: 'active',
+                    id: 'E' + Date.now(),
+                    entryTime: now.toISOString()
+                };
+
+                // 設定預期結束時間
+                if (timeSlotKey) {
+                    // 優惠時段到隔天早上6點
+                    const endTime = new Date(now);
+                    endTime.setDate(endTime.getDate() + 1);
+                    endTime.setHours(6, 0, 0, 0);
+                    formData.isSpecialTime = true;
+                    formData.specialTimeSlot = timeSlotKey;
+                } else {
+                    const endTime = new Date(now);
+                    endTime.setHours(endTime.getHours() + formData.hours);
+                    formData.expectedEndTime = endTime.toISOString();
+                }
+
+                if (!window.storageManager.addEntry(formData)) {
+                    throw new Error('儲存入場記錄失敗');
+                }
+
+                e.target.reset();
+                window.showToast('入場登記成功');
             }
-
-            const formData = {
-                lockerNumber: parseInt(document.getElementById('lockerNumber').value),
-                paymentType: document.querySelector('input[name="paymentType"]:checked').value,
-                amount: amount, // 確保金額被正確設置
-                hours: parseInt(document.getElementById('hours').value) || 24,
-                status: 'active',
-                id: 'E' + Date.now(),
-                entryTime: now.toISOString()
-            };
-
-            // 設定預期結束時間
-            if (timeSlotKey) {
-                // 優惠時段到隔天早上6點
-                const endTime = new Date(now);
-                endTime.setDate(endTime.getDate() + 1);
-                endTime.setHours(6, 0, 0, 0);
-                formData.isSpecialTime = true;
-                formData.specialTimeSlot = timeSlotKey;
-            } else {
-                const endTime = new Date(now);
-                endTime.setHours(endTime.getHours() + formData.hours);
-                formData.expectedEndTime = endTime.toISOString();
-            }
-
-            if (!window.storageManager.addEntry(formData)) {
-                throw new Error('儲存入場記錄失敗');
-            }
-
-            e.target.reset();
-            window.showToast('入場登記成功');
         } catch (error) {
-            console.error('Entry submit error:', error);
+            console.error('入場登記失敗:', error);
             window.showToast(error.message || '登記失敗', 'error');
         }
     }
@@ -370,6 +385,14 @@
             });
         }
 
+        // 添加票號輸入事件
+        const ticketNumberInput = document.getElementById('ticketNumber');
+        if (ticketNumberInput) {
+            ticketNumberInput.addEventListener('input', (e) => {
+                validateTicketNumber(e.target.value);
+            });
+        }
+
         console.log('入場登記事件初始化完成');
     }
 
@@ -402,6 +425,56 @@
         } else {
             if (statusElement) statusElement.style.display = 'none';
             if (specialTimeInfo) specialTimeInfo.style.display = 'none';
+        }
+    }
+
+    // 修改票號驗證函數
+    async function validateTicketNumber(number) {
+        const statusDiv = document.getElementById('ticketValidationStatus');
+        const submitBtn = document.querySelector('#entryForm button[type="submit"]');
+        const ticketInfo = document.getElementById('ticketInfo');
+        
+        if (!number) {
+            statusDiv.innerHTML = '<span class="invalid">請輸入票號</span>';
+            ticketInfo.style.display = 'none';
+            submitBtn.disabled = true;
+            return false;
+        }
+
+        try {
+            const ticket = await window.ticketsModule.findTicket(number);
+            
+            if (!ticket) {
+                statusDiv.innerHTML = '<span class="invalid">❌ 非本系統售出票券</span>';
+                ticketInfo.style.display = 'none';
+                submitBtn.disabled = true;
+                return false;
+            }
+
+            if (ticket.status === 'used') {
+                statusDiv.innerHTML = '<span class="invalid">❌ 此票券已使用過</span>';
+                ticketInfo.style.display = 'none';
+                submitBtn.disabled = true;
+                return false;
+            }
+
+            // 顯示票券資訊
+            statusDiv.innerHTML = '<span class="valid">✓ 票券有效</span>';
+            ticketInfo.style.display = 'block';
+            ticketInfo.querySelector('.ticket-detail').innerHTML = `
+                <div>票券類型：${ticket.type}</div>
+                <div>票券號碼：${ticket.number}</div>
+                <div>售出日期：${new Date(ticket.createdAt).toLocaleDateString()}</div>
+            `;
+            submitBtn.disabled = false;
+            return true;
+
+        } catch (error) {
+            console.error('票券驗證錯誤:', error);
+            statusDiv.innerHTML = `<span class="invalid">❌ ${error.message}</span>`;
+            ticketInfo.style.display = 'none';
+            submitBtn.disabled = true;
+            return false;
         }
     }
 

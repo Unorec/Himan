@@ -39,19 +39,24 @@
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     
-    <!-- 系統核心模組 -->
+    <!-- 核心工具函數優先載入 -->
     <script src="js/utils.js"></script>
-    <script src="js/modal.js"></script>
+        
+    <!-- 系統核心模組 -->
     <script src="js/storage.js"></script>
+    <script src="js/modal.js"></script>
     <script src="js/auth.js"></script>
     
     <!-- 功能模組 -->
     <script src="js/entry.js"></script>
     <script src="js/records.js"></script>
+    <script src="js/tickets.js"></script>
+    <script src="js/expenses.js"></script>  <!-- 新增這行 -->
     <script src="js/stats.js"></script>
     <script src="js/settings.js"></script>
+    <script src="js/websocket.js"></script>
     
-    <!-- 主程式 -->
+    <!-- 主程式最後載入 -->
     <script src="js/main.js"></script>
 
     <!-- Favicon -->
@@ -117,6 +122,9 @@
         window.moduleLoaded = {};
         window.moduleInitialized = {};
         
+        // WebSocket 連線設定
+        const WS_URL = 'ws://localhost:8080';
+        
         // 改進的模組載入檢查
         window.checkModuleLoaded = function(moduleName) {
             window.moduleLoaded[moduleName] = true;
@@ -136,6 +144,14 @@
                 return false;
             }
         }
+
+        // 監聽特定類型的訊息
+        wsManager.on('update', (data) => {
+            console.log('收到更新:', data);
+        });
+
+        // 發送訊息
+        wsManager.send('action', { type: 'entry', data: { lockerId: 1 } });
     </script>
 </head>
 <body>
@@ -194,12 +210,45 @@
             <ul>
                 <li><a href="#" class="menu-item" data-section="entry">入場登記</a></li>
                 <li><a href="#" class="menu-item" data-section="records">入場記錄</a></li>
+                <li><a href="#" class="menu-item" data-section="tickets">票卷管理</a></li>
+                <li><a href="#" class="menu-item" data-section="expenses">生活支出</a></li>
                 <li><a href="#" class="menu-item" data-section="stats">統計報表</a></li>
                 <li><a href="#" class="menu-item" data-section="settings">系統設定</a></li>
             </ul>
         </nav>
 
         <main id="mainContent" class="content">
+            <!-- 票卷管理區塊 -->
+            <div id="ticketsSection" class="section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>票卷管理</h2>
+                        <button class="primary-button" id="addTicketBtn">新增票卷</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="tickets-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 生活支出區塊 -->
+            <div id="expensesSection" class="section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>生活支出記錄</h2>
+                        <div class="header-actions">
+                            <button class="primary-button" id="addExpenseBtn">新增支出</button>
+                            <select id="expenseFilterMonth" class="form-control">
+                                <option value="">選擇月份</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="expenses-summary"></div>
+                        <div class="expenses-list"></div>
+                    </div>
+                </div>
+            </div>
             <!-- 內容會透過 JavaScript 動態載入 -->
         </main>
     </div>

@@ -51,12 +51,36 @@ recordsModule.utils = {
     },
 
     formatPaymentInfo: (record) => {
+        let html = '';
+        // 基本費用
         if (record.paymentType === 'cash') {
-            return `現金 NT$ ${record.amount || 0}`;
+            html += `<div>基本費用: NT$ ${record.amount || 0}</div>`;
         } else if (record.paymentType === 'ticket') {
-            return `票券：${record.ticketType || ''} ${record.ticketNumber ? `(${record.ticketNumber})` : ''}`;
+            html += `<div>票券：${record.ticketType || ''} ${record.ticketNumber ? `(${record.ticketNumber})` : ''}</div>`;
         }
-        return '未指定付款方式';
+
+        // 補充費用
+        if (record.additionalCharges && record.additionalCharges.length > 0) {
+            html += '<div class="additional-charges">';
+            record.additionalCharges.forEach(charge => {
+                html += `<div>${charge.description || '補充費用'}: NT$ ${charge.amount}</div>`;
+            });
+            html += '</div>';
+        }
+
+        // 總金額
+        const totalAmount = recordsModule.utils.calculateTotalAmount(record);
+        html += `<div class="total-amount">總計: NT$ ${totalAmount}</div>`;
+
+        return html;
+    },
+
+    calculateTotalAmount: (record) => {
+        let total = record.amount || 0;
+        if (record.additionalCharges) {
+            total += record.additionalCharges.reduce((sum, charge) => sum + (charge.amount || 0), 0);
+        }
+        return total;
     },
 
     formatExitReturnTime: (record) => {
@@ -75,10 +99,11 @@ recordsModule.utils = {
         const statusMap = {
             'active': '使用中',
             'temporary': '暫時外出',
-            'completed': '已結束',
             'nearExpiry': '即將超時',
             'overtime': '已超時',
-            'unpaid': '未結消費'
+            'unpaid': '未結消費',
+            'paid': '已結消費',
+            'completed': '已結束'
         };
         return statusMap[status] || status;
     },
@@ -227,21 +252,23 @@ async function initializeRecords() {
                                 ` : ''}
 
                                 ${['active', 'overtime'].includes(record.status) ? `
-                                    <button onclick="recordsModule.handlers.handleOvertimeAction('${record.id}')" 
-                                            class="menu-button warning">
-                                        <i class="icon">⚠️</i>
-                                        <span>處理超時</span>
-                                    </button>
+                                <button onclick="recordsModule.handlers.handleOvertimeAction('${record.id}')" 
+                                        class="menu-button warning">
+                                    <i class="icon">⚠️</i>
+                                    <span>處理超時</span>
+                                </button>
                                 ` : ''}
 
-                                ${record.status === 'active' ? `
-                                    <div class="menu-divider"></div>
-                                    <button onclick="recordsModule.handlers.handleRecordAction('${record.id}', 'complete')" 
-                                            class="menu-button warning">
-                                        <i class="icon">✓</i>
-                                        <span>結束使用</span>
-                                    </button>
-                                ` : ''}
+                                        ${record.status === 'active' ? `
+                                            <div class="menu-divider"></div>
+                                            <button onclick="recordsModule.handlers.handleRecordAction('${record.id}', 'complete')" 
+                                                    class="menu-button warning">
+                                                <i class="icon">✓</i>
+                                                <span>結束使用</span>
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -375,10 +402,38 @@ async function initializeRecords() {
                                 <div class="info-text">${overtimeHours} 小時</div>
                             </div>
                             <div class="form-group">
+                                <label>處理方式</label>
+                                <select id="overtimeHandleType" class="form-control" onchange="updateOvertimeForm()">
+                                    <option value="cash">現金</option>
+                                    <option value="ticket">補票券</option>
+                                </select>
+                            </div>
+
+                            <div id="overtimePaymentCash" class="form-group">
+                                <label for="cashAmount">現金金額</label>
+                                <input type="number" id="cashAmount" class="form-control" value="0" min="0">
+                            </div>
+
+                            <div id="overtimePaymentTicket" class="form-group">
+                                <label for="ticketNumber">票券號碼</label>
+                                <input type="text" id="ticketNumber" class="form-control" placeholder="請輸入票券號碼">
+                            </div>
+
+                            <div id="extendField" class="form-group">
+                                <label for="extendHours">延長時數</label> 
+                                <select id="extendHours" class="form-control">
+                                    <option value="0">不延長</option>
+                                    <option value="12">延長12小時</option>
+                                    <option value="24">延長至隔日同時段</option>
+                                </select>
+                            </div>
+
+                            <div id="cashPayment" class="form-group">
                                 <label for="overtimeCharge">超時費用</label>
                                 <input type="number" id="overtimeCharge" class="form-control" 
-                                       value="${overtimeHours * 100}" min="0">
+                                       value="${overtimeHours * 100}" step="100">
                             </div>
+
                             <div class="form-actions">
                                 <button onclick="recordsModule.handlers.confirmOvertimeCharge('${record.id}')" 
                                         class="primary-button">確認收費</button>
@@ -408,10 +463,12 @@ async function initializeRecords() {
                         additionalCharges: [
                             ...(record.additionalCharges || []),
                             {
-                                type: 'overtime',
+                                type: 'additional',
                                 amount: charge,
                                 timestamp: new Date().toISOString(),
-                                description: '超時費用'
+                                description: '超時費用',
+                                payment_type: document.getElementById('overtimePayment')?.value || 'cash',
+                                extend_hours: document.getElementById('extendHours')?.value || 0
                             }
                         ]
                     };
@@ -547,7 +604,7 @@ async function initializeRecords() {
         
                     const modalContent = `
                         <div class="modal-header">
-                            <h3>補款登記</h3>
+                            <h3>消費登記</h3>
                             <button class="close-button" onclick="closeModal()">&times;</button>
                         </div>
                         <div class="modal-body">
@@ -559,14 +616,21 @@ async function initializeRecords() {
                                     <label>目前費用: NT$ ${record.amount || 0}</label>
                                 </div>
                                 <div class="form-group">
-                                    <label for="additionalCharge">補款金額</label>
-                                    <input type="number" 
-                                           id="additionalCharge" 
-                                           name="additionalCharge" 
-                                           min="0" 
-                                           step="50" 
-                                           class="form-control" 
-                                           required>
+                                    <label for="additionalCharge">消費金額</label>
+                                    <div class="amount-input-group">
+                                        <div class="amount-control">
+                                            <input type="text" 
+                                                id="additionalCharge" 
+                                                name="additionalCharge" 
+                                                class="form-control" 
+                                                oninput="recordsModule.handlers.validateAmount(this)"
+                                                required>
+                                            <div class="amount-buttons">
+                                                <button type="button" onclick="recordsModule.handlers.adjustChargeAmount(50)" class="small-button">+50</button>
+                                                <button type="button" onclick="recordsModule.handlers.adjustChargeAmount(-50)" class="small-button">-50</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="chargeNote">備註</label>
@@ -576,7 +640,7 @@ async function initializeRecords() {
                                             rows="3"></textarea>
                                 </div>
                                 <div class="form-actions">
-                                    <button type="submit" class="primary-button">確認補款</button>
+                                    <button type="submit" class="primary-button">確認消費</button>
                                     <button type="button" class="secondary-button" onclick="closeModal()">取消</button>
                                 </div>
                             </form>
@@ -584,9 +648,14 @@ async function initializeRecords() {
                     `;
         
                     showModal(modalContent);
+                    
+                    // 聚焦到金額輸入欄位
+                    setTimeout(() => {
+                        document.getElementById('additionalCharge')?.focus();
+                    }, 100);
                 } catch (error) {
                     console.error('Show add charge modal error:', error);
-                    showToast(error.message || '顯示補款視窗失敗', 'error');
+                    window.showToast(error.message || '顯示補款視窗失敗', 'error');
                 }
             },
         
@@ -598,34 +667,86 @@ async function initializeRecords() {
                     const additionalCharge = parseInt(form.additionalCharge.value);
                     const note = form.chargeNote.value.trim();
         
+                    if (!additionalCharge || additionalCharge <= 0) {
+                        throw new Error('請輸入有效金額');
+                    }
+        
                     const record = await recordsModule.utils.getRecordById(recordId);
                     if (!record) {
                         throw new Error('找不到此記錄');
                     }
         
-                    // 更新記錄的金額
-                    record.amount = (record.amount || 0) + additionalCharge;
-                    record.chargeHistory = record.chargeHistory || [];
-                    record.chargeHistory.push({
+                    // 更新記錄
+                    const newCharge = {
                         amount: additionalCharge,
-                        note: note,
-                        timestamp: new Date().toISOString()
-                    });
+                        description: note || '補充消費',
+                        timestamp: new Date().toISOString(),
+                        type: 'additional'
+                    };
         
-                    // 確認是否已結帳
-                    record.isSettled = record.amount <= 0;
+                    record.additionalCharges = record.additionalCharges || [];
+                    record.additionalCharges.push(newCharge);
+        
+                    // 更新統計數據
+                    if (!record.statistics) {
+                        record.statistics = {
+                            totalCharges: 0,
+                            chargeCount: 0
+                        };
+                    }
+                    record.statistics.totalCharges += additionalCharge;
+                    record.statistics.chargeCount += 1;
         
                     // 儲存更新
-                    await window.storageManager.updateEntry(record);
-                    
-                    closeModal();
-                    showToast('補款登記成功');
-                    recordsModule.updateRecordsDisplay();
+                    if (await window.storageManager.updateEntry(recordId, record)) {
+                        window.showToast('補充消費登記成功');
+                        closeModal();
+                        recordsModule.updateRecordsDisplay();
+                        // 觸發統計更新
+                        if (window.statsModule?.updateStats) {
+                            window.statsModule.updateStats();
+                        }
+                    } else {
+                        throw new Error('更新失敗');
+                    }
         
                 } catch (error) {
                     console.error('Add charge error:', error);
-                    showToast(error.message || '補款登記失敗', 'error');
+                    window.showToast(error.message || '補充消費登記失敗', 'error');
                 }
+            },
+
+            // 新增金額調整功能
+            adjustChargeAmount: (amount) => {
+                const input = document.getElementById('additionalCharge');
+                if (input) {
+                    let currentValue = parseInt(input.value) || 0;
+                    currentValue += amount;
+                    
+                    // 確保金額不小於 0
+                    if (currentValue < 0) {
+                        currentValue = 0;
+                    }
+                    
+                    input.value = currentValue;
+                }
+            },
+
+            // 修改金額輸入驗證
+            validateAmount: (input) => {
+                // 移除非數字字符
+                input.value = input.value.replace(/[^\d]/g, '');
+                
+                // 轉換為數字
+                let amount = parseInt(input.value) || 0;
+                
+                // 確保金額不小於 0
+                if (amount < 0) {
+                    amount = 0;
+                }
+                
+                // 更新輸入框值
+                input.value = amount || '';
             }
         };
 

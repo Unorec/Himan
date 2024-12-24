@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8">
+    <!-- 最優先載入主要資源初始化 -->
+    <script>
+        (function() {
+            // 立即初始化 mainResource
+            window.mainResource = {
+                id: 'main_' + Date.now(),
+                initialized: false,
+                init() {
+                    if (!this.initialized) {
+                        this.initialized = true;
+                        console.log('Main resource initialized:', this.id);
+                    }
+                    return this;
+                }
+            };
+            
+            // 立即執行初始化
+            window.mainResource.init();
+            
+            // 確保資源已載入
+            window.checkResourceLoaded = function() {
+                return window.mainResource && window.mainResource.initialized;
+            };
+        })();
+    </script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HiMAN三溫暖管理系統</title>
+    
+    <!-- 先載入 CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/components.css">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- 核心工具函數優先載入 -->
+    <script src="js/utils.js"></script>
+        
+    <!-- 系統核心模組 -->
+    <script src="js/storage.js"></script>
+    <script src="js/modal.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <!-- 功能模組 -->
+    <script src="js/entry.js"></script>
+    <script src="js/records.js"></script>
+    <script src="js/tickets.js"></script>
+    <script src="js/expenses.js"></script>  <!-- 新增這行 -->
+    <script src="js/stats.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/websocket.js"></script>
+    
+    <!-- 主程式最後載入 -->
+    <script src="js/main.js"></script>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+    <!-- 增加優惠時段狀態樣式 -->
+    <style>
+        .special-time-status {
+            position: fixed;
+            top: 0;
+            right: 0;
+            padding: 8px 16px;
+            background-color: #ff9800;
+            color: white;
+            z-index: 1000;
+            border-bottom-left-radius: 4px;
+        }
+
+        /* 付款資訊樣式 */
+        .unpaid-amount {
+            color: #f44336;
+            font-weight: bold;
+            margin: 0.25rem 0;
+        }
+
+        .total-amount {
+            font-weight: bold;
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px dashed #ddd;
+        }
+
+        .chart-section {
+            margin-top: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-item {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+    </style>
+
+    <script>
+        // 初始化全域模組追蹤
+        window.moduleLoaded = {};
+        window.moduleInitialized = {};
+        
+        // WebSocket 連線設定
+        const WS_URL = 'ws://localhost:8080';
+        
+        // 改進的模組載入檢查
+        window.checkModuleLoaded = function(moduleName) {
+            window.moduleLoaded[moduleName] = true;
+            console.log(`Module ${moduleName} loaded`);
+        };
+
+        // 新增櫃位檢查函數
+        async function checkLockerAvailable(lockerNumber) {
+            try {
+                const entries = this.getEntries();
+                return !entries.some(entry => 
+                    entry.lockerNumber === lockerNumber && 
+                    entry.status === 'active'
+                );
+            } catch (error) {
+                console.error('Check locker error:', error);
+                return false;
+            }
+        }
+
+        // 監聽特定類型的訊息
+        wsManager.on('update', (data) => {
+            console.log('收到更新:', data);
+        });
+
+        // 發送訊息
+        wsManager.send('action', { type: 'entry', data: { lockerId: 1 } });
+
+        // 例如更新零用金設定
+        await settingsModule.updateSetting('cashierFloat', {
+            amount: 3000,
+            lastUpdated: new Date()
+        }, {
+            username: 'uno917',
+            password: 'uno1069'
+        });
+    </script>
+</head>
+<body>
+    <!-- 新增優惠時段狀態提示 -->
+    <div id="specialTimeStatus" class="special-time-status" style="display: none;">
+        優惠時段進行中
+    </div>
+
+    <!-- 登入區塊 -->
+    <div id="loginContainer" class="login-container">
+        <div class="login-header">
+            <h2>HiMAN三溫暖管理系統</h2>
+            <p>登入系統</p>
+        </div>
+        
+        <form id="loginForm">
+            <div id="loginError" class="login-error" style="display: none;"></div>
+            
+            <div class="form-group">
+                <label for="username">帳號</label>
+                <input type="text" id="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密碼</label>
+                <input type="password" id="password" required>
+            </div>
+            
+            <button type="submit" id="loginButton" class="login-button">登入</button>
+        </form>
+
+        <div class="login-hint">
+            預設帳號/密碼: himan/himan
+        </div>
+    </div>
+
+    <!-- 主系統區塊 -->
+    <div id="mainSystem" class="main-system" style="display: none;">
+        <header class="main-header">
+            <div class="header-content">
+                <h1>HiMAN三溫暖管理系統</h1>
+                <div class="system-info">
+                    <!-- 新增營業時間提示 -->
+                    <div class="business-hours">
+                        <span>優惠時段：18:30-19:30</span>
+                    </div>
+                    <div class="user-info">
+                        <span id="currentUser">未登入</span>
+                        <button type="button" id="logoutButton" class="secondary-button">登出</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <nav class="main-menu">
+            <ul>
+                <li><a href="#" class="menu-item" data-section="entry">入場登記</a></li>
+                <li><a href="#" class="menu-item" data-section="records">入場記錄</a></li>
+                <li><a href="#" class="menu-item" data-section="tickets">票卷管理</a></li>
+                <li><a href="#" class="menu-item" data-section="expenses">生活支出</a></li>
+                <li><a href="#" class="menu-item" data-section="stats">統計報表</a></li>
+                <li><a href="#" class="menu-item" data-section="settings">系統設定</a></li>
+            </ul>
+        </nav>
+
+        <main id="mainContent" class="content">
+            <!-- 票卷管理區塊 -->
+            <div id="ticketsSection" class="section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>票卷管理</h2>
+                        <button class="primary-button" id="addTicketBtn">新增票卷</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="tickets-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 生活支出區塊 -->
+            <div id="expensesSection" class="section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>生活支出記錄</h2>
+                        <div class="header-actions">
+                            <button class="primary-button" id="addExpenseBtn">新增支出</button>
+                            <select id="expenseFilterMonth" class="form-control">
+                                <option value="">選擇月份</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="expenses-summary"></div>
+                        <div class="expenses-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系統設定區塊 -->
+            <div id="settingsSection" class="section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>系統設定</h2>
+                        <div class="header-actions">
+                            <button class="secondary-button" id="exportSettingsBtn">匯出設定</button>
+                            <label class="secondary-button" for="importSettings">
+                                匯入設定
+                                <input type="file" id="importSettings" accept=".json" style="display: none;">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="settingsForm">
+                            <div class="settings-group">
+                                <h3>基本設定</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>基本收費</label>
+                                        <input type="number" name="basePrice" min="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>超時費率（每小時）</label>
+                                        <input type="number" name="overtimeRate" min="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <h3>營業時間</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>開始時間</label>
+                                        <input type="time" name="businessStart">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>結束時間</label>
+                                        <input type="time" name="businessEnd">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 修改管理者設定區塊 -->
+                            <div class="settings-group admin-area" style="display: none;">
+                                <div class="admin-header">
+                                    <h3>管理者專用設定 <span class="admin-badge">管理者專用</span></h3>
+                                    <button type="button" class="secondary-button" id="adminLoginBtn">管理者驗證</button>
+                                </div>
+                                
+                                <div class="admin-content" id="adminContent" style="display: none;">
+                                    <!-- 班別帳號設定 -->
+                                    <div class="shift-container">
+                                        <div class="shift-card">
+                                            <h4>早班設定 (06:00-14:00)</h4>
+                                            <div class="form-group">
+                                                <label>帳號</label>
+                                                <input type="text" name="morningUsername">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>密碼</label>
+                                                <input type="password" name="morningPassword">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="shift-card">
+                                            <h4>中班設定 (14:00-22:00)</h4>
+                                            <div class="form-group">
+                                                <label>帳號</label>
+                                                <input type="text" name="afternoonUsername">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>密碼</label>
+                                                <input type="password" name="afternoonPassword">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="shift-card">
+                                            <h4>晚班設定 (22:00-06:00)</h4>
+                                            <div class="form-group">
+                                                <label>帳號</label>
+                                                <input type="text" name="eveningUsername">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>密碼</label>
+                                                <input type="password" name="eveningPassword">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 零用金設定 -->
+                                    <div class="cash-float-section">
+                                        <h4>櫃檯零用金設定</h4>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label>零用金金額</label>
+                                                <input type="number" name="cashierFloat" min="0" step="100">
+                                            </div>
+                                            <div class="cash-amount">
+                                                目前金額：<span id="currentCashFloat">3,000</span> 元
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 備份設定 -->
+                                    <div class="backup-section">
+                                        <h4>系統備份設定</h4>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label>自動備份頻率</label>
+                                                <select name="backupFrequency">
+                                                    <option value="daily">每日備份</option>
+                                                    <option value="weekly">每週備份</option>
+                                                    <option value="monthly">每月備份</option>
+                                                </select>
+                                            </div>
+                                            <button type="button" class="secondary-button" id="manualBackupBtn">立即備份</button>
+                                        </div>
+                                        <div class="backup-status" id="backupStatus">
+                                            上次備份時間：2024-01-01 00:00:00
+                                        </div>
+                                    </div>
+
+                                    <!-- 報表設定 -->
+                                    <div class="report-section">
+                                        <h4>日報表設定</h4>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label>自動產生時間</label>
+                                                <input type="time" name="reportTime" value="23:59">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Email 收件人</label>
+                                                <input type="email" name="reportEmail" placeholder="多個收件人請用逗號分隔">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="primary-button">儲存設定</button>
+                                <button type="button" class="danger-button" id="resetSettingsBtn">重設預設值</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!-- 內容會透過 JavaScript 動態載入 -->
+        </main>
+    </div>
+
+    <!-- 通知訊息 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- 載入中動畫 -->
+    <div id="loading" class="loading" style="display: none;">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+        // 檢查函數是否成功載入
+        function checkFunctionsLoaded() {
+            return typeof window.loadRecordsSection === 'function' &&
+                   typeof window.loadEntrySection === 'function';
+        }
+
+        // 改進的等待模組載入函數
+        async function waitForModules() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const check = setInterval(() => {
+                    attempts++;
+                    if (checkFunctionsLoaded()) {
+                        clearInterval(check);
+                        console.log('All required functions loaded');
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(check);
+                        reject(new Error('Module loading timeout'));
+                    }
+                }, 100);
+            });
+        }
+
+        // 頁面載入完成後初始化
+        window.addEventListener('load', async () => {
+            try {
+                await waitForModules();
+                console.log('System ready');
+            } catch (error) {
+                console.error('Module loading error:', error);
+                alert('系統載入失敗，請重新整理頁面');
+                location.reload();
+            }
+        });
+    </script>
+</body>
+</html>

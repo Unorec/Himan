@@ -1,0 +1,21 @@
+/* ...existing code... */
+
+.validation-status {
+    margin-top: 5px;
+    min-height: 20px;
+}
+
+.validation-status .valid {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.validation-status .invalid {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.ticket-input-group {
+    position: relative;
+    margin-bottom: 10px;
+}

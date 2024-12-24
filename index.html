@@ -152,6 +152,15 @@
 
         // 發送訊息
         wsManager.send('action', { type: 'entry', data: { lockerId: 1 } });
+
+        // 例如更新零用金設定
+        await settingsModule.updateSetting('cashierFloat', {
+            amount: 3000,
+            lastUpdated: new Date()
+        }, {
+            username: 'uno917',
+            password: 'uno1069'
+        });
     </script>
 </head>
 <body>
@@ -246,6 +255,155 @@
                     <div class="card-body">
                         <div class="expenses-summary"></div>
                         <div class="expenses-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系統設定區塊 -->
+            <div id="settingsSection" class="section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>系統設定</h2>
+                        <div class="header-actions">
+                            <button class="secondary-button" id="exportSettingsBtn">匯出設定</button>
+                            <label class="secondary-button" for="importSettings">
+                                匯入設定
+                                <input type="file" id="importSettings" accept=".json" style="display: none;">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="settingsForm">
+                            <div class="settings-group">
+                                <h3>基本設定</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>基本收費</label>
+                                        <input type="number" name="basePrice" min="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>超時費率（每小時）</label>
+                                        <input type="number" name="overtimeRate" min="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <h3>營業時間</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>開始時間</label>
+                                        <input type="time" name="businessStart">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>結束時間</label>
+                                        <input type="time" name="businessEnd">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 修改管理者設定區塊 -->
+                            <div class="settings-group admin-area" style="display: none;">
+                                <div class="admin-header">
+                                    <h3>管理者專用設定 <span class="admin-badge">管理者專用</span></h3>
+                                    <button type="button" class="secondary-button" id="adminLoginBtn">管理者驗證</button>
+                                </div>
+                                
+                                <div class="admin-content" id="adminContent" style="display: none;">
+                                    <!-- 班別帳號設定 -->
+                                    <div class="shift-container">
+                                        <div class="shift-card">
+                                            <h4>早班設定 (06:00-14:00)</h4>
+                                            <div class="form-group">
+                                                <label>帳號</label>
+                                                <input type="text" name="morningUsername">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>密碼</label>
+                                                <input type="password" name="morningPassword">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="shift-card">
+                                            <h4>中班設定 (14:00-22:00)</h4>
+                                            <div class="form-group">
+                                                <label>帳號</label>
+                                                <input type="text" name="afternoonUsername">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>密碼</label>
+                                                <input type="password" name="afternoonPassword">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="shift-card">
+                                            <h4>晚班設定 (22:00-06:00)</h4>
+                                            <div class="form-group">
+                                                <label>帳號</label>
+                                                <input type="text" name="eveningUsername">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>密碼</label>
+                                                <input type="password" name="eveningPassword">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 零用金設定 -->
+                                    <div class="cash-float-section">
+                                        <h4>櫃檯零用金設定</h4>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label>零用金金額</label>
+                                                <input type="number" name="cashierFloat" min="0" step="100">
+                                            </div>
+                                            <div class="cash-amount">
+                                                目前金額：<span id="currentCashFloat">3,000</span> 元
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 備份設定 -->
+                                    <div class="backup-section">
+                                        <h4>系統備份設定</h4>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label>自動備份頻率</label>
+                                                <select name="backupFrequency">
+                                                    <option value="daily">每日備份</option>
+                                                    <option value="weekly">每週備份</option>
+                                                    <option value="monthly">每月備份</option>
+                                                </select>
+                                            </div>
+                                            <button type="button" class="secondary-button" id="manualBackupBtn">立即備份</button>
+                                        </div>
+                                        <div class="backup-status" id="backupStatus">
+                                            上次備份時間：2024-01-01 00:00:00
+                                        </div>
+                                    </div>
+
+                                    <!-- 報表設定 -->
+                                    <div class="report-section">
+                                        <h4>日報表設定</h4>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label>自動產生時間</label>
+                                                <input type="time" name="reportTime" value="23:59">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Email 收件人</label>
+                                                <input type="email" name="reportEmail" placeholder="多個收件人請用逗號分隔">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="primary-button">儲存設定</button>
+                                <button type="button" class="danger-button" id="resetSettingsBtn">重設預設值</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

@@ -34,78 +34,60 @@ window.statsModule = {
             basicCharges: 0,     // 基本入場費
             overtimeCharges: 0,  // 超時費用
             additionalCharges: 0, // 補充消費
-            miscCharges: 0,      // 生活支出
+            miscCharges: 0,      // 生活支出總額
+            dailyExpenses: {},    // 每日生活支出
             ticketSales: 0,      // 售票收入
             specialTimeCount: 0,  // 優惠時段人數
             regularCount: 0,      // 一般時段人數
-            monthlyRevenue: {},
-            dailyRevenue: {}
+            dailyRevenue: {}     // 每日營收
         };
 
+        // 取得所有生活支出
+        const expenses = window.storageManager?.getExpenses() || [];
+        
+        // 計算每日生活支出
+        expenses.forEach(expense => {
+            const dateKey = expense.date;
+            if (!stats.dailyExpenses[dateKey]) {
+                stats.dailyExpenses[dateKey] = 0;
+            }
+            stats.dailyExpenses[dateKey] += expense.amount;
+            stats.miscCharges += expense.amount;
+        });
+
+        // 更新每日統計
         entries.forEach(entry => {
-            // 基本入場費
-            const baseAmount = entry.amount || 0;
-            stats.basicCharges += baseAmount;
-            stats.totalRevenue += baseAmount;
-
-            // 超時費用
-            if (entry.overtimeCharges) {
-                stats.overtimeCharges += entry.overtimeCharges;
-                stats.totalRevenue += entry.overtimeCharges;
-            }
-
-            // 補充消費
-            if (entry.additionalCharges) {
-                entry.additionalCharges.forEach(charge => {
-                    if (charge.type === 'misc') {
-                        stats.miscCharges += charge.amount;
-                    } else {
-                        stats.additionalCharges += charge.amount;
-                    }
-                    stats.totalRevenue += charge.amount;
-                });
-            }
-
-            // 售票收入
-            if (entry.ticketSales) {
-                stats.ticketSales += entry.ticketSales;
-                stats.totalRevenue += entry.ticketSales;
-            }
-
-            // 統計優惠/一般時段使用
-            if (entry.isSpecialTime) {
-                stats.specialTimeCount++;
-            } else {
-                stats.regularCount++;
-            }
-
-            // 更新每日收入
-            const entryDate = new Date(entry.entryTime);
-            const dateKey = entryDate.toISOString().split('T')[0];
+            const dateKey = new Date(entry.entryTime).toISOString().split('T')[0];
             if (!stats.dailyRevenue[dateKey]) {
                 stats.dailyRevenue[dateKey] = {
+                    date: dateKey,
                     basic: 0,
                     overtime: 0,
                     additional: 0,
-                    misc: 0,
+                    expenses: 0,
                     ticketSales: 0,
-                    total: 0
+                    total: 0,
+                    count: 0
                 };
             }
+
             const dayStats = stats.dailyRevenue[dateKey];
-            dayStats.basic += baseAmount;
+            dayStats.count++;
+            dayStats.basic += (entry.amount || 0);
             dayStats.overtime += (entry.overtimeCharges || 0);
+            
             if (entry.additionalCharges) {
                 entry.additionalCharges.forEach(charge => {
-                    if (charge.type === 'misc') {
-                        dayStats.misc += charge.amount;
-                    } else {
-                        dayStats.additional += charge.amount;
-                    }
+                    dayStats.additional += charge.amount;
                 });
             }
-            dayStats.ticketSales += (entry.ticketSales || 0);
-            dayStats.total = dayStats.basic + dayStats.overtime + dayStats.additional + dayStats.misc + dayStats.ticketSales;
+            
+            // 加入當日生活支出
+            dayStats.expenses = stats.dailyExpenses[dateKey] || 0;
+            
+            // 計算當日總額
+            dayStats.total = dayStats.basic + dayStats.overtime + 
+                            dayStats.additional + dayStats.ticketSales;
         });
 
         return stats;
@@ -187,16 +169,28 @@ window.statsModule = {
     renderDailyStats(dailyRevenue) {
         const today = new Date().toISOString().split('T')[0];
         const todayStats = dailyRevenue[today] || {
+            date: today,
             basic: 0,
             overtime: 0,
             additional: 0,
-            misc: 0,
+            expenses: 0,
             ticketSales: 0,
-            total: 0
+            total: 0,
+            count: 0
         };
 
         return `
+            ${this.renderCashDrawerReconciliation()}
+            ${this.renderDailyExpenseLog()}
             <div class="daily-stats-grid">
+                <div class="stat-item">
+                    <span>今日日期</span>
+                    <strong>${new Date(today).toLocaleDateString('zh-TW')}</strong>
+                </div>
+                <div class="stat-item">
+                    <span>入場人次</span>
+                    <strong>${todayStats.count} 人</strong>
+                </div>
                 <div class="stat-item">
                     <span>基本入場費</span>
                     <strong>NT$ ${todayStats.basic.toLocaleString()}</strong>
@@ -211,18 +205,166 @@ window.statsModule = {
                 </div>
                 <div class="stat-item">
                     <span>生活支出</span>
-                    <strong>NT$ ${todayStats.misc.toLocaleString()}</strong>
-                </div>
-                <div class="stat-item">
-                    <span>售票收入</span>
-                    <strong>NT$ ${todayStats.ticketSales.toLocaleString()}</strong>
+                    <strong>NT$ ${todayStats.expenses.toLocaleString()}</strong>
                 </div>
                 <div class="stat-item total">
                     <span>當日總計</span>
                     <strong>NT$ ${todayStats.total.toLocaleString()}</strong>
                 </div>
             </div>
+            <div class="daily-report-table">
+                <h4>本月日報表</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>入場人次</th>
+                            <th>基本收入</th>
+                            <th>額外收入</th>
+                            <th>生活支出</th>
+                            <th>日營收</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${this.generateDailyReportRows(dailyRevenue)}
+                    </tbody>
+                </table>
+            </div>
         `;
+    },
+
+    renderCashDrawerReconciliation() {
+        const cashStats = this.getCashStats();
+        return `
+            <div class="cash-reconciliation">
+                <h3>現金對帳表</h3>
+                <div class="cash-summary-grid">
+                    <div class="stat-item">
+                        <span>期初現金</span>
+                        <strong>NT$ ${cashStats.openingBalance.toLocaleString()}</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>現金收入</span>
+                        <strong>NT$ ${cashStats.cashIncome.toLocaleString()}</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>現金支出</span>
+                        <strong>NT$ ${cashStats.cashExpenses.toLocaleString()}</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>期末餘額</span>
+                        <strong>NT$ ${cashStats.closingBalance.toLocaleString()}</strong>
+                    </div>
+                    <div class="stat-item ${cashStats.difference !== 0 ? 'warning' : ''}">
+                        <span>差異金額</span>
+                        <strong>NT$ ${cashStats.difference.toLocaleString()}</strong>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderDailyExpenseLog() {
+        const expenses = this.getDailyExpenses();
+        return `
+            <div class="expense-log">
+                <h3>費用支出日誌</h3>
+                <table class="expense-table">
+                    <thead>
+                        <tr>
+                            <th>時間</th>
+                            <th>類別</th>
+                            <th>說明</th>
+                            <th>金額</th>
+                            <th>支付方式</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${expenses.map(expense => `
+                            <tr>
+                                <td>${expense.time}</td>
+                                <td>${this.getExpenseCategory(expense.category)}</td>
+                                <td>${expense.description}</td>
+                                <td>NT$ ${expense.amount.toLocaleString()}</td>
+                                <td>${expense.paymentMethod}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">總計</td>
+                            <td>NT$ ${expenses.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString()}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        `;
+    },
+
+    getCashStats() {
+        const settings = window.storageManager.getSettings();
+        const entries = window.storageManager.getEntries();
+        const expenses = window.storageManager.getExpenses();
+        const today = new Date().toISOString().split('T')[0];
+
+        const cashIncome = entries
+            .filter(entry => 
+                entry.paymentType === 'cash' && 
+                entry.entryTime.startsWith(today))
+            .reduce((sum, entry) => sum + (entry.amount || 0), 0);
+
+        const cashExpenses = expenses
+            .filter(expense => 
+                expense.paymentMethod === 'cash' && 
+                expense.timestamp.startsWith(today))
+            .reduce((sum, expense) => sum + expense.amount, 0);
+
+        const openingBalance = settings.cash?.openingBalance || 0;
+        const expectedClosing = openingBalance + cashIncome - cashExpenses;
+        const actualClosing = settings.cash?.currentBalance || 0;
+
+        return {
+            openingBalance,
+            cashIncome,
+            cashExpenses,
+            closingBalance: actualClosing,
+            difference: actualClosing - expectedClosing
+        };
+    },
+
+    getDailyExpenses() {
+        const today = new Date().toISOString().split('T')[0];
+        const expenses = window.storageManager.getExpenses() || [];
+        return expenses.filter(expense => expense.date === today);
+    },
+
+    getExpenseCategory(category) {
+        const categories = {
+            supplies: '物資採購',
+            maintenance: '維護費用',
+            utility: '水電費用',
+            misc: '雜項支出'
+        };
+        return categories[category] || '其他';
+    },
+
+    generateDailyReportRows(dailyRevenue) {
+        const currentMonth = new Date().getMonth();
+        
+        return Object.values(dailyRevenue)
+            .filter(stats => new Date(stats.date).getMonth() === currentMonth)
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .map(day => `
+                <tr>
+                    <td>${new Date(day.date).toLocaleDateString('zh-TW')}</td>
+                    <td>${day.count}</td>
+                    <td>NT$ ${day.basic.toLocaleString()}</td>
+                    <td>NT$ ${(day.overtime + day.additional).toLocaleString()}</td>
+                    <td>NT$ ${day.expenses.toLocaleString()}</td>
+                    <td>NT$ ${day.total.toLocaleString()}</td>
+                </tr>
+            `).join('');
     },
 
     renderCharts(stats) {
@@ -378,12 +520,14 @@ window.statsModule = {
     },
 
     generateCSV(data) {
-        const headers = ['日期', '入場人數', '營業額', '平均停留時間'];
-        const rows = data.map(row => [
-            row.date,
-            row.entries,
-            row.revenue,
-            row.avgStayTime
+        const headers = ['日期', '入場人次', '基本收入', '額外收入', '生活支出', '總營收'];
+        const rows = Object.values(data.dailyRevenue).map(day => [
+            new Date(day.date).toLocaleDateString('zh-TW'),
+            day.count,
+            day.basic,
+            day.overtime + day.additional,
+            day.expenses,
+            day.total
         ]);
 
         return [headers, ...rows]
@@ -553,7 +697,9 @@ window.statsModule = {
     }
 };
 
-// 初始化統計模組
-document.addEventListener('DOMContentLoaded', () => {
+// 確保只在 DOM 載入完成後初始化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => window.statsModule.init());
+} else {
     window.statsModule.init();
-});
+}

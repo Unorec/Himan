@@ -1146,7 +1146,7 @@ body {
 }
 
 .history-time {
-    color: var(--secondary-color);
+    color: var (--secondary-color);
     font-size: 0.875rem;
     margin-bottom: 0.5rem;
 }
@@ -1201,7 +1201,7 @@ body {
 
 .time-label {
     font-weight: 500;
-    color: var(--secondary-color);
+    color: var (--secondary-color);
     margin-bottom: 0.5rem;
 }
 
@@ -2219,4 +2219,189 @@ canvas {
     .expense-amount {
         align-self: flex-end;
     }
+}
+
+/* 管理者驗證按鈕 */
+.admin-verify-btn {
+    background-color: #2196f3;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.admin-verify-btn:hover {
+    background-color: #1976d2;
+}
+
+/* 備份控制項 */
+.backup-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.backup-status .icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+
+.backup-status.success .icon {
+    background-color: #4caf50;
+}
+
+.backup-status.warning .icon {
+    background-color: #ff9800;
+}
+
+/* 設定分組樣式 */
+.settings-divider {
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 2rem 0;
+}
+
+.settings-section-title {
+    font-size: 1.1rem;
+    color: #1976d2;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* 管理者特權標記 */
+.admin-badge {
+    background-color: #ff9800;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* 管理者登入區塊樣式 */
+.admin-login-area {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    border: 1px solid #e9ecef;
+}
+
+.admin-login-area h3 {
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.admin-login-area .form-group {
+    margin-bottom: 1rem;
+}
+
+.admin-login-area input {
+    width: 100%;
+    max-width: 300px;
+}
+
+/* 管理者專用區域樣式 */
+.admin-area {
+    display: none;
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 2rem;
+}
+
+.admin-area.active {
+    display: block;
+}
+
+/* 備份狀態指示器 */
+.backup-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.backup-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.backup-indicator.success {
+    background: #4caf50;
+}
+
+.backup-indicator.warning {
+    background: #ff9800;
+}
+
+/* 延長時間輸入相關樣式 */
+.extension-time-input {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.extension-time-input input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.extension-time-input input[type="datetime-local"] {
+    min-width: 200px;
+}
+
+/* 移除超時費用相關樣式 */
+.overtime-charge {
+    display: none;
+}
+
+/* 修改現金票券樣式 */
+.cash-ticket {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.cash-ticket input[type="number"] {
+    width: 120px;
+    text-align: right;
+}
+
+/* 時間選擇器樣式優化 */
+input[type="datetime-local"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 1rem;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
 }

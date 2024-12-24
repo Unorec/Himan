@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
 const DEFAULT_SETTINGS = {
     basePrice: 500,           // 更改基本收費為500
     overtimeRate: 0,        // 更改超時費率為0
+    overtimeMinCharge: 0,   // 新增：最低超時費用為 0
     businessHours: {
         start: '08:00',
         end: '22:00'
@@ -32,6 +33,13 @@ const DEFAULT_SETTINGS = {
             maxStayTime: '06:00', // 隔天早上6點
             days: [5, 6, 0],     // 週五、六、日
             description: '假日晚間優惠時段 (限制使用至隔日6點)'
+        },
+        overtime: {
+            name: '現金票券',
+            price: 0,
+            allowZero: true,  // 允許輸入 0 元
+            isOvertime: true,
+            description: '現金延長'
         }
     },
     maxStayHours: 24,        // 最長停留時間
@@ -302,6 +310,20 @@ class StorageManager {
             return false;
         }
     }
+
+    // 新增延長時間處理方法
+    processOvertimeExtension(dateTimeString) {
+        try {
+            const extensionDate = new Date(dateTimeString);
+            if (isNaN(extensionDate.getTime())) {
+                throw new Error('無效的日期時間格式');
+            }
+            return extensionDate;
+        } catch (error) {
+            console.error('處理延長時間錯誤:', error);
+            return null;
+        }
+    }
 }
 
 // 確保全域變數存在
@@ -332,8 +354,30 @@ function isSpecialTimeSlot(date, settings) {
         const currentDay = date.getDay(); // 0-6, 0 是星期日
         
         // 取得時段設定
-        const timeSlots = settings.timeSlots || {};
-        
+        const timeSlots = settings.timeSlots || {};        
+        // 如果是補票券類型，直接返回 0 元
+        if (timeSlots.overtime && settings.isOvertime) {
+            return {
+                isSpecial: true,
+                price: 0,
+                isOvertime: true,
+                name: '補票券',
+                description: '超時補票'
+            };
+        }
+
+        // 檢查是否為超時票券
+        if (settings.isOvertime || settings.overtimeRate === 0) {
+            return {
+                isSpecial: true,
+                price: 0,
+                isOvertime: true,
+                allowZero: true,
+                name: '超時費用',
+                description: '超時費用'
+            };
+        }
+
         // 檢查每個優惠時段
         for (const [key, slot] of Object.entries(timeSlots)) {
             // 檢查是否為該時段的適用日
@@ -365,14 +409,17 @@ function isSpecialTimeSlot(date, settings) {
         
         return {
             isSpecial: false,
-            price: settings.basePrice
+            price: settings.basePrice,
+            isOvertime: false
         };
     } catch (error) {
         console.error('Error checking special time slot:', error);
         // 發生錯誤時返回預設價格
         return {
             isSpecial: false,
-            price: settings.basePrice || 500
+            price: settings.basePrice || 500,
+            isOvertime: false,
+            allowZero: false
         };
     }
 }

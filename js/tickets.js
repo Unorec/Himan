@@ -370,6 +370,7 @@ window.ticketsModule = {
             showToast(error.message || '退款處理失敗', 'error');
         }
     }
+}; // Close ticketsModule object
 
 // 確保頁面載入完成後初始化
 document.addEventListener('DOMContentLoaded', () => {

@@ -33,6 +33,28 @@ recordsModule.utils = {
         const entryTime = new Date(record.entryTime);
         const endTime = new Date(entryTime.getTime() + record.hours * 60 * 60 * 1000);
         
+        // 檢查是否有延長時間的記錄
+        const lastOvertimeCharge = record.additionalCharges?.filter(charge => 
+            charge.type === 'overtime' && charge.extend_until
+        )?.pop();
+
+        if (lastOvertimeCharge) {
+            const extendedEndTime = new Date(lastOvertimeCharge.extend_until);
+            const remaining = extendedEndTime - now;
+            
+            if (remaining < 0) {
+                const overtime = Math.abs(remaining);
+                const hours = Math.floor(overtime / (60 * 60 * 1000));
+                const minutes = Math.floor((overtime % (60 * 60 * 1000)) / (60 * 1000));
+                return `已超時 ${hours}時${minutes}分`;
+            }
+
+            const hours = Math.floor(remaining / (60 * 60 * 1000));
+            const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+            return `剩餘 ${hours}時${minutes}分`;
+        }
+        
+        // 如果沒有延長時間記錄，使用原始計算邏輯
         if (now > endTime) {
             const overtime = now - endTime;
             const hours = Math.floor(overtime / (60 * 60 * 1000));
@@ -43,7 +65,6 @@ recordsModule.utils = {
         const remaining = endTime - now;
         const hours = Math.floor(remaining / (60 * 60 * 1000));
         const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-        
         return `剩餘 ${hours}時${minutes}分`;
     },
 
@@ -147,8 +168,19 @@ recordsModule.utils = {
         if (record.unpaidCharges?.length > 0) return 'unpaid';
 
         const now = new Date();
-        const entryTime = new Date(record.entryTime);
-        const endTime = new Date(entryTime.getTime() + record.hours * 60 * 60 * 1000);
+        
+        // 檢查是否有延長時間的記錄
+        const lastOvertimeCharge = record.additionalCharges?.filter(charge => 
+            charge.type === 'overtime' && charge.extend_until
+        )?.pop();
+
+        let endTime;
+        if (lastOvertimeCharge) {
+            endTime = new Date(lastOvertimeCharge.extend_until);
+        } else {
+            const entryTime = new Date(record.entryTime);
+            endTime = new Date(entryTime.getTime() + record.hours * 60 * 60 * 1000);
+        }
         
         const timeDiff = endTime - now;
         const thirtyMinutes = 30 * 60 * 1000;
@@ -392,10 +424,6 @@ async function initializeRecords() {
                         throw new Error('找不到記錄');
                     }
             
-                    const overtimeHours = Math.ceil(
-                        (new Date() - new Date(record.entryTime)) / (60 * 60 * 1000) - record.hours
-                    );
-            
                     const modalContent = `
                         <div class="modal-header">
                             <h3>處理超時</h3>
@@ -403,45 +431,35 @@ async function initializeRecords() {
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
-                                <label>超時時數</label>
-                                <div class="info-text">${overtimeHours} 小時</div>
-                            </div>
-                            <div class="form-group">
                                 <label>處理方式</label>
-                                <select id="overtimeHandleType" class="form-control" onchange="updateOvertimeForm()">
+                                <select id="overtimeHandleType" class="form-control" 
+                                        onchange="recordsModule.handlers.togglePaymentFields()">
                                     <option value="cash">現金</option>
-                                    <option value="ticket">補票券</option>
+                                    <option value="ticket">票券</option>
                                 </select>
                             </div>
-
-                            <div id="overtimePaymentCash" class="form-group">
+            
+                            <div id="cashPaymentField" class="form-group">
                                 <label for="cashAmount">現金金額</label>
                                 <input type="number" id="cashAmount" class="form-control" value="0" min="0">
                             </div>
-
-                            <div id="overtimePaymentTicket" class="form-group">
+            
+                            <div id="ticketPaymentField" class="form-group" style="display:none;">
                                 <label for="ticketNumber">票券號碼</label>
                                 <input type="text" id="ticketNumber" class="form-control" placeholder="請輸入票券號碼">
                             </div>
-
-                            <div id="extendField" class="form-group">
-                                <label for="extendHours">延長時數</label> 
-                                <select id="extendHours" class="form-control">
-                                    <option value="0">不延長</option>
-                                    <option value="12">延長12小時</option>
-                                    <option value="24">延長至隔日同時段</option>
-                                </select>
+            
+                            <div class="form-group">
+                                <label for="extendDateTime">延長至</label>
+                                <input type="datetime-local" 
+                                       id="extendDateTime" 
+                                       class="form-control"
+                                       required>
                             </div>
-
-                            <div id="cashPayment" class="form-group">
-                                <label for="overtimeCharge">超時費用</label>
-                                <input type="number" id="overtimeCharge" class="form-control" 
-                                       value="${overtimeHours * 100}" step="100">
-                            </div>
-
+            
                             <div class="form-actions">
                                 <button onclick="recordsModule.handlers.confirmOvertimeCharge('${record.id}')" 
-                                        class="primary-button">確認收費</button>
+                                        class="primary-button">確認</button>
                                 <button onclick="closeModal()" 
                                         class="secondary-button">取消</button>
                             </div>
@@ -449,37 +467,85 @@ async function initializeRecords() {
                     `;
             
                     showModal(modalContent);
+            
+                    // 設定延長時間預設值為當前時間
+                    const now = new Date();
+                    now.setHours(now.getHours() + 1); // 預設多加一小時
+                    document.getElementById('extendDateTime').value = now.toISOString().slice(0, 16);
+            
                 } catch (error) {
                     console.error('Error handling overtime:', error);
                     showToast('處理超時失敗', 'error');
                 }
             },
             
+            // 新增切換付款欄位的函數
+            togglePaymentFields: () => {
+                const handleType = document.getElementById('overtimeHandleType').value;
+                const cashField = document.getElementById('cashPaymentField');
+                const ticketField = document.getElementById('ticketPaymentField');
+                
+                if (handleType === 'cash') {
+                    cashField.style.display = 'block';
+                    ticketField.style.display = 'none';
+                } else {
+                    cashField.style.display = 'none';
+                    ticketField.style.display = 'block';
+                }
+            },
+            
             confirmOvertimeCharge: async (recordId) => {
                 try {
-                    const charge = parseInt(document.getElementById('overtimeCharge').value);
-                    if (!charge || charge < 0) {
-                        throw new Error('請輸入有效金額');
+                    const handleType = document.getElementById('overtimeHandleType').value;
+                    const extendDateTime = document.getElementById('extendDateTime').value;
+                    
+                    if (!extendDateTime) {
+                        throw new Error('請選擇延長時間');
+                    }
+            
+                    // 驗證輸入
+                    if (handleType === 'cash') {
+                        const cashAmount = parseInt(document.getElementById('cashAmount').value);
+                        if (!cashAmount || cashAmount <= 0) {
+                            throw new Error('請輸入有效金額');
+                        }
+                    } else {
+                        const ticketNumber = document.getElementById('ticketNumber').value.trim();
+                        if (!ticketNumber) {
+                            throw new Error('請輸入票券號碼');
+                        }
                     }
             
                     const record = recordsModule.utils.getRecordById(recordId);
+                    
+                    // 計算新的使用時數
+                    const originalEntryTime = new Date(record.entryTime);
+                    const newEndTime = new Date(extendDateTime);
+                    const newHours = Math.ceil((newEndTime - originalEntryTime) / (1000 * 60 * 60));
+            
                     const updatedRecord = {
                         ...record,
+                        hours: newHours,  // 更新總時數
+                        status: 'active', // 重設狀態為使用中
                         additionalCharges: [
                             ...(record.additionalCharges || []),
                             {
-                                type: 'additional',
-                                amount: charge,
+                                type: 'overtime',
+                                payment_type: handleType,
+                                amount: handleType === 'cash' ? 
+                                    parseInt(document.getElementById('cashAmount').value) : 0,
+                                ticket_number: handleType === 'ticket' ? 
+                                    document.getElementById('ticketNumber').value : null,
                                 timestamp: new Date().toISOString(),
-                                description: '超時費用',
-                                payment_type: document.getElementById('overtimePayment')?.value || 'cash',
-                                extend_hours: document.getElementById('extendHours')?.value || 0
+                                description: '超時處理',
+                                extend_until: extendDateTime,
+                                original_hours: record.hours // 記錄原始時數
                             }
                         ]
                     };
             
                     if (window.storageManager.updateEntry(recordId, updatedRecord)) {
-                        showToast('已新增超時費用');
+                        showToast('超時處理完成');
                         closeModal();
                         recordsModule.updateRecordsDisplay();
                     } else {
@@ -976,3 +1042,206 @@ window.loadRecordsSection = loadRecordsSection;
 // 標記模組已載入
 window.moduleLoaded = window.moduleLoaded || {};
 window.moduleLoaded.records = true;
+
+// 新增現金收支記錄功能
+async function handleCashTransaction(record, type, amount, description) {
+    try {
+        const transaction = {
+            id: `CASH_${Date.now()}`,
+            recordId: record.id,
+            type: type, // 'income' | 'expense'
+            amount: amount,
+            description: description,
+            timestamp: new Date().toISOString(),
+            handledBy: window.currentUser?.username
+        };
+
+        // 更新記錄
+        record.cashTransactions = [...(record.cashTransactions || []), transaction];
+        
+        // 更新日結報表
+        await updateDailyBalance(transaction);
+        
+        return true;
+    } catch (error) {
+        console.error('Cash transaction error:', error);
+        return false;
+    }
+}
+
+// 新增日結對帳功能
+async function generateDailyBalance() {
+    const today = new Date().toISOString().split('T')[0];
+    const balance = {
+        date: today,
+        openingBalance: 3000, // 從設定取得開盤金額
+        cashIncome: {
+            entry: 0,
+            overtime: 0,
+            additional: 0
+        },
+        cashExpense: {
+            supplies: 0,
+            maintenance: 0,
+            petty: 0
+        },
+        endingBalance: 0,
+        difference: 0,
+        notes: ''
+    };
+
+    // 計算當日收支
+    const records = window.storageManager.getEntries();
+    records.forEach(record => {
+        if (record.cashTransactions) {
+            record.cashTransactions.forEach(trans => {
+                if (trans.type === 'income') {
+                    balance.cashIncome[trans.category] += trans.amount;
+                } else {
+                    balance.cashExpense[trans.category] += trans.amount;
+                }
+            });
+        }
+    });
+
+    // 計算結餘
+    balance.endingBalance = balance.openingBalance + 
+        Object.values(balance.cashIncome).reduce((a, b) => a + b, 0) -
+        Object.values(balance.cashExpense).reduce((a, b) => a + b, 0);
+
+    return balance;
+}
+
+// 更新對帳功能
+async function updateDailyBalance(transaction) {
+    const balance = await generateDailyBalance();
+    
+    // 儲存日結資料
+    await window.storageManager.saveDailyBalance(balance);
+    
+    // 更新統計
+    if (window.statsModule?.updateStats) {
+        window.statsModule.updateStats();
+    }
+}
+
+// 新增現金對帳模組
+const cashModule = {
+    // 現金交易類型
+    transactionTypes: {
+        INCOME: 'income',
+        EXPENSE: 'expense'
+    },
+
+    // 現金收入類別
+    incomeCategories: {
+        ENTRY: '入場費用',
+        OVERTIME: '超時費用',
+        ADDITIONAL: '額外消費'
+    },
+
+    // 支出類別
+    expenseCategories: {
+        SUPPLIES: '物資採購',
+        MAINTENANCE: '維護費用',
+        PETTY: '零用金支出'
+    },
+
+    // 記錄現金交易
+    async recordCashTransaction(data) {
+        try {
+            const transaction = {
+                id: `CASH_${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                type: data.type,
+                category: data.category,
+                amount: data.amount,
+                description: data.description,
+                handledBy: window.currentUser?.username || '未知',
+                balanceAfter: await this.calculateBalanceAfter(data.amount, data.type)
+            };
+
+            // 取得今日對帳資料
+            let dailyBalance = await this.getDailyBalance() || this.createNewDailyBalance();
+            
+            // 更新對帳資料
+            if (data.type === this.transactionTypes.INCOME) {
+                dailyBalance.incomeDetails[data.category] = 
+                    (dailyBalance.incomeDetails[data.category] || 0) + data.amount;
+            } else {
+                dailyBalance.expenseDetails[data.category] = 
+                    (dailyBalance.expenseDetails[data.category] || 0) + data.amount;
+            }
+
+            // 更新結餘
+            dailyBalance.currentBalance = transaction.balanceAfter;
+            
+            // 儲存對帳資料
+            await window.storageManager.saveDailyBalance(dailyBalance);
+            
+            // 記錄交易
+            await window.storageManager.saveCashTransaction(transaction);
+            
+            return transaction;
+        } catch (error) {
+            console.error('記錄現金交易失敗:', error);
+            throw error;
+        }
+    },
+
+    // 建立新的日結表
+    createNewDailyBalance() {
+        const today = new Date().toISOString().split('T')[0];
+        return {
+            date: today,
+            openingBalance: window.settingsModule.getOpeningBalance(),
+            incomeDetails: {},
+            expenseDetails: {},
+            currentBalance: window.settingsModule.getOpeningBalance(),
+            notes: '',
+            lastUpdated: new Date().toISOString()
+        };
+    },
+
+    // 取得今日對帳資料
+    async getDailyBalance() {
+        const today = new Date().toISOString().split('T')[0];
+        return await window.storageManager.getDailyBalance(today);
+    },
+
+    // 計算交易後餘額
+    async calculateBalanceAfter(amount, type) {
+        const dailyBalance = await this.getDailyBalance();
+        const currentBalance = dailyBalance?.currentBalance || 
+                             window.settingsModule.getOpeningBalance();
+        
+        return type === this.transactionTypes.INCOME ? 
+               currentBalance + amount : 
+               currentBalance - amount;
+    },
+
+    // 驗證現金餘額
+    async validateCashBalance(countedAmount) {
+        const dailyBalance = await this.getDailyBalance();
+        if (!dailyBalance) return false;
+
+        const difference = countedAmount - dailyBalance.currentBalance;
+        
+        // 更新日結資料
+        dailyBalance.countedAmount = countedAmount;
+        dailyBalance.difference = difference;
+        dailyBalance.lastValidated = new Date().toISOString();
+        
+        await window.storageManager.saveDailyBalance(dailyBalance);
+        
+        return {
+            expected: dailyBalance.currentBalance,
+            counted: countedAmount,
+            difference: difference,
+            isBalanced: difference === 0
+        };
+    }
+};
+
+// 將現金模組加入 recordsModule
+recordsModule.cash = cashModule;

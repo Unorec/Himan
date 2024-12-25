@@ -170,33 +170,49 @@
     </div>
 
     <!-- 登入區塊 -->
-    <div id="loginContainer" class="login-container">
-        <div class="login-header">
-            <h2>HiMAN三溫暖管理系統</h2>
-            <p>登入系統</p>
+   
+   <!-- 登入介面 -->
+<div id="loginSection">
+    <form id="loginForm">
+        <h3>系統登入</h3>
+        <div class="form-group">
+            <label for="username">帳號</label>
+            <input type="text" id="username" name="username" required>
         </div>
-        
-        <form id="loginForm">
-            <div id="loginError" class="login-error" style="display: none;"></div>
-            
-            <div class="form-group">
-                <label for="username">帳號</label>
-                <input type="text" id="username" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="password">密碼</label>
-                <input type="password" id="password" required>
-            </div>
-            
-            <button type="submit" id="loginButton" class="login-button">登入</button>
-        </form>
-
-        <div class="login-hint">
-            預設帳號/密碼: himan/himan
+        <div class="form-group">
+            <label for="password">密碼</label>
+            <input type="password" id="password" name="password" required>
         </div>
-    </div>
+        <button type="submit" class="primary-button">登入</button>
+    </form>
+</div>
 
+<!-- 設定介面 -->
+<div id="settingsSection" style="display: none;">
+    <h2>系統設定</h2>
+    <form id="settingsForm">
+        <!-- 設定項目 -->
+        <div class="settings-group">
+            <h3>營業時間</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>開始時間</label>
+                    <input type="time" name="openTime">
+                </div>
+                <div class="form-group">
+                    <label>結束時間</label>
+                    <input type="time" name="closeTime">
+                </div>
+            </div>
+        </div>
+        <!-- 其他設定項目... -->
+        <div class="form-actions">
+            <button type="submit" class="primary-button">儲存設定</button>
+            <button type="button" class="secondary-button" id="resetSettings">重設預設值</button>
+        </div>
+    </form>
+    <button id="logoutButton" class="secondary-button">登出</button>
+</div>
     <!-- 主系統區塊 -->
     <div id="mainSystem" class="main-system" style="display: none;">
         <header class="main-header">

@@ -15,7 +15,7 @@
 
 .status-near-expiry {
     background-color: #fff3cd;
-    border-left: 4px solid #ffc107;
+    border-inline-start: 4px solid #ffc107;
     animation: pulse 2s infinite;
 }
 
@@ -40,7 +40,7 @@
 /* 時段提示樣式 */
 .special-time-notice {
     background-color: #e8f5e9;
-    border-left: 4px solid #4caf50;
+    border-inline-start: 4px solid #4caf50;
     padding: 10px;
     margin: 10px 0;
     font-size: 0.9em;
@@ -98,8 +98,8 @@
 .error-message {
     color: #dc3545;
     font-size: 0.875rem;
-    margin-top: 0.25rem;
-    padding-left: 0.5rem;
+    margin-block-start: 0.25rem;
+    padding-inline-start: 0.5rem;
 }
 
 .toast {
@@ -115,10 +115,10 @@
 
 /* 入場登記按鈕樣式 */
 #mainContent .card-body .primary-button {
-    width: 100%;
+    inline-size: 100%;
     padding: 12px;
     font-size: 1.1em;
-    margin-top: 20px;
+    margin-block-start: 20px;
     background-color: #4CAF50;
     border: none;
     border-radius: 4px;

@@ -1,575 +1,251 @@
-// 設定模組
-window.settingsModule = {
-    initialized: false,
-    version: '1.0.0',
-    
+// 設定管理的藝術殿堂
+class SettingsManager {
+    constructor() {
+        this.initialized = false;
+        this.version = '1.0.0';
+        this.defaultSettings = {
+            pricing: {
+                regular: {
+                    weekday: 500,    // 平日時光的價值
+                    weekend: 700     // 週末時光的價值
+                },
+                special: {
+                    weekdayEvening: {
+                        price: 350,
+                        startTime: '18:30',
+                        endTime: '19:30',
+                        description: '平日晚間優惠（使用至隔日06:00）'
+                    },
+                    weekendEvening: {
+                        price: 500,
+                        startTime: '18:30',
+                        endTime: '19:30',
+                        description: '假日晚間優惠（使用至隔日06:00）'
+                    }
+                }
+            },
+            system: {
+                lockerCount: 300,           // 櫃位的優雅容量
+                backupInterval: 86400000,   // 備份的靈動週期
+                sessionTimeout: 3600000     // 會話的優雅期限
+            },
+            ui: {
+                theme: 'light',             // 介面的視覺詩意
+                language: 'zh-TW',          // 語言的文化靈魂
+                animation: true             // 動效的靈動之美
+            }
+        };
+    }
+
+    // 系統啟動的優雅序曲
     async init() {
         try {
-            // 檢查儲存系統
+            // 確保存儲系統的靈感綻放
             if (!window.storageManager?.isInitialized) {
                 await window.storageManager?.init();
             }
+
+            await this.migrateSettings();  // 優雅地遷移設定
+            this.bindEvents();             // 綁定互動的靈動韻律
+            this.initialized = true;        // 標記靈感的綻放
             
-            await this.migrateSettings();
-            this.initialized = true;
+            console.log('設定系統的靈感已然綻放');
             return true;
         } catch (error) {
-            console.error('Settings initialization error:', error);
+            console.error('設定靈感的迷失:', error);
             return false;
         }
-    },
+    }
 
+    // 設定遷移的優雅藝術
     async migrateSettings() {
-        const settings = this.getSettings();
-        if (!settings.version || settings.version !== this.version) {
-            const updatedSettings = { ...window.defaultSettings, ...settings, version: this.version };
+        const currentSettings = await this.getSettings();
+        
+        if (!currentSettings.version || currentSettings.version !== this.version) {
+            const updatedSettings = {
+                ...this.defaultSettings,
+                ...currentSettings,
+                version: this.version
+            };
             await this.saveSettings(updatedSettings);
         }
-    },
+    }
 
-    getSettings() {
-        const settings = window.storageManager?.getSettings() || window.defaultSettings;
-        return this.validateSettings(settings) ? settings : window.defaultSettings;
-    },
+    // 事件綁定的靈動之舞
+    bindEvents() {
+        // 優雅地處理設定表單
+        const settingsForm = document.getElementById('settingsForm');
+        if (settingsForm) {
+            settingsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleSettingsSubmit(e);
+            });
+        }
 
-    validateSettings(settings) {
-        if (!settings || typeof settings !== 'object') return false;
-        // 在此加入更多驗證邏輯
-        return true;
-    },
+        // 主題切換的優雅轉場
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('change', () => {
+                this.toggleTheme();
+            });
+        }
+    }
 
+    // 獲取設定的優雅旋律
+    async getSettings() {
+        try {
+            const settings = await window.storageManager?.getSettings();
+            return settings || this.defaultSettings;
+        } catch (error) {
+            console.error('設定讀取的迷失:', error);
+            return this.defaultSettings;
+        }
+    }
+
+    // 保存設定的精妙藝術
     async saveSettings(settings) {
         try {
+            // 優雅地驗證設定
             if (!this.validateSettings(settings)) {
-                throw new Error('無效的設定格式');
+                throw new Error('設定的靈感未能呼應真實');
             }
-            
+
+            // 注入時間的印記
             const timestamp = new Date().toISOString();
             const settingsWithMeta = {
                 ...settings,
                 lastModified: timestamp,
                 version: this.version
             };
+
+            // 優雅地儲存設定
+            await window.storageManager?.saveSettings(settingsWithMeta);
             
-            return await window.storageManager?.saveSettings(settingsWithMeta);
+            // 展現成功的靈動提示
+            window.showToast?.('設定已優雅保存');
+            
+            return true;
         } catch (error) {
-            console.error('儲存設定錯誤:', error);
+            console.error('設定保存的迷失:', error);
+            window.showToast?.('設定保存失敗', 'error');
             return false;
         }
-    },
+    }
 
+    // 驗證設定的嚴謹之美
+    validateSettings(settings) {
+        // 價格的合理性檢查
+        if (settings.pricing?.regular?.weekday < 0 || 
+            settings.pricing?.regular?.weekend < 0) {
+            return false;
+        }
+
+        // 時間設定的優雅驗證
+        const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+        if (!timeRegex.test(settings.pricing?.special?.weekdayEvening?.startTime) ||
+            !timeRegex.test(settings.pricing?.special?.weekdayEvening?.endTime)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // 重置設定的優雅回歸
     async resetToDefault() {
         try {
-            return await this.saveSettings(window.defaultSettings);
-        } catch (error) {
-            console.error('重置設定錯誤:', error);
-            return false;
-        }
-    },
-
-    RECORD_STATUS,
-    PAYMENT_TYPES,
-    TICKET_TYPES,
-    
-    // 檢查記錄狀態的輔助函數
-    getRecordStatus(record) {
-        if (!record) return RECORD_STATUS.COMPLETED;
-        
-        // 檢查是否已結束
-        if (record.status === 'completed') return RECORD_STATUS.COMPLETED;
-        
-        // 檢查是否暫時外出
-        if (record.status === 'temporary') return RECORD_STATUS.TEMPORARY_EXIT;
-        
-        // 檢查是否有未結消費
-        if (record.unpaidCharges?.length > 0) return RECORD_STATUS.UNPAID;
-        
-        // 檢查是否超時或即將超時
-        const now = new Date();
-        const entryTime = new Date(record.entryTime);
-        const endTime = new Date(entryTime.getTime() + record.hours * 60 * 60 * 1000);
-        const timeDiff = endTime - now;
-        
-        if (timeDiff < 0) {
-            return RECORD_STATUS.OVERTIME;
-        }
-        
-        // 剩餘30分鐘內
-        if (timeDiff <= 30 * 60 * 1000) {
-            return RECORD_STATUS.NEAR_EXPIRY;
-        }
-        
-        // 剩餘1小時內
-        if (timeDiff <= 60 * 60 * 1000) {
-            return RECORD_STATUS.WARNING;
-        }
-        
-        return RECORD_STATUS.ACTIVE;
-    },
-
-    // 新增取得當前可用優惠時段函數
-    getCurrentTimeSlot() {
-        const now = new Date();
-        const currentDay = now.getDay();
-        const currentTime = now.getHours() * 100 + now.getMinutes();
-
-        const settings = this.getSettings();
-        for (const [key, slot] of Object.entries(settings.timeSlots)) {
-            // 檢查是否為該時段的適用日
-            if (!slot.days.includes(currentDay)) continue;
-
-            // 解析時間
-            const [startHour, startMin] = slot.startTime.split(':').map(Number);
-            const [endHour, endMin] = slot.endTime.split(':').map(Number);
-            const slotStartTime = startHour * 100 + startMin;
-            const slotEndTime = endHour * 100 + endMin;
-
-            // 檢查是否在時間範圍內
-            if (currentTime >= slotStartTime && currentTime <= slotEndTime) {
-                return {
-                    key,
-                    ...slot
-                };
-            }
-        }
-        return null;
-    },
-
-    // 計算優惠時段結束時間
-    calculateTimeSlotEndTime(timeSlot) {
-        const now = new Date();
-        const endTime = new Date(now);
-        
-        // 解析 maxStayTime
-        const [hours, minutes] = timeSlot.maxStayTime.split(':').map(Number);
-        
-        if (hours < now.getHours() || (hours === now.getHours() && minutes <= now.getMinutes())) {
-            // 如果結束時間在隔天
-            endTime.setDate(endTime.getDate() + 1);
-        }
-        
-        endTime.setHours(hours, minutes, 0, 0);
-        
-        return endTime;
-    },
-
-    // 新增管理者權限檢查
-    validateAdmin(username, password) {
-        return username === ADMIN_CREDENTIALS.username && 
-               password === ADMIN_CREDENTIALS.password;
-    },
-
-    // 判斷是否為管理者專用設定
-    isAdminSetting(key) {
-        const adminOnlySettings = [
-            'shifts',
-            'cashierFloat',
-            'backup',
-            'monthlyReport'
-        ];
-        return adminOnlySettings.includes(key);
-    },
-
-    // 覆寫 updateSetting 方法，加入權限檢查
-    async updateSetting(key, value, credentials) {
-        if (this.isAdminSetting(key)) {
-            if (!credentials || !this.validateAdmin(credentials.username, credentials.password)) {
-                throw new Error('需要管理者權限');
-            }
-        }
-
-        try {
-            const currentSettings = this.getSettings();
-            currentSettings[key] = value;
-            return await this.saveSettings(currentSettings);
-        } catch (error) {
-            console.error('更新設定失敗:', error);
-            throw error;
-        }
-    },
-
-    // 新增管理者登入函數
-    async adminLogin(username, password) {
-        if (this.validateAdmin(username, password)) {
-            const adminSettings = document.querySelector('.admin-only');
-            if (adminSettings) {
-                adminSettings.style.display = 'block';
-            }
-            return true;
-        }
-        throw new Error('管理者驗證失敗');
-    },
-
-    // 新增管理者登出函數
-    adminLogout() {
-        const adminSettings = document.querySelector('.admin-only');
-        if (adminSettings) {
-            adminSettings.style.display = 'none';
-        }
-    },
-
-    // 修改管理者設定區域初始化
-    initAdminSettings() {
-        const settingsSection = document.getElementById('settingsSection');
-        if (!settingsSection) return;
-
-        // 新增管理者專用區域
-        const adminAreaHtml = `
-            <div class="admin-area">
-                <h3>管理者專用設定</h3>
-                
-                <!-- 班別設定 -->
-                <div class="settings-group">
-                    <h4>班別帳號設定</h4>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>早班帳號</label>
-                            <input type="text" name="morningUsername">
-                        </div>
-                        <div class="form-group">
-                            <label>晚班帳號</label>
-                            <input type="text" name="eveningUsername">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 零用金設定 -->
-                <div class="settings-group">
-                    <h4>零用金設定</h4>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>零用金金額</label>
-                            <input type="number" name="cashierFloat" min="0">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 備份設定 -->
-                <div class="settings-group">
-                    <h4>系統備份設定</h4>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>備份頻率</label>
-                            <select name="backupFrequency">
-                                <option value="daily">每日</option>
-                                <option value="weekly">每週</option>
-                                <option value="monthly">每月</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="backup-status"></div>
-                    <button type="button" id="manualBackupBtn" class="secondary-button">
-                        立即備份
-                    </button>
-                </div>
-            </div>
-        `;
-
-        settingsSection.querySelector('.card-body').insertAdjacentHTML('beforeend', adminAreaHtml);
-        
-        // 重新綁定事件
-        this.bindAdminEvents();
-    },
-
-    // 載入管理者設定值
-    async loadAdminSettings() {
-        const settings = this.getSettings();
-        
-        // 設定班別帳號
-        if (settings.shifts) {
-            Object.entries(settings.shifts).forEach(([shift, data]) => {
-                const usernameInput = document.querySelector(`[name="${shift}Username"]`);
-                if (usernameInput) usernameInput.value = data.username || '';
+            const confirmed = await window.modalModule?.confirm({
+                title: '重置設定',
+                message: '確定要將所有設定重置為預設值嗎？',
+                confirmText: '確定重置',
+                cancelText: '保持現狀'
             });
-        }
-        
-        // 設定零用金
-        const cashierInput = document.querySelector('[name="cashierFloat"]');
-        if (cashierInput) {
-            cashierInput.value = settings.cashierFloat?.amount || 3000;
-        }
-        
-        // 設定備份頻率
-        const backupSelect = document.querySelector('[name="backupFrequency"]');
-        if (backupSelect) {
-            backupSelect.value = settings.backup?.frequency || 'daily';
-        }
-        
-        // 顯示上次備份時間
-        this.updateBackupStatus(settings.backup?.lastBackup);
-    },
 
-    // 更新備份狀態顯示
-    updateBackupStatus(timestamp) {
-        const statusEl = document.querySelector('.backup-status');
-        if (!statusEl) return;
-
-        const lastBackup = timestamp ? new Date(timestamp) : null;
-        const now = new Date();
-        const daysSinceBackup = lastBackup 
-            ? Math.floor((now - lastBackup) / (1000 * 60 * 60 * 24)) 
-            : null;
-
-        statusEl.innerHTML = `
-            <span class="backup-indicator ${daysSinceBackup > 7 ? 'warning' : 'success'}"></span>
-            <span>上次備份: ${lastBackup ? lastBackup.toLocaleString() : '從未備份'}</span>
-        `;
-    },
-
-    // 新增: 重置設定
-    async resetSettings() {
-        try {
-            return await this.saveSettings(window.defaultSettings);
+            if (confirmed) {
+                await this.saveSettings(this.defaultSettings);
+                window.showToast?.('設定已優雅重置');
+                return true;
+            }
+            return false;
         } catch (error) {
-            console.error('Reset settings error:', error);
+            console.error('設定重置的迷失:', error);
             return false;
         }
-    },
+    }
 
-    // 新增: 取得特定設定
-    getSetting(key) {
-        const settings = this.getSettings();
-        return settings?.[key];
-    },
+    // 主題切換的視覺詩篇
+    toggleTheme() {
+        const currentSettings = this.getSettings();
+        const newTheme = currentSettings.ui.theme === 'light' ? 'dark' : 'light';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        currentSettings.ui.theme = newTheme;
+        
+        this.saveSettings(currentSettings);
+    }
 
-    // 修改進入系統設定的方法
-    async enterSettings(user) {
+    // 設定表單處理的優雅韻律
+    async handleSettingsSubmit(event) {
         try {
-            if (!this.initialized) {
-                await this.init();
+            const formData = new FormData(event.target);
+            const newSettings = {};
+
+            // 優雅地轉換表單數據
+            for (let [key, value] of formData.entries()) {
+                this.setNestedValue(newSettings, key, value);
             }
 
-            // 基本使用者可檢視設定但不能修改
-            const isAdmin = user?.role === 'admin';
+            // 保存設定的靈動綻放
+            await this.saveSettings({
+                ...await this.getSettings(),
+                ...newSettings
+            });
+
+            return true;
+        } catch (error) {
+            console.error('設定提交的迷失:', error);
+            return false;
+        }
+    }
+
+    // 設定嵌套值的精妙藝術
+    setNestedValue(obj, path, value) {
+        const keys = path.split('.');
+        let current = obj;
+        
+        for (let i = 0; i < keys.length - 1; i++) {
+            current[keys[i]] = current[keys[i]] || {};
+            current = current[keys[i]];
+        }
+        
+        current[keys[keys.length - 1]] = value;
+    }
+
+    // 導出設定的優雅藝術
+    async exportSettings() {
+        try {
+            const settings = await this.getSettings();
+            const blob = new Blob(
+                [JSON.stringify(settings, null, 2)],
+                { type: 'application/json' }
+            );
             
-            // 顯示設定介面
-            const settingsSection = document.getElementById('settingsSection');
-            if (settingsSection) {
-                settingsSection.style.display = 'block';
-                
-                // 控制編輯權限
-                const inputs = settingsSection.querySelectorAll('input, select, button');
-                inputs.forEach(input => {
-                    input.disabled = !isAdmin;
-                });
-                
-                // 隱藏管理者專用區域
-                const adminArea = settingsSection.querySelector('.admin-area');
-                if (adminArea) {
-                    adminArea.style.display = isAdmin ? 'block' : 'none';
-                }
-            }
-
-            return true;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `settings_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            
+            window.showToast?.('設定已優雅導出');
         } catch (error) {
-            console.error('進入設定失敗:', error);
-            window.showToast?.('進入設定失敗', 'error');
-            return false;
+            console.error('設定導出的迷失:', error);
+            window.showToast?.('設定導出失敗', 'error');
         }
     }
-};
+}
 
-// 確保模組載入
-window.moduleLoaded = window.moduleLoaded || {};
-window.moduleLoaded.settings = true;
+// 將設定系統優雅地綻放到全域
+window.settingsManager = new SettingsManager();
 
-// DOM 載入完成後初始化
-document.addEventListener('DOMContentLoaded', async () => {
-    await window.settingsModule.init();
+// 當系統甦醒時，啟動設定的靈感
+document.addEventListener('DOMContentLoaded', () => {
+    window.settingsManager.init().catch(console.error);
 });
-
-// 定義入場記錄狀態
-const RECORD_STATUS = {
-    ACTIVE: {
-        code: 'active',
-        name: '使用中',
-        className: 'status-active',
-        color: '#4caf50'
-    },
-    TEMPORARY_EXIT: {
-        code: 'temporary',
-        name: '暫時外出',
-        className: 'status-temporary',
-        color: '#ff9800'
-    },
-    WARNING: {           // 新增快超時狀態
-        code: 'warning',
-        name: '即將超時(1小時)',
-        className: 'status-warning',
-        color: '#ffc107'
-    },
-    NEAR_EXPIRY: {
-        code: 'nearExpiry',
-        name: '即將超時(30分)',
-        className: 'status-near-expiry',
-        color: '#f44336'
-    },
-    OVERTIME: {
-        code: 'overtime',
-        name: '已超時',
-        className: 'status-overtime',
-        color: '#d32f2f'
-    },
-    UNPAID: {
-        code: 'unpaid',
-        name: '未結消費',
-        className: 'status-unpaid',
-        color: '#e91e63'
-    },
-    COMPLETED: {
-        code: 'completed',
-        name: '已結束',
-        className: 'status-completed',
-        color: '#9e9e9e'
-    }
-};
-
-// 定義付款類型
-const PAYMENT_TYPES = {
-    CASH: {
-        code: 'cash',
-        name: '現金'
-    },
-    TICKET: {
-        code: 'ticket',
-        name: '票券'
-    },
-    CARD: {
-        code: 'card',
-        name: '刷卡'
-    }
-};
-
-// 定義票券類型
-const TICKET_TYPES = {
-    REGULAR: {
-        code: 'regular',
-        name: '平日券',
-        hours: 24
-    },
-    UNLIMITED: {
-        code: 'unlimited',
-        name: '暢遊券',
-        hours: 24
-    },
-    EVENT: {
-        code: 'event',
-        name: '優惠券',
-        hours: 24
-    }
-};
-
-// 將狀態常量掛載到全域
-window.RECORD_STATUS = RECORD_STATUS;
-window.PAYMENT_TYPES = PAYMENT_TYPES;
-window.TICKET_TYPES = TICKET_TYPES;
-
-// 新增管理者認證設定
-const ADMIN_CREDENTIALS = {
-    username: 'uno917',
-    password: 'uno1069'
-};
-
-const SettingsManager = {
-    defaultSettings: {
-        businessHours: {
-            open: '10:00',
-            close: '23:00'
-        },
-        specialTimeSlot: {
-            start: '18:30',
-            end: '19:30',
-            discount: 20
-        },
-        prices: {
-            regular: 300,
-            student: 250,
-            senior: 250
-        },
-        lockerCount: 100
-    },
-
-    // 載入設定
-    loadSettings() {
-        return JSON.parse(localStorage.getItem('systemSettings')) || this.defaultSettings;
-    },
-
-    // 儲存設定
-    saveSettings(settings) {
-        localStorage.setItem('systemSettings', JSON.stringify(settings));
-    },
-
-    // 初始化設定頁面
-    initSettingsSection() {
-        const settings = this.loadSettings();
-        const container = document.getElementById('settingsSection');
-        
-        // 新增管理者登入區塊
-        const adminLoginHtml = `
-            <div class="admin-login-area">
-                <h3>管理者登入</h3>
-                <div class="form-group">
-                    <label>管理者帳號</label>
-                    <input type="text" name="adminUsername">
-                </div>
-                <div class="form-group">
-                    <label>管理者密碼</label>
-                    <input type="password" name="adminPassword">
-                </div>
-                <button type="button" id="adminLoginBtn" class="primary-button">登入</button>
-            </div>
-        `;
-
-        container.querySelector('.card-body').insertAdjacentHTML('afterbegin', adminLoginHtml);
-        
-        // 綁定管理者登入按鈕事件
-        const adminLoginBtn = document.getElementById('adminLoginBtn');
-        if (adminLoginBtn) {
-            adminLoginBtn.addEventListener('click', async () => {
-                const username = document.querySelector('[name="adminUsername"]').value;
-                const password = document.querySelector('[name="adminPassword"]').value;
-                
-                try {
-                    if (this.validateAdmin(username, password)) {
-                        document.querySelector('.admin-login-area').style.display = 'none';
-                        document.querySelector('.settings-content').style.display = 'block';
-                        showToast('管理者登入成功');
-                    } else {
-                        throw new Error('管理者驗證失敗');
-                    }
-                } catch (error) {
-                    showToast('管理者驗證失敗', 'error');
-                }
-            });
-        }
-        
-        container.innerHTML += `
-            <div class="card">
-                <div class="card-header">
-                    <h2>系統設定</h2>
-                </div>
-                <div class="card-body">
-                    <form id="settingsForm">
-                        <div class="settings-group">
-                            <h3>營業時間</h3>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>開始時間</label>
-                                    <input type="time" name="openTime" value="${settings.businessHours.open}">
-                                </div>
-                                <div class="form-group">
-                                    <label>結束時間</label>
-                                    <input type="time" name="closeTime" value="${settings.businessHours.close}">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-group">
-                            <h3>優惠時段設定</h3>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>開始時間</label>
-                                    <input type="time" name="specialStart" value="${settings.specialTimeSlot.start}">
-                                </div>
-                                <div class="form-group">
-                                    <label>結束

@@ -1,194 +1,213 @@
-// 初始化登入相關功能
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        // 檢查並等待儲存系統初始化
-        if (!window.storageManager) {
-            throw new Error('儲存系統未載入');
-        }
+// auth.js - 登入系統的靈魂
+class AuthSystem {
+    constructor() {
+        this.users = {
+            admin: {
+            username: 'uno917',
+            password: 'uno1069', // updated password
+            role: 'admin'
+            },
+            staff: {
+            username: 'himan', 
+            password: 'himan', // updated password
+            role: 'staff'
+            }
+        };
 
-        await window.storageManager.init();
-        await initializeAuthEvents();
-
-        // 標記 auth 模組已載入
-        window.moduleLoaded = window.moduleLoaded || {};
-        window.moduleLoaded.auth = true;
-
-        console.log('Auth module initialized');
-    } catch (error) {
-        console.error('Auth initialization error:', error);
-        window.showToast?.('認證系統初始化失敗', 'error');
+        this.currentUser = null;
+        this.initializeSystem();
     }
-});
 
-// 修改初始化事件監聽時機
-async function initializeAuthEvents() {
-    try {
-        // 確保 storageManager 已初始化
-        if (!window.storageManager) {
-            throw new Error('儲存系統未載入');
-        }
-
-        // 等待儲存系統初始化
-        if (!window.storageManager.isInitialized) {
-            await window.storageManager.init();
-        }
-
-        // 綁定按鈕事件
+    initializeSystem() {
+        // 綁定登入表單事件
         const loginForm = document.getElementById('loginForm');
+        if (loginForm !== null) {
+            loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+        }
+
+        // 綁定登出按鈕事件
         const logoutButton = document.getElementById('logoutButton');
-
-        if (!loginForm || !logoutButton) {
-            throw new Error('找不到必要的登入/登出元素');
+        if (logoutButton !== null) {
+            logoutButton.addEventListener('click', () => this.handleLogout());
         }
 
-        // 使用表單提交事件而不是按鈕點擊
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await handleLogin();
-        });
-
-        logoutButton.addEventListener('click', async () => {
-            await handleLogout();
-        });
-
-    } catch (error) {
-        console.error('Auth initialization error:', error);
-        showToast?.('認證系統初始化失敗', 'error');
+        // 檢查現有登入狀態
+        this.checkLoginStatus();
     }
-}
 
-// 修改登入處理函數
-async function handleLogin() {
-    try {
-        const username = document.getElementById('username')?.value?.trim();
-        const password = document.getElementById('password')?.value?.trim();
-
-        if (!username || !password) {
-            throw new Error('請輸入帳號和密碼');
+    toggleLoginDisplay(showLogin) {
+        const loginContainer = document.getElementById('loginContainer');
+        const mainSystem = document.getElementById('mainSystem');
+        if (loginContainer && mainSystem) {
+            loginContainer.style.display = showLogin ? 'block' : 'none';
+            mainSystem.style.display = showLogin ? 'none' : 'block';
         }
-
-        showLoading?.(true);
-
-        // 重新檢查儲存系統狀態
-        if (!window.storageManager?.isInitialized) {
-            await window.storageManager?.init();
-        }
-
-        if (!window.storageManager?.isInitialized) {
-            throw new Error('儲存系統未就緒');
-        }
-
-        // 驗證帳密
-        if ((username === 'uno917' && password === 'uno1069') || (username === 'himan' && password === 'himan')) {
-            await loginSuccess(username);
-        } else {
-            throw new Error('帳號或密碼錯誤');
-        }
-
-    } catch (error) {
-        console.error('Login error:', error);
-        showToast?.(error.message, 'error');
-    } finally {
-        showLoading?.(false);
     }
-}
 
-// 修改登入成功處理函數
-async function loginSuccess(username) {
-    try {
-        console.log('處理登入成功');
+    async handleLogin(e) {
+        e.preventDefault();
+        try {
+            const usernameElement = document.getElementById('username');
+            const passwordElement = document.getElementById('password');
+            if (!passwordElement) {
+                throw new Error('Password element not found');
+            }
+            if (!usernameElement || !passwordElement) {
+                this.showLoginError('帳號或密碼欄位未找到');
+                return;
+            }
+            const username = usernameElement.value;
+            const password = passwordElement.value;
 
-        // 儲存登入狀態
-        await window.storageManager.saveUserSession({
-            username: username,
+            // 顯示載入動畫
+            this.toggleLoading(true);
+
+            // 驗證身份
+            const loginResult = await this.validateCredentials(username, password);
+            
+            if (loginResult.success) {
+                // 儲存登入狀態
+                this.setUserSession(loginResult.user);
+                
+                // 顯示成功訊息
+                this.showToast('登入成功', 'success');
+                
+                // 切換顯示登入區塊
+                this.toggleLoginDisplay(false);
+                this.redirectBasedOnRole(loginResult.user.role);
+            } else {
+                this.showLoginError('登入失敗');
+            }
+        } catch (error) {
+            this.showLoginError(error.message);
+        } finally {
+            this.toggleLoading(false);
+        }
+    }
+
+    async validateCredentials(username, password) {
+        // 在實際應用中，這裡應該用 API 呼叫來驗證
+        const bcrypt = await import('https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js');
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const user = Object.values(this.users).find(u => u.username === username);
+                if (user) {
+                    bcrypt.compare(password, user.password, (err, result) => {
+                        if (err) {
+                            resolve({
+                                success: false,
+                                user: null
+                            });
+                            return;
+                        }
+                        resolve({
+                            success: result,
+                            user: result ? {...user, password: undefined} : null
+                        });
+                    });
+                } else {
+                    resolve({
+                        success: false,
+                        user: null
+                    });
+                }
+            }, 500); // 模擬網路延遲
+        });
+    }
+
+    setUserSession(user) {
+        this.currentUser = user;
+        localStorage.setItem('userSession', JSON.stringify({
+            username: user.username,
+            role: user.role,
             loginTime: new Date().toISOString()
+        }));
+    }
+
+    checkLoginStatus() {
+        const session = localStorage.getItem('userSession');
+        if (session) {
+            try {
+                const user = JSON.parse(session);
+                this.currentUser = user;
+                this.updateUIWithUserInfo(user);
+                this.toggleLoginDisplay(false);
+                this.updateRoleBasedUI(user.role);
+                return true;
+            } catch (error) {
+                console.error('Session parsing failed:', error);
+                this.handleLogout();
+            }
+        }
+        this.toggleLoginDisplay(true);
+        return false;
+    }
+
+    updateRoleBasedUI(role) {
+        const adminElements = document.querySelectorAll('.admin-only');
+        const staffElements = document.querySelectorAll('.staff-only');
+
+        adminElements.forEach(el => {
+            el.style.display = role === 'admin' ? 'block' : 'none';
         });
 
-        // 更新使用者顯示
-        const currentUserElement = document.getElementById('currentUser');
-        if (currentUserElement) {
-            currentUserElement.textContent = username;
-        }
-
-        // 更新全域狀態
-        if (window.app) {
-            window.app.currentUser = username;
-        }
-
-        console.log('準備顯示主系統');
-        // 使用 Promise 確保主系統顯示完成
-        await new Promise((resolve) => {
-            window.showMainSystem();
-            // 給予 DOM 更新的時間
-            setTimeout(resolve, 100);
+        staffElements.forEach(el => {
+            el.style.display = role === 'staff' ? 'block' : 'none';
         });
+    }
 
-        console.log('主系統顯示完成');
-        // 確保顯示成功訊息
-        if (window.showToast) {
-            window.showToast('登入成功');
+    async handleLogout() {
+        try {
+            localStorage.removeItem('userSession');
+            this.currentUser = null;
+            this.toggleLoginDisplay(true);
+            document.getElementById('loginForm')?.reset();
+            this.updateRoleBasedUI('');
+            this.showToast('已成功登出', 'success');
+        } catch (error) {
+            this.showToast('登出時發生錯誤', 'error');
+            console.error('Logout error:', error);
         }
+    }
 
-        // 顯示或隱藏設定介面
-        const settingsSection = document.getElementById('settingsSection');
-        if (settingsSection) {
-            settingsSection.style.display = 'block';
+    updateUIWithUserInfo(user) {
+        const userDisplay = document.getElementById('currentUser');
+        if (userDisplay) {
+            userDisplay.textContent = `${user.username} (${user.role === 'admin' ? '管理員' : '職員'})`;
         }
+    }
 
-        // 控制編輯權限
-        const inputs = settingsSection.querySelectorAll('input, select, button');
-        inputs.forEach(input => {
-            input.disabled = username !== 'uno917';
-        });
+    showLoginError(message) {
+        const errorDiv = document.getElementById('loginError');
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            // 3秒後自動隱藏錯誤訊息
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 3000);
+        }
+    }
 
-    } catch (error) {
-        console.error('登入成功處理錯誤:', error);
-        throw new Error('登入處理發生錯誤: ' + error.message);
+    showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+
+    toggleLoading(show) {
+        const loader = document.getElementById('loading');
+        if (loader) {
+            loader.style.display = show ? 'flex' : 'none';
+        }
     }
 }
 
-// 處理登出
-async function handleLogout() {
-    try {
-        showLoading(true);
-
-        // 清除登入狀態
-        window.storageManager.clearUserSession();
-
-        // 清除全域狀態
-        window.app.currentUser = null;
-
-        // 清除表單
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        if (usernameInput) usernameInput.value = '';
-        if (passwordInput) passwordInput.value = '';
-
-        // 顯示登入表單
-        showLoginForm();
-
-        // 顯示登出訊息
-        showToast('已成功登出');
-    } catch (error) {
-        console.error('Logout error:', error);
-        showToast('登出發生錯誤', 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-// 確保全域函數可用
-window.handleLogin = handleLogin;
-window.handleLogout = handleLogout;
-
-// 顯示登入表單
-function showLoginForm() {
-    document.getElementById('loginSection').style.display = 'block';
-    document.getElementById('settingsSection').style.display = 'none';
-}
-
-// 顯示主系統
-function showMainSystem() {
-    document.getElementById('loginSection').style.display = 'none';
-    document.getElementById('settingsSection').style.display = 'block';
-}
+// 初始化認證系統
+window.authSystem = new AuthSystem();

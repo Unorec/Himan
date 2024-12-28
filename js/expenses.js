@@ -4,6 +4,7 @@ window.expensesModule = {
 
     async init() {
         try {
+            // 等待儲存管理器初始化
             if (!window.storageManager?.isInitialized) {
                 await window.storageManager?.init();
             }
@@ -18,7 +19,7 @@ window.expensesModule = {
             this.initialized = true;
             return true;
         } catch (error) {
-            console.error('Expenses initialization error:', error);
+            console.error('支出模組初始化失敗:', error);
             return false;
         }
     },
@@ -61,29 +62,46 @@ window.expensesModule = {
         `;
     },
 
-    renderExpenses() {
-        const selectedMonth = document.getElementById('expenseFilterMonth')?.value;
-        const expenses = this.getFilteredExpenses(selectedMonth);
-        const summary = this.calculateSummary(expenses);
+    async renderExpenses() {
+        try {
+            const selectedMonth = document.getElementById('expenseFilterMonth')?.value;
+            const expenses = await this.getFilteredExpenses(selectedMonth);
+            const summary = this.calculateSummary(expenses);
 
-        // 更新統計資訊
-        this.renderSummary(summary);
-        
-        // 更新支出列表
-        this.renderExpensesList(expenses);
+            // 更新統計資訊
+            this.renderSummary(summary);
+            
+            // 更新支出列表
+            this.renderExpensesList(expenses);
+        } catch (error) {
+            console.error('渲染支出資料失敗:', error);
+            window.showToast?.('載入支出資料失敗', 'error');
+        }
     },
 
-    getFilteredExpenses(monthFilter) {
-        const expenses = window.storageManager?.getExpenses() || [];
-        
-        if (!monthFilter) return expenses;
+    async getFilteredExpenses(monthFilter) {
+        try {
+            // 等待取得支出資料
+            const expenses = await window.storageManager?.getExpenses();
+            
+            // 確保 expenses 是陣列
+            if (!Array.isArray(expenses)) {
+                console.warn('支出資料格式不正確，返回空陣列');
+                return [];
+            }
+            
+            if (!monthFilter) return expenses;
 
-        return expenses.filter(expense => {
-            const expenseDate = new Date(expense.date);
-            const filterDate = new Date(monthFilter + '-01');
-            return expenseDate.getFullYear() === filterDate.getFullYear() &&
-                   expenseDate.getMonth() === filterDate.getMonth();
-        });
+            return expenses.filter(expense => {
+                const expenseDate = new Date(expense.date);
+                const filterDate = new Date(monthFilter + '-01');
+                return expenseDate.getFullYear() === filterDate.getFullYear() &&
+                       expenseDate.getMonth() === filterDate.getMonth();
+            });
+        } catch (error) {
+            console.error('取得支出資料失敗:', error);
+            return [];
+        }
     },
 
     calculateSummary(expenses) {
@@ -125,6 +143,51 @@ window.expensesModule = {
                 <div class="amount">NT$ ${summary.average.toLocaleString()}</div>
             </div>
         `;
+
+        // 新增圖表顯示
+        if (summary.count > 0) {
+            this.renderExpenseChart(summary.categories);
+        }
+    },
+
+    renderExpenseChart(categories) {
+        const chartContainer = document.getElementById('expenseChart');
+        if (!chartContainer) return;
+
+        // 將類別資料轉換為圖表格式
+        const chartData = {
+            labels: Object.keys(categories),
+            datasets: [{
+                data: Object.values(categories),
+                backgroundColor: [
+                    '#4caf50', '#2196f3', '#ff9800', '#f44336', 
+                    '#9c27b0', '#e91e63', '#009688', '#673ab7'
+                ]
+            }]
+        };
+
+        // 如果已存在圖表，先銷毀
+        if (this.chart) {
+            this.chart.destroy();
+        }
+
+        // 建立新圖表
+        this.chart = new Chart(chartContainer.getContext('2d'), {
+            type: 'doughnut',
+            data: chartData,
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    title: {
+                        display: true,
+                        text: '支出類別分析'
+                    }
+                }
+            }
+        });
     },
 
     renderExpensesList(expenses) {
@@ -147,9 +210,28 @@ window.expensesModule = {
                         </div>
                         <div class="expense-date">${this.formatDate(expense.date)}</div>
                     </div>
-                    <div class="expense-amount">NT$ ${expense.amount.toLocaleString()}</div>
+                    <div class="expense-actions">
+                        <div class="expense-amount">NT$ ${expense.amount.toLocaleString()}</div>
+                        <button onclick="expensesModule.deleteExpense('${expense.id}')" 
+                                class="delete-btn">
+                            刪除
+                        </button>
+                    </div>
                 </div>
             `).join('');
+    },
+
+    async deleteExpense(expenseId) {
+        try {
+            if (!confirm('確定要刪除此筆支出記錄嗎？')) return;
+            
+            await window.storageManager.deleteExpense(expenseId);
+            this.renderExpenses();
+            window.showToast('支出記錄已刪除');
+        } catch (error) {
+            console.error('刪除支出失敗:', error);
+            window.showToast('刪除支出失敗', 'error');
+        }
     },
 
     showAddExpenseModal() {
@@ -161,26 +243,27 @@ window.expensesModule = {
             <div class="modal-body">
                 <form id="addExpenseForm">
                     <div class="form-group">
-                        <label for="expenseDate">日期 <span class="required">*</span></label>
+                        <label>日期 <span class="required">*</span></label>
                         <input type="date" id="expenseDate" class="form-control" 
                                value="${new Date().toISOString().split('T')[0]}" required>
                     </div>
                     <div class="form-group">
-                        <label for="expenseAmount">金額 <span class="required">*</span></label>
+                        <label>金額 <span class="required">*</span></label>
                         <input type="number" id="expenseAmount" class="form-control" min="0" required>
                     </div>
                     <div class="form-group">
-                        <label for="expenseCategory">類別 <span class="required">*</span></label>
+                        <label>類別 <span class="required">*</span></label>
                         <select id="expenseCategory" class="form-control" required>
                             <option value="食品">食品</option>
-                            <option value="交通">交通</option>
-                            <option value="娛樂">娛樂</option>
                             <option value="日用品">日用品</option>
+                            <option value="清潔用品">清潔用品</option>
+                            <option value="維修費用">維修費用</option>
+                            <option value="水電費">水電費</option>
                             <option value="其他">其他</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="expenseDescription">說明 <span class="required">*</span></label>
+                        <label>說明 <span class="required">*</span></label>
                         <input type="text" id="expenseDescription" class="form-control" required>
                     </div>
                     <div class="form-actions">
@@ -191,7 +274,7 @@ window.expensesModule = {
             </div>
         `;
         
-        showModal(modalContent);
+        window.showModal(modalContent);
         
         // 綁定表單提交事件
         document.getElementById('addExpenseForm').addEventListener('submit', async (e) => {
@@ -213,11 +296,11 @@ window.expensesModule = {
 
             await window.storageManager?.addExpense(expense);
             this.renderExpenses();
-            closeModal();
-            showToast('支出新增成功');
+            window.closeModal();
+            window.showToast('支出新增成功');
         } catch (error) {
-            console.error('Add expense error:', error);
-            showToast('支出新增失敗', 'error');
+            console.error('新增支出失敗:', error);
+            window.showToast('新增支出失敗', 'error');
         }
     },
 

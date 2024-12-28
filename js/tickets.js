@@ -40,11 +40,8 @@ window.ticketsModule = {
                 <div>已使用票券：${usedCount} 張</div>
                 <div>已退票張數：${returnedCount} 張</div>
                 <div>未使用票券：${unusedCount} 張</div>
-                <button id="refundTicketBtn" class="refund-button">退款</button>
             </div>
         `;
-
-        document.getElementById('refundTicketBtn').addEventListener('click', this.showRefundTicketModal.bind(this));
     },
 
     // 修改票券類型定義
@@ -227,7 +224,7 @@ window.ticketsModule = {
         if (ticket) {
             ticket.status = status;
             ticket.usedAt = status === 'used' ? new Date().toISOString() : null;
-            if (status === 'returned' || status === 'refunded') {
+            if (status === 'returned') {
                 ticket.returnReason = returnInfo.returnReason;
                 ticket.returnNote = returnInfo.returnNote;
                 ticket.returnAmount = returnInfo.returnAmount;
@@ -238,40 +235,23 @@ window.ticketsModule = {
         }
     },
 
-// 新增退款登記視窗
-    showRefundTicketModal() {
+    // 新增退票登記視窗
+    showReturnTicketModal() {
         const modalContent = `
             <div class="modal-header">
-                <h3>登記退款</h3>
+                <h3>登記退票</h3>
                 <button onclick="closeModal()" class="close-button">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="refundTicketForm">
+                <form id="returnTicketForm">
                     <div class="form-group">
-                        <label for="ticketType">票券類型 <span class="required">*</span></label>
-                        <select id="ticketType" class="form-control" required onchange="ticketsModule.calculateRefundTicketNumbers()">
-                            ${Object.entries(this.ticketTypes).map(([key, type]) => 
-                                `<option value="${key}" data-prefix="${type.prefix}" data-price="${type.price}">
-                                    ${type.name} (${type.price}元)
-                                </option>`
-                            ).join('')}
-                        </select>
+                        <label for="ticketNumber">票券號碼 <span class="required">*</span></label>
+                        <input type="text" id="ticketNumber" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label for="startNumber">起始號碼 <span class="required">*</span></label>
-                        <input type="text" id="startNumber" class="form-control" 
-                               placeholder="請輸入數字"
-                               onchange="ticketsModule.calculateRefundTicketNumbers()">
-                        <small class="form-text">將自動加上票券類型前綴</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="endNumber">結束號碼</label>
-                        <input type="text" id="endNumber" class="form-control" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="refundReason">退款原因 <span class="required">*</span></label>
-                        <select id="refundReason" class="form-control" required>
-                            <option value="">請選擇退款原因</option>
+                        <label for="returnReason">退票原因 <span class="required">*</span></label>
+                        <select id="returnReason" class="form-control" required>
+                            <option value="">請選擇退票原因</option>
                             <option value="customer_request">客戶要求</option>
                             <option value="ticket_damage">票券損壞</option>
                             <option value="print_error">印刷錯誤</option>
@@ -279,100 +259,182 @@ window.ticketsModule = {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="refundNote">備註</label>
-                        <textarea id="refundNote" class="form-control"></textarea>
+                        <label for="returnNote">備註</label>
+                        <textarea id="returnNote" class="form-control"></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="refundAmount">退款金額</label>
-                        <input type="number" id="refundAmount" class="form-control" readonly>
+                        <label for="returnAmount">退款金額</label>
+                        <input type="number" id="returnAmount" class="form-control" required>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="primary-button">確認退款</button>
+                        <button type="submit" class="primary-button">確認退票</button>
                         <button type="button" class="secondary-button" onclick="closeModal()">取消</button>
                     </div>
                 </form>
             </div>
         `;
-
+        
         showModal(modalContent);
-
-        document.getElementById('refundTicketForm').addEventListener('submit', async (e) => {
+        
+        // 綁定表單提交事件
+        document.getElementById('returnTicketForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            await this.processRefundTicket();
+            await this.processReturnTicket();
         });
 
-        document.getElementById('startNumber').addEventListener('blur', this.calculateRefundTicketNumbers.bind(this));
-        document.getElementById('ticketType').addEventListener('change', this.calculateRefundTicketNumbers.bind(this));
+        // 綁定票號查詢事件
+        document.getElementById('ticketNumber').addEventListener('blur', async (e) => {
+            const number = e.target.value;
+            const ticket = await this.findTicket(number);
+            if (ticket) {
+                document.getElementById('returnAmount').value = ticket.price;
+            }
+        });
     },
 
-    // 計算退款票號和金額
-    calculateRefundTicketNumbers() {
-        const typeSelect = document.getElementById('ticketType');
-        const startInput = document.getElementById('startNumber');
-        const endInput = document.getElementById('endNumber');
-        const refundAmountInput = document.getElementById('refundAmount');
-
-        const selectedOption = typeSelect.options[typeSelect.selectedIndex];
-        const prefix = selectedOption.getAttribute('data-prefix');
-        const price = parseInt(selectedOption.getAttribute('data-price'));
-        const startNum = startInput.value;
-
-        if (startNum && /^\d+$/.test(startNum)) {
-            const start = parseInt(startNum);
-            const end = start + 9; // Assuming 10 tickets per book
-            endInput.value = end.toString();
-            
-            refundAmountInput.value = price * 10; // Assuming 10 tickets per book
-        }
-    },
-
-    // 處理退款邏輯
-    async processRefundTicket() {
+    // 處理退票邏輯
+    async processReturnTicket() {
         try {
-            const ticketType = document.getElementById('ticketType').value;
-            const startNumber = document.getElementById('startNumber').value;
-            const endNumber = document.getElementById('endNumber').value;
-            const refundReason = document.getElementById('refundReason').value;
-            const refundNote = document.getElementById('refundNote').value;
-            const refundAmount = document.getElementById('refundAmount').value;
+            const ticketNumber = document.getElementById('ticketNumber').value;
+            const returnReason = document.getElementById('returnReason').value;
+            const returnNote = document.getElementById('returnNote').value;
+            const returnAmount = document.getElementById('returnAmount').value;
 
-            // 需要根據起始號碼和結束號碼查找對應的票券進行退款處理
-
-            // 示例：假設只處理起始號碼的票券
-            const ticket = await this.findTicket(startNumber);
+            const ticket = await this.findTicket(ticketNumber);
             
             if (!ticket) {
                 throw new Error('找不到此票券');
             }
             
             if (ticket.status === 'used') {
-                throw new Error('已使用的票券無法退款');
+                throw new Error('已使用的票券無法退票');
             }
             
-            if (ticket.status === 'returned' || ticket.status === 'refunded') {
-                throw new Error('此票券已經退票或退款');
+            if (ticket.status === 'returned') {
+                throw new Error('此票券已經退票');
             }
 
             // 更新票券狀態
-            await this.updateTicketStatus(startNumber, 'refunded', {
-                refundReason,
-                refundNote,
-                refundAmount: parseFloat(refundAmount),
-                refundDate: new Date().toISOString()
+            await this.updateTicketStatus(ticketNumber, 'returned', {
+                returnReason,
+                returnNote,
+                returnAmount: parseFloat(returnAmount),
+                returnDate: new Date().toISOString()
             });
 
             closeModal();
-            showToast('退款登記完成');
+            showToast('退票登記完成');
             this.renderTickets();
             
         } catch (error) {
-            console.error('退款處理失敗:', error);
-            showToast(error.message || '退款處理失敗', 'error');
+            console.error('退票處理失敗:', error);
+            showToast(error.message || '退票處理失敗', 'error');
         }
     }
-}; // Close ticketsModule object
+};
 
 // 確保頁面載入完成後初始化
 document.addEventListener('DOMContentLoaded', () => {
-    window.ticketsModule.init();
+    window.ticketModule = {
+        // ...existing code...
+        
+        // 顯示退票本登記視窗
+        showReturnTicketBookModal() {
+            const modalContent = `
+                <div class="modal-header">
+                    <h3>退票本登記</h3>
+                    <button class="close-btn" onclick="closeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>票券類型</label>
+                        <select id="returnTicketType" class="form-control">
+                            <option value="HI">HI券</option>
+                            <option value="VIP">暢遊券</option>
+                            <option value="SPECIAL">優惠券</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>起始編號</label>
+                        <input type="text" id="returnStartNumber" class="form-control" 
+                               placeholder="請輸入7位數字" maxlength="7" pattern="\d{7}">
+                    </div>
+                    <div class="form-group">
+                        <label>退票原因</label>
+                        <select id="returnReason" class="form-control">
+                            <option value="damage">票券損壞</option>
+                            <option value="print_error">印刷錯誤</option>
+                            <option value="other">其他原因</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>備註說明</label>
+                        <textarea id="returnNote" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn cancel-btn" onclick="closeModal()">取消</button>
+                    <button class="btn submit-btn" onclick="window.ticketModule.submitReturnTicketBook()">
+                        確認退票
+                    </button>
+                </div>
+            `;
+            
+            window.showModal(modalContent);
+        },
+        
+        // 提交退票本
+        async submitReturnTicketBook() {
+            try {
+                const type = document.getElementById('returnTicketType').value;
+                const startNumber = document.getElementById('returnStartNumber').value;
+                const reason = document.getElementById('returnReason').value;
+                const note = document.getElementById('returnNote').value;
+                
+                if (!this.validateTicketNumber(startNumber)) {
+                    throw new Error('無效的票號格式');
+                }
+                
+                const returnBook = {
+                    type,
+                    startNumber,
+                    count: 10,
+                    numbers: this.generateTicketNumbers(startNumber, 10),
+                    reason,
+                    note,
+                    returnDate: new Date().toISOString(),
+                    status: 'returned'
+                };
+                
+                await this.processReturnTicketBook(returnBook);
+                window.showToast('退票本登記成功', 'success');
+                closeModal();
+                this.renderTickets();
+                
+            } catch (error) {
+                console.error('退票登記失敗:', error);
+                window.showToast(error.message, 'error');
+            }
+        },
+        
+        // 處理退票本
+        async processReturnTicketBook(returnBook) {
+            const tickets = await window.storageManager.getTickets();
+            
+            for (const number of returnBook.numbers) {
+                const ticket = tickets.find(t => t.number === number);
+                if (ticket) {
+                    await this.updateTicketStatus(number, 'returned', {
+                        returnReason: returnBook.reason,
+                        returnNote: returnBook.note,
+                        returnDate: returnBook.returnDate
+                    });
+                }
+            }
+            
+            await window.storageManager.addReturnedBook(returnBook);
+        }
+        
+        // ...existing code...
+    };    window.ticketsModule.init();
 });

@@ -1,0 +1,182 @@
+/* 系統視覺的優雅詩篇 */
+
+/* 基礎變量的靈動之源 */
+:root {
+    /* 色彩的優雅協奏 */
+    --primary-color: #1976d2;
+    --primary-light: #42a5f5;
+    --primary-dark: #1565c0;
+    --secondary-color: #78909c;
+    --success-color: #4caf50;
+    --warning-color: #ff9800;
+    --error-color: #f44336;
+    --background-color: #f5f5f5;
+    --text-color: #333;
+    --border-color: #e0e0e0;
+
+    /* 間距的靈動韻律 */
+    --spacing-xs: 0.25rem;  /* 精緻的呢喃 */
+    --spacing-sm: 0.5rem;   /* 輕盈的低語 */
+    --spacing-md: 1rem;     /* 優雅的詠歎 */
+    --spacing-lg: 1.5rem;   /* 從容的吟誦 */
+    --spacing-xl: 2rem;     /* 宏大的詩篇 */
+
+    /* 陰影的層次之美 */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);    /* 晨曦的微光 */
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);    /* 午後的光影 */
+    --shadow-lg: 0 8px 16px rgba(0,0,0,0.1);   /* 黃昏的餘暉 */
+    --shadow-xl: 0 12px 24px rgba(0,0,0,0.1);  /* 夜幕的星輝 */
+
+    /* 圓角的優美弧度 */
+    --radius-sm: 4px;    /* 溫婉的曲線 */
+    --radius-md: 8px;    /* 柔美的弧度 */
+    --radius-lg: 12px;   /* 靈動的韻律 */
+    --radius-xl: 16px;   /* 飛揚的詩意 */
+
+    /* 字體的靈動表情 */
+    --font-small: 0.875rem;   /* 細膩的耳語 */
+    --font-normal: 1rem;      /* 從容的敘述 */
+    --font-medium: 1.125rem;  /* 優雅的詠歎 */
+    --font-large: 1.25rem;    /* 宏亮的詩篇 */
+}
+
+/* 文字排版的藝術 */
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.text-break {
+    word-break: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+.text-center { text-align: center; }
+.text-left { text-align: start; }
+.text-right { text-align: end; }
+
+/* 間距的韻律之舞 */
+.m-0 { margin: 0; }
+.mt-1 { margin-block-start: var(--spacing-xs); }
+.mt-2 { margin-block-start: var(--spacing-sm); }
+.mt-3 { margin-block-start: var(--spacing-md); }
+.mt-4 { margin-block-start: var(--spacing-lg); }
+.mt-5 { margin-block-start: var(--spacing-xl); }
+
+.mb-1 { margin-block-end: var(--spacing-xs); }
+.mb-2 { margin-block-end: var(--spacing-sm); }
+.mb-3 { margin-block-end: var(--spacing-md); }
+.mb-4 { margin-block-end: var(--spacing-lg); }
+.mb-5 { margin-block-end: var(--spacing-xl); }
+
+/* 內距的優雅空間 */
+.p-0 { padding: 0; }
+.p-1 { padding: var(--spacing-xs); }
+.p-2 { padding: var(--spacing-sm); }
+.p-3 { padding: var(--spacing-md); }
+.p-4 { padding: var(--spacing-lg); }
+.p-5 { padding: var(--spacing-xl); }
+
+/* 彈性布局的靈動之美 */
+.d-flex { display: flex; }
+.flex-row { flex-direction: row; }
+.flex-column { flex-direction: column; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.align-center { align-items: center; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-grow-1 { flex-grow: 1; }
+
+/* 網格系統的優雅韻律 */
+.grid {
+    display: grid;
+    gap: var(--spacing-md);
+}
+
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* 陰影效果的詩意層次 */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+
+/* 邊框的優雅點綴 */
+.border { border: 1px solid var(--border-color); }
+.border-top { border-block-start: 1px solid var(--border-color); }
+.border-bottom { border-block-end: 1px solid var(--border-color); }
+.border-left { border-inline-start: 1px solid var(--border-color); }
+.border-right { border-inline-end: 1px solid var(--border-color); }
+
+/* 圓角的靈動表情 */
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: 9999px; }
+
+/* 背景的優雅意境 */
+.bg-primary { background-color: var(--primary-color); }
+.bg-light { background-color: var(--background-color); }
+.bg-white { background-color: white; }
+.bg-success { background-color: var(--success-color); }
+.bg-warning { background-color: var(--warning-color); }
+.bg-error { background-color: var(--error-color); }
+
+/* 文字色彩的詩意表達 */
+.text-primary { color: var(--primary-color); }
+.text-secondary { color: var(--secondary-color); }
+.text-success { color: var(--success-color); }
+.text-warning { color: var(--warning-color); }
+.text-error { color: var(--error-color); }
+
+/* 狀態類的靈動變化 */
+.hidden { display: none !important; }
+.invisible { visibility: hidden; }
+.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* 動畫效果的優雅韻律 */
+.transition {
+    transition: all 0.3s ease;
+}
+
+.hover-shadow:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.hover-opacity:hover {
+    opacity: 0.8;
+}
+
+/* 響應式設計的優雅適配 */
+@media (max-width: 768px) {
+    .hide-mobile { display: none !important; }
+    .grid { grid-template-columns: 1fr !important; }
+    .flex-column-mobile { flex-direction: column; }
+}
+
+/* 無障礙支持的人文關懷 */
+@media (prefers-reduced-motion: reduce) {
+    .transition {
+        transition: none !important;
+    }
+}
+
+/* 列印樣式的優雅轉換 */
+@media print {
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+    
+    body {
+        background: white !important;
+        color: black !important;
+    }
+}

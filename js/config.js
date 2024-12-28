@@ -1,3 +1,123 @@
+// 系統全域設定
+window.HimanSystem = window.HimanSystem || {};
+
+(function() {
+    // 檢查是否已經定義過設定
+    if (window.HimanSystem.DEFAULT_SETTINGS) {
+        console.warn('系統設定已存在，跳過重複定義');
+        return;
+    }
+
+    // 系統設定定義
+    const DEFAULT_SETTINGS = {
+        // 系統基本設定
+        system: {
+            debug: false,
+            apiUrl: window.location.origin,
+            timeout: 30000,
+            retryAttempts: 3,
+            sessionTimeout: 3600000,
+            heartbeatInterval: 30000,
+            version: '1.0.0',
+            buildNumber: '20241227',
+            environment: 'production'
+        },
+        // 入場管理設定
+        entry: {
+            defaultPrice: 500,
+            weekendPrice: 700,
+            discountPrice: 350,
+            weekendDiscountPrice: 500
+        },
+        // 時間設定
+        timeRanges: {
+            discountStart: '18:30',
+            discountEnd: '19:30',
+            nightEnd: '06:00'
+        },
+        // 營業時段配置
+        businessHours: {
+            regular: {
+                start: '08:00',
+                end: '22:00'
+            },
+            specialTimeSlots: {
+                weekdayEvening: {
+                    name: '平日晚間優惠',
+                    price: 350,
+                    startTime: '18:30',
+                    endTime: '19:30',
+                    maxStayTime: '06:00',
+                    days: [1, 2, 3, 4]
+                },
+                weekendEvening: {
+                    name: '假日晚間優惠',
+                    price: 500,
+                    startTime: '18:30',
+                    endTime: '19:30',
+                    maxStayTime: '06:00',
+                    days: [5, 6, 0]
+                }
+            }
+        }
+    };
+
+    // 註冊到全域系統
+    window.HimanSystem.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
+    
+    // 配置管理器
+    class ConfigManager {
+        constructor() {
+            this.settings = { ...DEFAULT_SETTINGS };
+            this.loadSavedSettings();
+        }
+        
+        loadSavedSettings() {
+            try {
+                const saved = localStorage.getItem('system_settings');
+                if (saved) {
+                    this.settings = {
+                        ...this.settings,
+                        ...JSON.parse(saved)
+                    };
+                }
+            } catch (error) {
+                console.error('載入設定時發生錯誤:', error);
+            }
+        }
+        
+        get(path) {
+            return path.split('.').reduce((obj, key) => 
+                obj ? obj[key] : undefined, this.settings);
+        }
+        
+        set(path, value) {
+            const keys = path.split('.');
+            const lastKey = keys.pop();
+            const target = keys.reduce((obj, key) => 
+                obj[key] = obj[key] || {}, this.settings);
+            target[lastKey] = value;
+            this.saveSettings();
+        }
+        
+        saveSettings() {
+            try {
+                localStorage.setItem('system_settings', 
+                    JSON.stringify(this.settings));
+            } catch (error) {
+                console.error('儲存設定時發生錯誤:', error);
+            }
+        }
+    }
+
+    // 註冊模組
+    if (window.HimanSystem?.ModuleManager) {
+        window.HimanSystem.ModuleManager.register('config', ConfigManager);
+    } else {
+        console.error('模組管理器未初始化');
+    }
+})();
+
 // 系統配置管理核心
 const SYSTEM_CONFIG = {
     // 系統版本與識別

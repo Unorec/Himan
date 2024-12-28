@@ -1,221 +1,34 @@
-/* 基礎變數定義 */
 :root {
     --primary-color: #1976d2;
-    --primary-hover: #1557b0;
-    --success-color: #4caf50;
-    --warning-color: #ff9800;
-    --error-color: #f44336;
+    --special-time-color: #ff9800;
     --text-color: #333;
-    --border-color: #e0e0e0;
-    --bg-color: #f5f5f5;
 }
 
-/* 入場表單容器 */
 .entry-container {
-    max-width: 800px;
-    margin: 2rem auto;
-    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
     background: white;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 1.5rem;
 }
 
-/* 優惠時段提示 */
-.special-time-notice {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background-color: #fff3e0;
-    border-left: 4px solid var(--warning-color);
-    border-radius: 4px;
-    font-size: 0.95rem;
-    color: #e65100;
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-/* 價格顯示區域 */
 .price-display {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background-color: #e3f2fd;
-    border-radius: 4px;
-}
-
-.price-display .amount {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: var(--primary-color);
-}
-
-.price-display .time-info {
-    font-size: 0.9rem;
-    color: #666;
-}
-
-/* 表單元素樣式 */
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: var(--text-color);
-    font-weight: 500;
-}
-
-.form-group input[type="number"],
-.form-group input[type="text"],
-.form-group textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-size: 1rem;
-    transition: border-color 0.2s ease;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-    border-color: var(--primary-color);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
-}
-
-/* 付款方式選擇 */
-.payment-type {
-    display: flex;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.payment-type label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-}
-
-.payment-type input[type="radio"] {
-    margin-right: 0.5rem;
-    cursor: pointer;
-}
-
-/* 金額顯示框 */
-.amount-display {
-    display: flex;
-    align-items: center;
-    font-size: 1.25rem;
-    font-weight: bold;
-    color: var(--primary-color);
-    padding: 0.75rem;
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-}
-
-.amount-display .currency {
-    margin-right: 0.5rem;
-    color: #666;
-}
-
-/* 提交按鈕 */
-.submit-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: 0.875rem;
     background-color: var(--primary-color);
     color: white;
-    border: none;
+    padding: 1rem;
     border-radius: 4px;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+    text-align: center;
+    transition: all 0.3s ease;
 }
 
-.submit-button:hover {
-    background-color: var(--primary-hover);
-}
-
-.submit-button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
-/* 提示訊息 */
-.toast {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    padding: 1rem 1.5rem;
-    border-radius: 4px;
+.special-time-badge {
+    background-color: var(--special-time-color);
     color: white;
-    font-weight: 500;
-    z-index: 1000;
-    animation: slideIn 0.3s ease-out;
-}
-
-.toast.success {
-    background-color: var(--success-color);
-}
-
-.toast.error {
-    background-color: var(--error-color);
-}
-
-/* 動畫效果 */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-/* 響應式設計 */
-@media (max-width: 768px) {
-    .entry-container {
-        margin: 1rem;
-        padding: 1rem;
-    }
-
-    .price-display {
-        flex-direction: column;
-        text-align: center;
-        gap: 0.5rem;
-    }
-
-    .payment-type {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-}
-
-/* 優惠時段強調效果 */
-.special-time-active {
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4);
-    }
-    70% {
-        box-shadow: 0 0 0 10px rgba(255, 152, 0, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0);
-    }
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-block-start: 0.5rem;
+    display: inline-block;
 }

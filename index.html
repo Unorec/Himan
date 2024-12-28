@@ -11,18 +11,25 @@
     <link rel="stylesheet" href="./css/main.css">
     <link rel="stylesheet" href="./css/components.css">
     <link rel="stylesheet" href="./css/tickets.css">
+    <link rel="stylesheet" href="css/toast.css">
     
     <!-- 確保 Chart.js 可用 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" 
             crossorigin="anonymous" 
             type="application/javascript"></script>
     
-    <!-- 修改 JS 載入順序 -->
+    <!-- 修改 JS 載入順序，確保基礎模組最先載入 -->
     <script src="./js/base.js"></script>
+    <script>
+        // 檢查系統核心是否正確載入
+        if (typeof SystemCore === 'undefined') {
+            console.error('SystemCore 未正確載入');
+        }
+    </script>
     <script src="./js/utils.js"></script>
-    <script src="./js/storage.js"></script>
     <script src="./js/config.js"></script>
-    <script src="./js/auth.js"></script>
+    <script src="./js/auth.js"></script>         <!-- 認證模組依賴核心功能 -->
+    <script src="./js/storage.js"></script>
     <script src="./js/modal.js"></script>
     <script src="./js/records.js"></script>
     <script src="./js/entry.js"></script>
@@ -30,16 +37,25 @@
     <script src="./js/stats.js"></script>
     <script src="./js/settings.js"></script>
     <script src="./js/main.js"></script>
+    <script src="js/toast.js"></script>
 
-    <!-- 初始化應用 -->
+    <!-- 修改初始化應用腳本 -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // 確保 SystemCore 已經被載入
-            if (window.SystemCore) {
-                window.systemCore = new SystemCore();
-                window.initApp().catch(console.error);
-            } else {
-                console.error('SystemCore 未正確載入');
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (!window.systemCore) {
+                    throw new Error('SystemCore 未正確載入');
+                }
+                
+                // 初始化系統
+                await window.systemCore.initialize();
+                
+                // 載入必要模組
+                await window.systemCore.loadRequiredModules();
+                
+                console.log('系統初始化完成');
+            } catch (error) {
+                console.error('系統初始化失敗:', error);
             }
         });
     </script>
@@ -303,6 +319,71 @@
         </nav>
 
         <main id="mainContent">
+            <div id="entrySection" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>入場登記</h2>
+                        <div class="price-display" id="currentPrice">
+                            目前票價: <span class="amount">500</span>元
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <form id="entryForm">
+                            <!-- 優惠時段提示 -->
+                            <div id="discountAlert" class="time-notice">
+                                <div class="discount-info">
+                                    目前為優惠時段：<span class="price"></span>元（使用至隔日06:00）
+                                </div>
+                            </div>
+            
+                            <!-- 櫃位號碼 -->
+                            <div class="form-group">
+                                <label for="lockerNumber">櫃位號碼</label>
+                                <input type="number" id="lockerNumber" class="form-control" required>
+                            </div>
+            
+                            <!-- 付款方式 -->
+                            <div class="form-group">
+                                <label>付款方式</label>
+                                <div class="payment-type">
+                                    <label>
+                                        <input type="radio" name="paymentType" value="cash" checked> 現金
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="paymentType" value="ticket"> 票券
+                                    </label>
+                                </div>
+                            </div>
+            
+                            <!-- 現金付款區域 -->
+                            <div class="cash-payment-area">
+                                <div class="form-group">
+                                    <label for="amount">金額</label>
+                                    <input type="number" id="amount" class="form-control" readonly>
+                                </div>
+                            </div>
+            
+                            <!-- 票券付款區域 -->
+                            <div class="ticket-payment-area hidden">
+                                <div class="form-group">
+                                    <label for="ticketNumber">票券號碼</label>
+                                    <input type="text" id="ticketNumber" class="form-control" placeholder="請輸入票券號碼">
+                                </div>
+                            </div>
+            
+                            <!-- 備註 -->
+                            <div class="form-group">
+                                <label for="remarks">備註說明</label>
+                                <textarea id="remarks" class="form-control" rows="3"></textarea>
+                            </div>
+            
+                            <!-- 提交按鈕 -->
+                            <button type="submit" class="primary-button">確認登記</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
             <!-- 動態內容載入區域 -->
             <div id="recordsSection" class="section-container">
                 <h2>入場記錄管理</h2>

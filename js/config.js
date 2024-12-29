@@ -8,6 +8,15 @@ window.HimanSystem = window.HimanSystem || {};
         return;
     }
 
+    function isValidJSON(str) {
+        try {
+            JSON.parse(str);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
     // 系統設定定義
     const DEFAULT_SETTINGS = {
         // 系統基本設定
@@ -74,8 +83,11 @@ window.HimanSystem = window.HimanSystem || {};
         
         loadSavedSettings() {
             try {
-                const saved = localStorage.getItem('system_settings');
-                if (saved) {
+                if (!this.cachedSettings) {
+                    this.cachedSettings = localStorage.getItem('system_settings');
+                }
+                const saved = this.cachedSettings;
+                if (this.isValidJSON(saved)) {
                     this.settings = {
                         ...this.settings,
                         ...JSON.parse(saved)
@@ -92,18 +104,17 @@ window.HimanSystem = window.HimanSystem || {};
         }
         
         set(path, value) {
-            const keys = path.split('.');
-            const lastKey = keys.pop();
-            const target = keys.reduce((obj, key) => 
-                obj[key] = obj[key] || {}, this.settings);
-            target[lastKey] = value;
-            this.saveSettings();
-        }
-        
-        saveSettings() {
             try {
-                localStorage.setItem('system_settings', 
-                    JSON.stringify(this.settings));
+                const parts = path.split('.');
+                let current = this.settings;
+                const lastPart = parts.pop();
+                
+                for (const part of parts) {
+                    current = current[part] = current[part] || {};
+                }
+                current[lastPart] = value;
+                
+                localStorage.setItem('system_settings', JSON.stringify(this.settings));
             } catch (error) {
                 console.error('儲存設定時發生錯誤:', error);
             }
@@ -166,11 +177,35 @@ const SYSTEM_CONFIG = {
             weekdayEvening: 350,  // 平日晚間優惠
             weekendEvening: 500   // 假日晚間優惠
         },
+        discounts: {
+            sundayTowel: {
+                name: '小毛巾之夜',
+                price: 350,
+                days: [0], // 星期天
+                hours: {
+                    start: '13:30',
+                    end: '15:30',
+                    maxStay: '23:00' // 最晚只能待到晚上11點
+                },
+                overtime: {
+                    price: 700,       // 超時費用
+                    unit: 'perEntry'  // 每次收費
+                },
+                preAlert: {
+                    minutes: 30,
+                    message: '小毛巾之夜優惠即將開始！'
+                }
+            }
+        },
         // 其他費用配置
         additionalCharges: {
             overtime: 0,     // 超時費用（每小時）
             deposit: 0,      // 押金
             minimum: 0       // 最低消費
+        },
+        notifications: {
+            discountPreAlert: 30, // 提前 30 分鐘提醒
+            discountAlertMessage: '優惠時段即將開始！'
         }
     },
 

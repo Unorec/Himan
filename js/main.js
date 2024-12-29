@@ -370,6 +370,30 @@
                 window.statsModule.logError(error);
             }
         }
+
+        // 頁面切換的靈動之舞
+        switchSection(section) {
+            // 隱藏所有區段
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+            
+            // 顯示選中的區段
+            const targetSection = document.getElementById(`${section}Section`);
+            if (targetSection) {
+                targetSection.style.display = 'block';
+                
+                // 如果是入場登記頁面，初始化 EntrySystem
+                if (section === 'entry') {
+                    const entrySystem = new EntrySystem();
+                }
+            }
+
+            // 更新選單狀態
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.section === section);
+            });
+
+            this.state.currentSection = section;
+        }
     }
 
     // 將系統優雅地綻放到全域
@@ -377,8 +401,25 @@
     window.systemCore = new SystemCore();  // 加入這行
 
     // 當文檔準備就緒時，啟動系統的靈感
-    document.addEventListener('DOMContentLoaded', () => {
-        window.mainSystem.initialize().catch(console.error);
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            // 初始化系統核心
+            const systemCore = new SystemCore();
+            await systemCore.initialize();
+            
+            // 載入必要模組
+            await systemCore.loadRequiredModules();
+            
+            console.log('系統初始化完成');
+            
+            // ...其他初始化代碼...
+            
+        } catch (error) {
+            console.error('系統初始化失敗:', error);
+            if (window.showToast) {
+                window.showToast('系統載入失敗，請重新整理頁面', 'error');
+            }
+        }
     });
 
     async function initApp() {
@@ -463,4 +504,43 @@
             throw error;
         }
     }
+})();
+
+(function() {
+    'use strict';
+
+    function showSection(sectionId) {
+        // 隱藏所有區段
+        document.querySelectorAll('.section').forEach(section => {
+            section.style.display = 'none';
+        });
+
+        // 顯示選定的區段
+        const targetSection = document.getElementById(sectionId + 'Section');
+        if (targetSection) {
+            targetSection.style.display = 'block';
+        }
+
+        // 更新選單項目的狀態
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('data-section') === sectionId) {
+                item.classList.add('active');
+            }
+        });
+    }
+
+    // 初始化頁面時顯示入場登記
+    document.addEventListener('DOMContentLoaded', () => {
+        showSection('entry');
+
+        // 綁定選單點擊事件
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = e.target.getAttribute('data-section');
+                showSection(section);
+            });
+        });
+    });
 })();

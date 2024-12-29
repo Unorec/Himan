@@ -73,14 +73,13 @@
             // 安全憑證定義：如同精密的存取控制機制
             this.credentials = {
                 admin: {
-                    username: 'uno917',
-                    password: 'hashed_admin_password',
+                    username: 'uno',
+                    password: 'uno',
                     role: 'superAdmin',
                     privileges: ['systemSettings', 'userManagement', 'securityConfig']
                 },
                 staff: new Map([
-                    ['himan', { password: 'himan', role: 'staff', shift: 'morning' }],
-                    ['user', { password: 'user', role: 'staff', shift: 'evening' }]
+                    ['himan', { password: 'himan', role: 'staff', shift: 'morning' }]
                 ])
             };
             // 安全上下文：如同警戒系統的敏感神經
@@ -169,25 +168,69 @@
          * - staff帳號: himan/himan
          */
         authenticateUser(username, password) {
-            if (username === 'uno' && password === 'uno') {
-                return { success: true };
-            } else {
-                return { success: false, message: 'Invalid credentials' };
+            // 管理員驗證
+            if (username === this.credentials.admin.username && 
+                password === this.credentials.admin.password) {
+                return {
+                    success: true,
+                    role: 'admin',
+                    privileges: this.credentials.admin.privileges,
+                    user: username
+                };
             }
+
+            // 員工驗證
+            const staffUser = this.credentials.staff.get(username);
+            if (staffUser && staffUser.password === password) {
+                return {
+                    success: true,
+                    role: 'staff',
+                    shift: staffUser.shift,
+                    user: username
+                };
+            }
+
+            return {
+                success: false,
+                message: '帳號或密碼不正確'
+            };
         }
 
         /**
          * 成功登入處理：如同開啟系統權限的金鑰
          */
         handleSuccessfulLogin(authResult) {
-            // 更新使用者介面
-            this.updateUserInterface(authResult);
+            try {
+                // 隱藏登入表單
+                const loginContainer = document.getElementById('loginContainer');
+                if (loginContainer) {
+                    loginContainer.style.display = 'none';
+                }
 
-            // 根據角色啟動不同模組
-            this.activateAuthorizedModules(authResult);
+                // 顯示主系統界面
+                const mainSystem = document.getElementById('mainSystem');
+                if (mainSystem) {
+                    mainSystem.style.display = 'block';
+                }
 
-            // 顯示歡迎訊息
-            this.showWelcomeMessage(authResult);
+                // 更新使用者界面
+                this.updateUserInterface(authResult);
+
+                // 啟動授權模組
+                this.activateAuthorizedModules(authResult);
+
+                // 顯示歡迎訊息
+                this.showWelcomeMessage(authResult);
+
+                // 儲存登入狀態
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('userRole', authResult.role);
+                localStorage.setItem('username', authResult.user);
+
+            } catch (error) {
+                console.error('登入後處理失敗:', error);
+                window.showToast('系統登入異常，請重新整理頁面', 'error');
+            }
         }
 
         /**

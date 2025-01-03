@@ -1,24 +1,15 @@
-(function() {
-    'use strict';
-
-    const ToastSystem = {
-        show(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.textContent = message;
-            
-            document.body.appendChild(toast);
-            
-            setTimeout(() => toast.classList.add('show'), 100);
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-    };
-
-    // 註冊到全域和模組系統
-    window.showToast = ToastSystem.show;
+// 移除重複的 Toast 類，使用現有的 ToastComponent
+if (!window.HimanSystem?.toast) {
     window.HimanSystem = window.HimanSystem || {};
-    window.HimanSystem.toast = ToastSystem;
-})();
+    window.HimanSystem.toast = new (window.HimanSystem.ToastComponent || class {
+        show(message, type = 'info') {
+            console.warn('Toast 系統尚未初始化');
+            console.log(message, type);
+        }
+    })();
+}
+
+// 全域輔助函數
+window.showToast = (message, type) => {
+    window.HimanSystem.toast.show(message, type);
+};

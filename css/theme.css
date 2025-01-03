@@ -1,0 +1,19 @@
+:root {
+    --success-color: #4CAF50;
+    --error-color: #F44336;
+    --info-color: #2196F3;
+    --warning-color: #FFC107;
+}
+
+/* login.css 中的這些樣式應該被完全移除，因為它們在 main.css 中已有更完整的定義 */
+
+/* 
+移除以下樣式：
+.login-wrapper
+.login-container
+.login-box
+.login-box:hover
+.form-group
+.login-button
+.login-button:hover 
+*/

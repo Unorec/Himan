@@ -3,108 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-xu    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; img-src 'self' data: https:;">
     <title>HiMAN管理系統 - 數位時代的優雅解決方案</title>
     
-    <!-- 將 favicon 改為 data URI 或者用 emoji作為favicon -->
+    <!-- 使用 emoji 作為 favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>👤</text></svg>">
     
-    <!-- 修正 CSS 路徑 -->
+    <!-- 整理後的 CSS 引入 -->
     <link rel="stylesheet" href="./css/main.css">
-    <link rel="stylesheet" href="./css/components.css">
-    <link rel="stylesheet" href="./css/tickets.css">
-    <link rel="stylesheet" href="css/toast.css">
-    <link rel="stylesheet" href="./css/core.css">
-    
-    <!-- 確保 Chart.js 可用 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" 
-            crossorigin="anonymous" 
-            type="application/javascript"></script>
-    
-    <!-- 系統核心必須最先載入 -->
-    <script src="./js/base.js"></script>
-    
-    <!-- 初始化系統 -->
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                if (!window.systemCore) {
-                    throw new Error('SystemCore 未正確載入');
-                }
-                
-                // 初始化系統核心
-                await window.systemCore.initialize();
-                
-                // 載入必要模組
-                await window.systemCore.loadRequiredModules();
-                
-                console.log('系統初始化完成');
-            } catch (error) {
-                console.error('系統初始化失敗:', error);
-                window.showToast?.('系統載入失敗，請重新整理頁面', 'error');
-            }
-        });
-    </script>
+    <link rel="stylesheet" href="./css/login.css">
+    <link rel="stylesheet" href="./css/toast.css">
 
-    <!-- 其他模組按順序載入 -->
-    <script src="./js/utils.js"></script>
-    <script src="./js/config.js"></script>
-    <script src="./js/auth.js"></script>
-    <script src="./js/storage.js"></script>
-    <script src="./js/modal.js"></script>
-    <script src="./js/records.js"></script>
-    <script src="./js/entry.js"></script>
-    <script src="./js/tickets.js"></script>
-    <script src="./js/stats.js"></script>
-    <script src="./js/settings.js"></script>
-    <script src="./js/main.js"></script>
-    <script src="js/toast.js"></script>
+    <!-- 系統配置 -->
+    <script>
+        window.HimanSystem = {
+            debug: true,
+            config: {
+                modules: {
+                    required: ['core', 'toast', 'storage', 'auth'],
+                    optional: ['modal', 'stats']
+                },
+                paths: {
+                    js: './js',
+                    css: './css',
+                    components: './js/components',
+                    modules: './js/modules'
+                }
+            }
+        };
+    </script>
+    
+    <!-- 核心模組按順序載入 -->
+    <script src="./js/core/system.js"></script>
+    <script src="./js/components/toast.js"></script>
+    <script src="./js/core/storage.js"></script>
+    <script src="./js/modules/auth.js"></script>
+    <script src="./js/modules/system-ui.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" 
+            crossorigin="anonymous"></script>
 </head>
 <body>
     <!-- 登入介面 -->
-    <div id="loginContainer">
-        <div class="login-header">
-            <h2>HiMAN管理系統</h2>
-            <p>優雅的數位管理體驗</p>
+    <div class="login-wrapper">
+        <div class="login-container">
+            <div class="login-box">
+                <div class="login-header">
+                    <div class="login-logo">
+                        <span class="logo-icon">👤</span>
+                    </div>
+                    <h2>HiMAN管理系統</h2>
+                    <p>優雅的數位管理體驗</p>
+                </div>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <input type="text" 
+                                   id="username" 
+                                   placeholder="請輸入帳號"
+                                   autocomplete="off" 
+                                   required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <input type="password" 
+                                   id="password" 
+                                   placeholder="請輸入密碼"
+                                   autocomplete="off" 
+                                   required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="login-button">登入系統</button>
+                </form>
+            </div>
         </div>
-        
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="username">帳號</label>
-                <input type="text" id="username" autocomplete="off" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="password">密碼</label>
-                <input type="password" id="password" autocomplete="off" required>
-            </div>
-            
-            <button type="submit" class="login-button">登入系統</button>
-        </form>
     </div>
 
     <!-- 主系統介面 -->
-    <div id="mainSystem">
+    <div id="mainSystem" class="hidden-system">
         <header class="main-header">
-            <div class="header-content">
-                <h1>HiMAN管理系統</h1>
-                <div class="user-info">
-                    <span id="currentUser"></span>
-                    <button id="logoutButton">登出</button>
-                </div>
-            </div>
+            <div class="header-content"></div>
         </header>
-
-        <nav class="main-menu">
-            <ul>
-                <li><a href="#" class="menu-item" data-section="entry">入場登記</a></li>
-                <li><a href="#" class="menu-item" data-section="records">入場記錄</a></li>
-                <li><a href="#" class="menu-item" data-section="tickets">票券管理</a></li>
-                <li><a href="#" class="menu-item" data-section="expenses">生活支出</a></li>
-                <li><a href="#" class="menu-item" data-section="stats">統計報表</a></li>
-                <li><a href="#" class="menu-item" data-section="settings">系統設定</a></li>
-            </ul>
-        </nav>
 
         <main id="mainContent">
             <!-- 優惠時段提示 -->
@@ -121,10 +104,6 @@ xu    <meta http-equiv="Content-Security-Policy" content="default-src 'self' htt
                         <div id="currentPrice" class="price-display">
                             <div class="time-info">
                                 目前時間：<span class="current-time"></span>
-                            </div>
-                            <div class="price-info">
-                                目前票價：<span class="amount">500</span>元
-                                <span class="price-type"></span>
                             </div>
                         </div>
                     </div>
@@ -172,7 +151,7 @@ xu    <meta http-equiv="Content-Security-Policy" content="default-src 'self' htt
                             </div>
                         </div>
 
-                        <div class="ticket-payment-area" style="display: none;">
+                        <div class="ticket-payment-area hidden">
                             <div class="form-group">
                                 <label class="form-label" for="ticketNumber">票券號碼</label>
                                 <input type="text" 
@@ -213,5 +192,25 @@ xu    <meta http-equiv="Content-Security-Policy" content="default-src 'self' htt
             <!-- Content -->
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            window.HimanSystem.core.initialize().catch(error => {
+                console.error('系統初始化失敗:', error);
+            });
+        });
+
+        // 只保留全域錯誤處理
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('全域錯誤:', {
+                message: msg,
+                url: url,
+                line: line,
+                column: col,
+                error: error
+            });
+            return false;
+        };
+    </script>
 </body>
 </html>

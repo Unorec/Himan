@@ -1,493 +1,693 @@
-(function() {
-    'use strict';
+import { RecordsManager } from './modules/records.js';
 
-    class EntrySystem {
-        constructor() {
-            this.initialize();
-        }
-
-        initialize() {
-            if (!this.bindElements()) {
-                console.error('無法綁定必要元素');
-                return;
+// 入場登記的靈動交互
+class EntryRegistration {
+    constructor() {
+        this.initializePricingRules(); // 移到最前面
+        this.initializeElements();
+        this.bindEvents();
+        this.initializeTimeDisplay();
+        this.cleanup = () => {
+            if (this.timeInterval) {
+                clearInterval(this.timeInterval);
             }
-            this.attachEventListeners();
-            this.updatePriceDisplay();
-            this.initializePaymentAreas();
-            // 增加更頻繁的檢查以便及時提醒
-            setInterval(() => {
-                this.checkDiscountTime();
-                this.updatePriceDisplay();
-            }, 30000); // 每30秒檢查一次
-        }
+        };
+        // 在頁面卸載時清理
+        window.addEventListener('unload', this.cleanup);
+    }
 
-        bindElements() {
-            try {
-                this.elements = {
-                    entryForm: document.getElementById('entryForm'),
-                    priceDisplay: document.getElementById('currentPrice'),
-                    amountInput: document.getElementById('amount'),
-                    lockerInput: document.getElementById('lockerNumber'),
-                    ticketInput: document.getElementById('ticketNumber'),
-                    remarksInput: document.getElementById('remarks'),
-                    paymentTypes: document.querySelectorAll('input[name="paymentType"]'),
-                    cashArea: document.querySelector('.cash-payment-area'),
-                    ticketArea: document.querySelector('.ticket-payment-area'),
-                    discountAlert: document.getElementById('discountAlert'),
-                    timeDisplay: document.querySelector('.current-time'),
-                    priceAmount: document.querySelector('.amount')
-                };
+    // 元素初始化的優雅序章
+    initializeElements() {
+        this.form = document.getElementById('registrationForm');
+        this.lockerInput = document.getElementById('lockerNumber');
+        this.timeDisplay = document.getElementById('entryTime');
+        this.amountInput = document.getElementById('amount');
+        this.ticketInput = document.getElementById('ticketNumber');
+        this.customAmountCheckbox = document.getElementById('customAmount');
+        this.remarksArea = document.getElementById('remarks');
+        
+        // 付款相關區域
+        this.cashArea = document.getElementById('cashArea');
+        this.ticketArea = document.getElementById('ticketArea');
+        
+        // 初始化預設金額
+        this.standardFee = {
+            regular: 500,
+            evening: 350
+        };
+    }
 
-                // 驗證必要元素
-                const requiredElements = ['entryForm', 'priceDisplay', 'amountInput', 'cashArea', 'ticketArea'];
-                const missingElements = requiredElements.filter(key => !this.elements[key]);
-                
-                if (missingElements.length > 0) {
-                    console.error('缺少必要元素:', missingElements);
-                    return false;
-                }
-                return true;
-            } catch (error) {
-                console.error('元素綁定失敗:', error);
-                return false;
-            }
-        }
+    // 事件綁定的精妙藝術
+    bindEvents() {
+        // 表單提交的優雅處理
+        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        
+        // 付款方式切換的靈動轉換
+        document.querySelectorAll('input[name="paymentType"]').forEach(radio => {
+            radio.addEventListener('change', (e) => this.handlePaymentTypeChange(e));
+        });
+        
+        // 自訂金額的動態響應
+        this.customAmountCheckbox.addEventListener('change', (e) => {
+            this.handleCustomAmountToggle(e);
+        });
+        
+        // 櫃位號碼的即時驗證
+        this.lockerInput.addEventListener('input', (e) => this.validateLockerNumber(e));
+    }
 
-        attachEventListeners() {
-            if (this.elements.entryForm) {
-                this.elements.entryForm.addEventListener('submit', this.handleSubmit.bind(this));
-            }
-
-            this.elements.paymentTypes?.forEach(radio => {
-                radio.addEventListener('change', this.handlePaymentTypeChange.bind(this));
+    // 時間顯示的靈動更新
+    initializeTimeDisplay() {
+        const updateDateTime = () => {
+            const now = new Date();
+            
+            // 更新日期顯示
+            const dateString = now.toLocaleDateString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                weekday: 'long'
+            });
+            
+            // 更新時間顯示
+            const timeString = now.toLocaleTimeString('zh-TW', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
             });
 
-            // 自動更新價格
-            setInterval(() => {
-                this.updatePriceDisplay();
-                this.checkDiscountTime();
-            }, 60000); // 每分鐘更新
-
-            // 立即更新一次價格
-            this.updatePriceDisplay();
-        }
-
-        initializePaymentAreas() {
-            const initialPaymentType = document.querySelector('input[name="paymentType"]:checked');
-            if (initialPaymentType) {
-                this.handlePaymentTypeChange({ target: initialPaymentType });
-            }
-        }
-
-        updatePaymentAreas(isCash) {
-            if (!this.elements.cashArea || !this.elements.ticketArea) {
-                console.error('付款區域元素未找到');
-                return;
-            }
-
-            this.elements.cashArea.style.display = isCash ? 'block' : 'none';
-            this.elements.ticketArea.style.display = isCash ? 'none' : 'block';
-
-            if (isCash) {
-                this.elements.ticketInput.value = '';
-                const timeInfo = this.getTimeInfo();
-                this.elements.amountInput.value = timeInfo.currentPrice;
-            } else {
-                this.elements.amountInput.value = '';
-                this.elements.ticketInput.focus();
-            }
-        }
-
-        handlePaymentTypeChange(event) {
-            const isCash = event.target.value === 'cash';
+            // 更新顯示元素
+            const currentDateDisplay = document.getElementById('currentDate');
+            const currentTimeDisplay = document.getElementById('currentTime');
             
-            // 使用 display 直接控制顯示狀態
-            if (this.elements.cashArea) {
-                this.elements.cashArea.style.display = isCash ? 'block' : 'none';
-            }
-            if (this.elements.ticketArea) {
-                this.elements.ticketArea.style.display = isCash ? 'none' : 'block';
-                // 如果是票券模式，確保聚焦到票券輸入框
-                if (!isCash && this.elements.ticketInput) {
-                    setTimeout(() => this.elements.ticketInput.focus(), 100);
-                }
-            }
-
-            // 重設輸入值
-            if (isCash) {
-                if (this.elements.ticketInput) {
-                    this.elements.ticketInput.value = '';
-                }
-                if (this.elements.amountInput) {
-                    this.elements.amountInput.value = this.getTimeInfo().currentPrice;
-                }
-            } else {
-                if (this.elements.amountInput) {
-                    this.elements.amountInput.value = '';
-                }
-            }
-
-            // 更新必填狀態
-            if (this.elements.ticketInput) {
-                this.elements.ticketInput.required = !isCash;
-            }
-            if (this.elements.amountInput) {
-                this.elements.amountInput.required = isCash;
-            }
-        }
-
-        async handleSubmit(event) {
-            event.preventDefault();
-            
-            try {
-                const formData = this.getFormData();
-                if (!this.validateFormData(formData)) return;
-
-                const duplicateCheck = await this.checkLockerDuplicate(formData.lockerNumber);
-                if (duplicateCheck.isDuplicate) {
-                    this.showDuplicateInfo(duplicateCheck.record);
-                    return;
-                }
-
-                const record = await this.createRecord(formData);
-                if (record) {
-                    window.showToast('入場登記成功', 'success');
-                    this.resetForm();
-                    window.HimanSystem.ModuleManager.get('records')?.renderRecords();
-                }
-            } catch (error) {
-                console.error('入場登記失敗:', error);
-                window.showToast('入場登記失敗', 'error');
-            }
-        }
-
-        async checkLockerDuplicate(lockerNumber) {
-            try {
-                const records = window.HimanSystem.ModuleManager.get('records');
-                const activeRecords = await records.getActiveRecords();
-                
-                const duplicate = activeRecords.find(record => 
-                    record.lockerNumber === lockerNumber && 
-                    record.status === 'active'
-                );
-
-                return {
-                    isDuplicate: !!duplicate,
-                    record: duplicate
-                };
-            } catch (error) {
-                console.error('檢查重複櫃位時發生錯誤:', error);
-                throw error;
-            }
-        }
-
-        getTimeInfo() {
-            const now = new Date();
-            const hour = now.getHours();
-            const minute = now.getMinutes();
-            const day = now.getDay();
-            
-            // 檢查是否為週末 (0是週日)
-            const isWeekend = day === 0 || day === 5 || day === 6;
-            
-            // 檢查是否為優惠時段 (18:30-19:30)
-            const isDiscountTime = (hour === 18 && minute >= 30) || 
-                                 (hour === 19 && minute <= 30);
-
-            // 根據時間和星期計算價格
-            let currentPrice;
-            if (isDiscountTime) {
-                currentPrice = isWeekend ? 500 : 350; // 優惠時段價格
-            } else {
-                currentPrice = isWeekend ? 700 : 500; // 一般價格
-            }
-
-            return {
-                isWeekend,
-                isDiscountTime,
-                currentPrice
-            };
-        }
-
-        getFormData() {
-            const paymentType = document.querySelector('input[name="paymentType"]:checked').value;
-            const { currentPrice, isDiscountTime, isWeekend } = this.getTimeInfo();
-            
-            return {
-                lockerNumber: this.elements.lockerInput.value,
-                paymentType: paymentType,
-                amount: paymentType === 'cash' ? currentPrice : null,
-                ticketNumber: paymentType === 'ticket' ? this.elements.ticketInput.value : null,
-                remarks: this.elements.remarksInput.value,
-                status: 'active',
-                timestamp: new Date().toISOString(),
-                isDiscountTime: isDiscountTime,
-                isWeekend: isWeekend
-            };
-        }
-
-        validateFormData(data) {
-            if (!data.lockerNumber) {
-                window.showToast('請輸入櫃位號碼', 'error');
-                return false;
-            }
-
-            if (data.paymentType === 'ticket' && !data.ticketNumber) {
-                window.showToast('請輸入票券號碼', 'error');
-                return false;
-            }
-
-            return true;
-        }
-
-        async createRecord(data) {
-            try {
-                return window.HimanSystem.ModuleManager.get('records')?.addRecord(data);
-            } catch (error) {
-                throw new Error('建立入場記錄失敗');
-            }
-        }
-
-        resetForm() {
-            this.elements.entryForm.reset();
-            this.updatePriceDisplay();
-        }
-
-        checkDiscountTime() {
-            if (this.elements.discountAlert) {
-                const { isDiscountTime, currentPrice } = this.getTimeInfo();
-                
-                this.elements.discountAlert.classList.toggle('hidden', !isDiscountTime);
-                
-                if (isDiscountTime) {
-                    const priceSpan = this.elements.discountAlert.querySelector('.price');
-                    if (priceSpan) {
-                        const now = new Date();
-                        const startTime = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-                        const message = `${currentPrice} (開始時間：${startTime})`;
-                        priceSpan.textContent = message;
-                        
-                        if (this.elements.remarksInput) {
-                            const currentRemarks = this.elements.remarksInput.value;
-                            const timeNote = `優惠時段開始：${startTime}`;
-                            this.elements.remarksInput.value = currentRemarks 
-                                ? `${currentRemarks}\n${timeNote}`
-                                : timeNote;
-                        }
-                    }
-                }
-            }
-        }
-
-        updatePriceDisplay() {
-            const { currentPrice, isDiscountTime, isWeekend } = this.getTimeInfo();
-            
-            if (this.elements.priceDisplay) {
-                let priceText = `目前票價: <span class="amount">${currentPrice}</span>元`;
-                if (isDiscountTime) {
-                    priceText += ' <span class="discount-note">(優惠時段)</span>';
-                }
-                if (isWeekend) {
-                    priceText += ' <span class="weekend-note">(假日票價)</span>';
-                }
-                
-                this.elements.priceDisplay.innerHTML = priceText;
-                this.elements.priceDisplay.classList.toggle('discount', isDiscountTime);
+            if (currentDateDisplay) {
+                currentDateDisplay.textContent = dateString;
             }
             
-            if (this.elements.amountInput) {
-                this.elements.amountInput.value = currentPrice;
+            if (currentTimeDisplay) {
+                currentTimeDisplay.textContent = timeString;
             }
-
-            const now = new Date();
-            const upcomingDiscount = checkForUpcomingDiscount(now);
             
-            // 顯示即將到來的優惠提醒
-            if (upcomingDiscount) {
-                const alertEl = document.getElementById('discountAlert');
-                if (alertEl) {
-                    alertEl.classList.remove('hidden');
-                    alertEl.classList.add('upcoming');
-                    alertEl.querySelector('.price').textContent = 
-                        `${upcomingDiscount.message} (${upcomingDiscount.startTime} 開始)`;
-                }
+            // 更新隱藏的入場時間輸入框
+            if (this.timeDisplay) {
+                this.timeDisplay.value = `${dateString} ${timeString}`;
             }
-        }
-    }
-
-    // 檢查並註冊模組
-    if (window.HimanSystem && window.HimanSystem.ModuleManager) {
-        window.HimanSystem.ModuleManager.register('entry', EntrySystem);
-    } else {
-        console.error('系統核心未完全載入，無法註冊入場模組');
-    }
-
-    function checkForDiscount(now) {
-        const day = now.getDay();
-        const time = now.toLocaleTimeString('zh-TW', { hour12: false });
+            
+            // 更新預設金額並檢查優惠時段
+            this.updateFeeByTime(now);
+        };
         
-        // 檢查星期天小毛巾之夜優惠
-        if (day === 0) { // 星期天
-            const sundayDiscount = Config.pricing.discounts.sundayTowel;
-            if (isTimeBetween(time, sundayDiscount.hours.start, sundayDiscount.hours.end)) {
-                return {
-                    type: 'sundayTowel',
-                    name: sundayDiscount.name,
-                    price: sundayDiscount.price,
-                    maxStay: sundayDiscount.hours.maxStay,
-                    overtime: sundayDiscount.overtime
-                };
-            }
-        }
-
-        // ...existing code...
+        // 立即執行一次
+        updateDateTime();
+        
+        // 設定每秒更新
+        this.timeInterval = setInterval(updateDateTime, 1000);
     }
 
-    function checkForUpcomingDiscount(now) {
+    // 預設金額的智慧計算
+    updateFeeByTime(now) {
         const day = now.getDay();
         const hour = now.getHours();
         const minute = now.getMinutes();
+        const currentTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         
-        // 檢查常規優惠時段
-        const isApproachingRegularDiscount = 
-            (hour === 18 && minute >= 0 && minute < 30) || // 18:00-18:30
-            (hour === 13 && minute >= 0 && minute < 30 && day === 0); // 星期日13:00-13:30
+        let fee = this.calculateFee(day, currentTime);
         
-        if (isApproachingRegularDiscount) {
+        // 更新金額顯示
+        if (!this.customAmountCheckbox?.checked && this.amountInput) {
+            this.amountInput.value = fee;
+        }
+
+        // 更新提示訊息
+        this.updatePricingInfo(day, currentTime);
+    }
+
+    calculateFee(day, currentTime) {
+        if (!this.timeRules || !this.pricing) {
+            console.error('Pricing rules not initialized');
+            return 500; // 預設金額
+        }
+
+        const isWeekend = [5, 6, 0].includes(day);
+        
+        if (day === 0 && this.isWithinTimeRange(currentTime, 
+            this.timeRules.towelNight.start, 
+            this.timeRules.towelNight.end)) {
+            return this.pricing.weekday.towelNight;
+        }
+        
+        if (this.isWithinTimeRange(currentTime, 
+            this.timeRules.discountPeriod.start, 
+            this.timeRules.discountPeriod.end)) {
+            return isWeekend ? this.pricing.weekend.discount : this.pricing.weekday.discount;
+        }
+        
+        return isWeekend ? this.pricing.weekend.regular : this.pricing.weekday.regular;
+    }
+
+    isWithinTimeRange(current, start, end) {
+        const currentMinutes = this.timeToMinutes(current);
+        const startMinutes = this.timeToMinutes(start);
+        const endMinutes = this.timeToMinutes(end);
+        return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    }
+
+    timeToMinutes(timeStr) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+    }
+
+    updatePricingInfo(day, currentTime) {
+        const discountPeriod = document.getElementById('discountPeriod');
+        
+        if (!discountPeriod) {
+            console.error('Cannot find discountPeriod element');
+            return;
+        }
+
+        const amount = this.calculateFee(day, currentTime);
+        let timeStatus = '';
+        let priceMessage = '';
+        
+        // 判斷時段和價格
+        const priceInfo = this.getPriceInfo(day, currentTime, amount);
+        
+        // 更新 UI 元素
+        const timeBadge = discountPeriod.querySelector('.time-badge');
+        const discountBadge = discountPeriod.querySelector('.discount-badge');
+        const currentPrice = discountPeriod.querySelector('#currentPrice');
+        
+        if (timeBadge) timeBadge.textContent = priceInfo.timeStatus;
+        if (discountBadge) discountBadge.textContent = priceInfo.priceMessage;
+        if (currentPrice) currentPrice.textContent = `目前票價：${amount}元`;
+        
+        // 更新視覺樣式
+        this.updateDiscountPeriodStyle(discountPeriod, priceInfo.type);
+        
+        // 同步更新金額
+        this.syncAmountInput(amount);
+        
+        // 移除隱藏狀態
+        discountPeriod.classList.remove('hidden');
+        discountPeriod.style.display = 'block';
+    }
+
+    getPriceInfo(day, currentTime, amount) {
+        if (day === 0 && this.isWithinTimeRange(currentTime, 
+            this.timeRules.towelNight.start, 
+            this.timeRules.towelNight.end)) {
             return {
-                type: 'upcoming',
-                startTime: day === 0 ? '13:30' : '18:30',
-                message: SYSTEM_CONFIG.pricing.notifications.discountAlertMessage
+                timeStatus: '小毛巾之夜特惠時段',
+                priceMessage: `🌙 特惠價 ${amount}元`,
+                type: 'towel-night'
             };
         }
         
-        return null;
+        if (this.isWithinTimeRange(currentTime, 
+            this.timeRules.discountPeriod.start, 
+            this.timeRules.discountPeriod.end)) {
+            return {
+                timeStatus: '優惠時段',
+                priceMessage: `⏰ 優惠價 ${amount}元`,
+                type: 'discount-period'
+            };
+        }
+        
+        const isWeekend = [5, 6, 0].includes(day);
+        return {
+            timeStatus: isWeekend ? '週末時段' : '一般時段',
+            priceMessage: `💰 ${isWeekend ? '週末' : '平日'}價 ${amount}元`,
+            type: 'regular'
+        };
     }
 
-    function updatePriceDisplay() {
-        const now = new Date();
-        const discount = checkForDiscount(now);
-        const upcomingDiscount = checkForUpcomingDiscount(now);
+    updateDiscountPeriodStyle(element, type) {
+        element.classList.remove('towel-night', 'discount-period', 'regular');
+        element.classList.add(type);
+    }
+
+    syncAmountInput(amount) {
+        if (!this.customAmountCheckbox?.checked && 
+            document.querySelector('input[name="paymentType"]:checked')?.value === 'cash') {
+            this.amountInput.value = amount;
+        }
+    }
+
+    // 付款方式切換的優雅過渡
+    handlePaymentTypeChange(event) {
+        const isCash = event.target.value === 'cash';
         
-        const priceDisplay = document.getElementById('currentPrice');
-        const discountAlert = document.getElementById('discountAlert');
+        // 確保元素存在
+        if (!this.cashArea || !this.ticketArea || !this.amountInput || !this.ticketInput) {
+            console.error('Required elements not found');
+            return;
+        }
+
+        // 顯示/隱藏相應的付款區域
+        this.cashArea.style.display = isCash ? 'block' : 'none';
+        this.ticketArea.style.display = isCash ? 'none' : 'block';
         
-        if (discount) {
-            priceDisplay.querySelector('.amount').textContent = discount.price;
-            priceDisplay.querySelector('.price-type').textContent = `(${discount.name})`;
+        // 重設表單欄位
+        if (isCash) {
+            // 現金付款模式
+            this.ticketInput.value = '';
+            this.ticketInput.required = false;
+            this.amountInput.required = true;
             
-            discountAlert.querySelector('.price').textContent = `${discount.price}元`;
-            discountAlert.classList.remove('hidden');
-            
-            // 添加時間限制提醒
-            const alertText = `優惠價格：${discount.price}元 (限制使用至晚上11:00，超時費用${discount.overtime.price}元)`;
-            discountAlert.querySelector('.price').textContent = alertText;
-        }
-        
-        // 顯示即將到來的優惠提醒
-        if (upcomingDiscount) {
-            const alertEl = document.getElementById('discountAlert');
-            if (alertEl) {
-                alertEl.classList.remove('hidden');
-                alertEl.classList.add('upcoming');
-                alertEl.querySelector('.price').textContent = 
-                    `${upcomingDiscount.message} (${upcomingDiscount.startTime} 開始)`;
-            }
-        }
-        
-        // ...existing code...
-    }
-
-    async function handleSubmit(event) {
-        // ...existing code...
-        
-        const formData = this.getFormData();
-        
-        // 檢查是否為小毛巾之夜優惠
-        const discount = checkForDiscount(new Date());
-        if (discount?.type === 'sundayTowel') {
-            formData.maxStayTime = discount.maxStay;
-            formData.overtimePrice = discount.overtime.price;
-            formData.remarks += `\n限制使用至晚上11:00，超時費用${discount.overtime.price}元`;
-        }
-        
-        // ...existing code...
-    }
-
-})();
-
-function getTimeInfo() {
-    const now = new Date();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-    const day = now.getDay(); // 0是週日，1-6是週一到週六
-    
-    // 檢查是否為週末 (週五、六、日)
-    const isWeekend = day === 0 || day === 5 || day === 6;
-    
-    // 檢查是否為優惠時段 (18:30-19:30)
-    const isDiscountTime = (hour === 18 && minute >= 30) || 
-                          (hour === 19 && minute <= 30);
-
-    // 根據時間和星期計算價格
-    let currentPrice;
-    if (isDiscountTime) {
-        currentPrice = isWeekend ? 500 : 350; // 優惠時段價格
-    } else {
-        currentPrice = isWeekend ? 700 : 500; // 一般價格
-    }
-
-    return {
-        isWeekend,
-        isDiscountTime,
-        currentPrice,
-        timeDisplay: now.toLocaleTimeString('zh-TW', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        })
-    };
-}
-
-function updatePriceByTime() {
-    const timeInfo = getTimeInfo();
-    const timeDisplay = document.querySelector('.current-time');
-    const priceDisplay = document.querySelector('.amount');
-    const entryContainer = document.querySelector('.entry-container');
-    const discountAlert = document.getElementById('discountAlert');
-    
-    // 更新時間顯示
-    if (timeDisplay) {
-        timeDisplay.textContent = timeInfo.timeDisplay;
-    }
-
-    // 更新價格顯示
-    if (priceDisplay) {
-        priceDisplay.textContent = timeInfo.currentPrice;
-    }
-    
-    // 更新優惠提示和背景
-    if (discountAlert) {
-        if (timeInfo.isDiscountTime) {
-            entryContainer.classList.add('discount-time');
-            discountAlert.classList.remove('hidden');
-            const priceMessage = `${timeInfo.currentPrice}元 (${timeInfo.isWeekend ? '假日' : '平日'}優惠價)`;
-            discountAlert.querySelector('.price').textContent = priceMessage;
+            // 設定當前時段的預設金額
+            const now = new Date();
+            const day = now.getDay();
+            const currentTime = now.toLocaleTimeString('zh-TW', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            const fee = this.calculateFee(day, currentTime);
+            this.amountInput.value = fee;
+            this.amountInput.disabled = !this.customAmountCheckbox.checked;
         } else {
-            entryContainer.classList.remove('discount-time');
-            discountAlert.classList.add('hidden');
+            // 票券付款模式
+            this.amountInput.value = '';
+            this.amountInput.required = false;
+            this.ticketInput.required = true;
+            this.ticketInput.focus(); // 自動聚焦到票券輸入框
+        }
+        
+        // 更新 UI 狀態
+        this.updatePricingInfo(new Date().getDay(), 
+            new Date().toLocaleTimeString('zh-TW', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            })
+        );
+    }
+
+    // 自訂金額的靈活控制
+    handleCustomAmountToggle(event) {
+        const checked = event.target.checked;
+        this.amountInput.disabled = !checked;
+        
+        if (checked) {
+            this.amountInput.value = '';
+            this.amountInput.focus();
+        } else {
+            this.updateDefaultAmount(new Date());
         }
     }
 
-    // 更新表單中的金額輸入框
-    const amountInput = document.getElementById('amount');
-    if (amountInput) {
-        amountInput.value = timeInfo.currentPrice;
+    // 櫃位號碼的即時驗證
+    validateLockerNumber(event) {
+        const value = event.target.value;
+        if (value < 1 || value > 500) {
+            event.target.classList.add('error');
+            this.showNotification('櫃位號碼必須在1-500之間', 'error');
+        } else {
+            event.target.classList.remove('error');
+        }
+    }
+
+    // 表單提交的優雅處理
+    async handleSubmit(event) {
+        event.preventDefault();
+        
+        try {
+            // 基礎驗證
+            if (!this.validateForm()) {
+                return;
+            }
+            
+            // 取得目前時間和價格
+            const now = new Date();
+            const currentTime = now.toLocaleTimeString('zh-TW', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            const expectedAmount = this.calculateFee(now.getDay(), currentTime);
+            
+            // 檢查輸入金額是否符合時段價格
+            const inputAmount = parseInt(this.amountInput.value);
+            const paymentType = document.querySelector('input[name="paymentType"]:checked').value;
+            
+            if (paymentType === 'cash' && !this.customAmountCheckbox?.checked) {
+                if (inputAmount !== expectedAmount) {
+                    this.showNotification(`金額不符合目前時段價格 ${expectedAmount} 元`, 'error');
+                    return;
+                }
+            }
+            
+            // 構建入場記錄
+            const entryData = {
+                lockerNumber: parseInt(this.lockerInput.value),
+                entryTime: now.toISOString(),
+                paymentType: paymentType,
+                amount: paymentType === 'cash' ? inputAmount : null,
+                ticketNumber: this.ticketInput.value || null,
+                remarks: this.remarksArea.value,
+                priceType: this.getCurrentPriceType(now.getDay(), currentTime)
+            };
+            
+            // 儲存記錄
+            await this.saveEntry(entryData);
+            
+            // 顯示成功通知並更新 UI
+            this.showSuccessNotification(entryData);
+            
+            // 重置表單
+            this.resetForm();
+            
+        } catch (error) {
+            console.error('入場登記失敗:', error);
+            this.showNotification('入場登記失敗，請稍後再試', 'error');
+        }
+    }
+
+    getCurrentPriceType(day, currentTime) {
+        if (day === 0 && this.isWithinTimeRange(currentTime, 
+            this.timeRules.towelNight.start, 
+            this.timeRules.towelNight.end)) {
+            return 'towel-night';
+        }
+        
+        if (this.isWithinTimeRange(currentTime, 
+            this.timeRules.discountPeriod.start, 
+            this.timeRules.discountPeriod.end)) {
+            return 'discount';
+        }
+        
+        return [5, 6, 0].includes(day) ? 'weekend' : 'weekday';
+    }
+
+    showSuccessNotification(entryData) {
+        const message = `
+            入場登記成功！
+            櫃位號碼: ${entryData.lockerNumber}
+            ${entryData.paymentType === 'cash' ? 
+                `金額: ${entryData.amount} 元` : 
+                `票券編號: ${entryData.ticketNumber}`}
+        `;
+        
+        this.showNotification(message, 'success');
+        
+        // 顯示詳細資訊於通知區域
+        const notificationArea = document.getElementById('notification');
+        if (notificationArea) {
+            notificationArea.innerHTML = `
+                <div class="notification-content">
+                    <h4>入場登記成功！</h4>
+                    <p>櫃位號碼: ${entryData.lockerNumber}</p>
+                    ${entryData.paymentType === 'cash' ? 
+                        `<p>付款金額: ${entryData.amount} 元</p>` : 
+                        `<p>票券編號: ${entryData.ticketNumber}</p>`}
+                    <p class="notification-time">${new Date().toLocaleTimeString('zh-TW')}</p>
+                </div>
+            `;
+        }
+    }
+
+    // 表單驗證的嚴謹藝術
+    validateForm() {
+        // 櫃位號碼驗證
+        if (this.lockerInput.value < 1 || this.lockerInput.value > 500) {
+            this.showNotification('請輸入有效的櫃位號碼（1-500）', 'error');
+            return false;
+        }
+        
+        // 付款資訊驗證
+        const paymentType = document.querySelector('input[name="paymentType"]:checked').value;
+        if (paymentType === 'cash' && !this.amountInput.value) {
+            this.showNotification('請輸入付款金額', 'error');
+            return false;
+        }
+        
+        if (paymentType === 'ticket' && !this.ticketInput.value) {
+            this.showNotification('請輸入票券號碼', 'error');
+            return false;
+        }
+        
+                return true;
+    }
+
+        initializePricingRules() {
+            this.pricing = {
+                weekday: {
+                    regular: 500,
+                    discount: 350,
+                    towelNight: 350
+                },
+                weekend: {
+                    regular: 700,
+                    discount: 500
+                }
+            };
+            
+            this.timeRules = {
+                discountPeriod: {
+                    start: '18:30',
+                    end: '19:30',
+                    nextDayEnd: '06:00'
+                },
+                towelNight: {
+                    day: 0, // 週日
+                    start: '13:30',
+                    end: '15:30',
+                    limitTime: '23:00'
+                }
+            };
+        }
+
+    // 更新預設金額
+    updateDefaultAmount(date) {
+        const day = date.getDay();
+        const currentTime = date.toLocaleTimeString('zh-TW', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        const fee = this.calculateFee(day, currentTime);
+        this.amountInput.value = fee;
+    }
+
+    // 儲存入場記錄
+    async saveEntry(entryData) {
+        try {
+            // 這裡應該是你的儲存邏輯
+            console.log('儲存入場記錄:', entryData);
+            // 之後可以改為實際的 API 呼叫
+            return Promise.resolve();
+        } catch (error) {
+            console.error('儲存失敗:', error);
+            throw error;
+        }
+    }
+
+    // 顯示通知訊息
+    showNotification(message, type = 'info') {
+        const notification = document.getElementById('notification');
+        if (!notification) return;
+
+        notification.textContent = message;
+        notification.className = `notification ${type}`;
+        notification.classList.remove('hidden');
+
+        // 3秒後自動隱藏
+        setTimeout(() => {
+            notification.classList.add('hidden');
+        }, 3000);
+    }
+
+    // 重置表單
+    resetForm() {
+        this.form.reset();
+        this.updateDefaultAmount(new Date());
+        this.lockerInput.focus();
+    }
+
+    updateDateTime() {
+        const now = new Date();
+        const timeDisplayContainer = document.querySelector('.time-display-container');
+        
+        // Create the container if it doesn't exist
+        if (!timeDisplayContainer) {
+            const entryForm = document.querySelector('.entry-form');
+            const newContainer = document.createElement('div');
+            newContainer.className = 'time-display-container';
+            entryForm.insertBefore(newContainer, entryForm.firstChild);
+            return this.updateDateTime(); // Retry after creating container
+        }
+
+        const dateStr = now.toLocaleDateString('zh-TW', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'long'
+        });
+        
+        const timeStr = now.toLocaleTimeString('zh-TW', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+
+        timeDisplayContainer.innerHTML = `
+            <div class="time-display-row">
+                <span class="time-display-label">
+                    <i class="fas fa-calendar time-icon"></i>日期
+                </span>
+                <span class="time-display-value" id="currentDate">${dateStr}</span>
+            </div>
+            <div class="time-display-row">
+                <span class="time-display-label">
+                    <i class="fas fa-clock time-icon"></i>時間
+                </span>
+                <span class="time-display-value" id="currentTime">${timeStr}</span>
+            </div>
+            <input type="hidden" id="entryTime" name="entryTime" value="${dateStr} ${timeStr}">
+        `;
+    }
+
+    // 在類的析構函數或清理方法中添加
+    cleanup() {
+        if (this.timeInterval) {
+            clearInterval(this.timeInterval);
+        }
     }
 }
 
-// 在文檔載入時初始化
+// 初始化應用程式
 document.addEventListener('DOMContentLoaded', () => {
-    updatePriceByTime();
-    // 每分鐘更新一次
-    setInterval(updatePriceByTime, 60000);
+    const app = new EntryRegistration();
+    
+    // 頁面切換功能
+    const pageSections = document.querySelectorAll('.page-section');
+    const navItems = document.querySelectorAll('.nav-item');  // 添加這行
+    
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const targetPage = item.dataset.page;
+            
+            // 更新導航項目狀態
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+            
+            // 切換頁面顯示
+            pageSections.forEach(section => {
+                if (section.id === targetPage) {
+                    section.classList.remove('hidden');
+                    section.classList.add('active');
+                } else {
+                    section.classList.add('hidden');
+                    section.classList.remove('active');
+                }
+            });
+            
+            // 如果切換到紀錄查詢頁面，初始化 RecordsManager
+            if (targetPage === 'recordsSection' && !window.recordsManager) {
+                window.recordsManager = new RecordsManager();
+            }
+        });
+    });
+
+    // 綁定登出按鈕事件
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            // 清除所有本地存儲的資料
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // 顯示登出提示
+            const notification = document.getElementById('notification');
+            if (notification) {
+                notification.textContent = '成功登出系統';
+                notification.className = 'notification success';
+                notification.classList.remove('hidden');
+            }
+            
+            // 短暫延遲後重導向到登入頁面
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1000);
+        });
+    }
 });
+
+// 初始化記錄管理器
+const recordsManager = new RecordsManager();
+
+// 搜尋按鈕點擊處理
+document.getElementById('searchRecordsBtn').addEventListener('click', async () => {
+    try {
+        const filters = {
+            startDate: document.getElementById('startDate').value,
+            endDate: document.getElementById('endDate').value,
+            lockerNumber: document.getElementById('searchLockerNumber').value,
+            paymentType: document.getElementById('searchPaymentType').value,
+            priceType: document.getElementById('searchPriceType').value,
+            status: document.getElementById('searchStatus').value
+        };
+
+        const result = await recordsManager.searchRecords(filters);
+        updateRecordsTable(result.records);
+        updatePagination(result.total, result.totalPages);
+    } catch (error) {
+        console.error('搜尋失敗:', error);
+        // TODO: 顯示錯誤訊息給使用者
+    }
+});
+
+// 更新記錄表格
+function updateRecordsTable(records) {
+    const tbody = document.getElementById('recordsTableBody');
+    tbody.innerHTML = '';
+
+    records.forEach(record => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${record.date} ${record.time}</td>
+            <td>${record.lockerNumber}</td>
+            <td>${record.paymentType === 'cash' ? '現金' : '票券'}</td>
+            <td>${record.amount || record.ticketNumber}</td>
+            <td>${getPeriodTypeText(record.periodType)}</td>
+            <td><span class="status-badge status-${record.status}">${getStatusText(record.status)}</span></td>
+            <td>${record.remarks}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="action-btn edit-btn" data-id="${record.id}">編輯</button>
+                    ${record.status === 'active' ? 
+                        `<button class="action-btn extend-btn" data-id="${record.id}">延長</button>` : 
+                        ''}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// 更新分頁資訊
+function updatePagination(total, totalPages) {
+    document.getElementById('totalRecords').textContent = total;
+    document.getElementById('totalPages').textContent = totalPages;
+    // TODO: 更新分頁按鈕狀態
+}
+
+// 輔助函數
+function getPeriodTypeText(type) {
+    const types = {
+        'regular': '一般時段',
+        'discount': '優惠時段',
+        'towel-night': '小毛巾之夜'
+    };
+    return types[type] || type;
+}
+
+function getStatusText(status) {
+    const statuses = {
+        'active': '使用中',
+        'completed': '已結束'
+    };
+    return statuses[status] || status;
+}

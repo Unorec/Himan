@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HiMAN管理系統 - 登入</title>
+    <!-- 修改錯誤處理腳本 -->
+    <script>
+        window.addEventListener('error', function(e) {
+            if (e.filename && e.filename.startsWith('chrome-error://')) {
+                e.preventDefault();
+                console.warn('已忽略 chrome-error 協議訊息');
+            }
+        }, true);  // 加上 capture 參數
+    </script>
+    <link href="./css/tailwind.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="bg-gray-50">
+    <div class="login-wrapper flex min-h-screen items-center justify-center">
+        <div class="login-container bg-white p-8 rounded-lg shadow-md w-96">
+            <h1 class="text-2xl font-bold text-center mb-6">HiMAN 管理系統</h1>
+            
+            <!-- 添加錯誤訊息顯示區域 -->
+            <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
+            
+            <form id="loginForm" class="space-y-4">
+                <div class="form-group">
+                    <label class="block text-sm font-medium text-gray-700">帳號</label>
+                    <input type="text" 
+                           id="username" 
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="block text-sm font-medium text-gray-700">密碼</label>
+                    <input type="password" 
+                           id="password" 
+                           required>
+                </div>
+
+                <button type="submit" 
+                        class="login-button w-full">
+                    登入系統
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/core/system.js" type="module"></script>
+    <script src="js/modules/auth.js" type="module"></script>
+</body>
+</html>

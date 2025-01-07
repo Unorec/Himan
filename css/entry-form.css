@@ -1,0 +1,431 @@
+/* entry-form.css - 入場體驗的視覺藝術 */
+
+/* 側邊導航的優雅呈現 */
+.sidebar {
+    width: 280px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border-right: 1px solid rgba(226, 232, 240, 0.8);
+    height: 100vh;
+    position: fixed;
+    overflow-y: auto;
+    transition: all 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 1.5rem;
+}
+
+/* 系統標題的優雅設計 */
+.system-title {
+    text-align: center;
+    padding: 2rem 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.system-title h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.system-title p {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    margin-top: 0.5rem;
+}
+
+/* 側邊欄內容的置中對齊 */
+.sidebar-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 導航項目的視覺律動 */
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    width: 100%;
+    color: #475569;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 0.75rem;
+    justify-content: center;
+    text-align: center;
+    margin: 0.25rem 0;
+}
+
+.nav-item:hover {
+    background: rgba(243, 244, 245, 0.05);
+    color: #1d4ed8;
+}
+
+.nav-item.active {
+    background: rgba(254, 254, 254, 0.1);
+    color: #1d4ed8;
+    font-weight: 500;
+}
+
+.icon {
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-menu {
+    width: 100%;
+    justify-content: center;
+}
+
+/* 主要內容區域的優雅布局 */
+.page-section {
+    margin-left: 280px;
+    padding: 2rem;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease-out;
+}
+
+.page-section.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 表單區域的視覺層次 */
+.entry-form {
+    max-width: 800px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    padding: 2rem;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.form-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* 標題設計的優雅表達 */
+.section-title {
+    font-size: 1.125rem;
+    color: var(--text-color);
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
+
+/* 表單元素的精緻呈現 */
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    color: #475569;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-input,
+.form-textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    background: #ffffff;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(252, 253, 253, 0.1);
+}
+
+/* 付款方式選擇的視覺詩意 */
+.payment-section {
+    background: var(--color-primary-light);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+.payment-options {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.75rem 1.25rem;
+    background: var(--bg-primary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.radio-label:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+}
+
+.radio-label input[type="radio"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1.5px solid #f1e9e9;
+}
+
+
+
+
+/* 金額顯示的優雅設計 */
+.amount-container {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    margin-top: 1rem;
+}
+
+.custom-amount {
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #f6f8fb;
+}
+
+/* 確認按鈕的視覺重點 */
+.btn-primary {
+    background: var(--color-primary);
+    color: var(--color-gray-800);
+    padding: 0.875rem 2rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    width: 100%;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(45, 88, 157, 0.2);
+}
+
+/* 時間顯示的精緻設計 */
+.time-display {
+    background: var(--bg-primary);
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    color: var(--text-color);
+    font-size: 1.125rem;
+    font-weight: 500;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+/* 時間顯示區域的優化設計 */
+.time-display-container {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    margin-bottom: 2rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.time-display-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.time-display-label {
+    min-width: 100px;
+    color: #485a74;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.time-display-value {
+    color: #d3d3d3;
+    font-size: 1.125rem;
+    font-weight: 600;
+    flex: 1;
+}
+
+.time-icon {
+    color: #3b82f6;
+    font-size: 1.25rem;
+    margin-right: 0.5rem;
+}
+
+/* 價格資訊區域樣式 */
+.price-info {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.price-info:not(.hidden) {
+    opacity: 1;
+}
+
+.price-info.regular {
+    background-color: #ffffff;
+    border-color: #e2e8f0;
+}
+
+.price-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.time-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: #0ea5e9;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    color: white;
+    font-weight: 500;
+}
+
+.discount-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: #10b981;
+    border-radius: 0.25rem;
+    color: white;
+    font-weight: 500;
+}
+
+.price-details {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+#currentPrice {
+    display: block;
+    font-size: 1.125rem;
+    color: #1f2937;
+    font-weight: 600;
+}
+
+/* 不同時段的特殊樣式 */
+.price-info.towel-night {
+    background-color: #ecfdf5;
+    border-color: #6ee7b7;
+}
+
+.price-info.towel-night .time-badge {
+    background-color: #6ee7b7;
+    color: #065f46;
+}
+
+.price-info.discount-period {
+    background-color: #fff7ed;
+    border-color: #fed7aa;
+}
+
+.price-info.discount-period .time-badge {
+    background-color: #fed7aa;
+    color: #e7e7e7;
+}
+
+/* 響應式設計的優雅適配 */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 240px;
+    }
+    
+    .page-section {
+        margin-left: 0px;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        padding: 0 1rem;
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    
+    .page-section {
+        margin-left: 0;
+    }
+    
+    .payment-options {
+        flex-direction: column;
+    }
+
+    .system-title {
+        padding: 1.5rem 0.5rem;
+    }
+
+    .system-title h1 {
+        font-size: 1.5rem;
+    }
+}
+
+/* 無障礙支持的人文關懷 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* 深色模式的優雅轉換 */
+@media (prefers-color-scheme: dark) {
+    .sidebar {
+        background: linear-gradient(180deg, #637ab705 0%, #262626 100%);
+        border-right-color: rgba(1, 92, 219, 0.941);
+    }
+    
+    .entry-form {
+        background: #ffffff;
+    }
+    
+    .form-input,
+    .form-textarea {
+        background: #fdfafa;
+        border-color: #fffefe;
+        color: #e5e5e5;
+    }
+    
+    .time-display {
+        background: linear-gradient(135deg, #262626 0%, #1a1a1a 100%);
+        border-color: #f7f2f2;
+        color: #e5e5e5;
+    }
+}

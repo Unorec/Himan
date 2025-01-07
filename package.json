@@ -1,12 +1,24 @@
-  {
-  "name": "himan",
+{
+  "name": "himan-spa-management",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
-    "test": "jest"
+    "start": "electron .",
+    "build": "electron-builder"
   },
   "devDependencies": {
-    "jest": "^29.7.0"
+    "autoprefixer": "^10.4.20",
+    "electron": "^27.1.0",
+    "electron-builder": "^24.6.4",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17"
+  },
+  "build": {
+    "appId": "com.himan.spamanagement",
+    "productName": "HiMAN SPA 管理系統",
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    }
   }
 }

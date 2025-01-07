@@ -145,14 +145,13 @@
             return this.resourceRoot + url;
         }
 
-        async verifyResource(url) {
-            try {
-                const response = await fetch(url, { method: 'HEAD' });
-                return response.ok;
-            } catch (error) {
-                console.warn(`資源驗證失敗: ${url}`, error);
-                return false;
-            }
+        verifyResource(url) {
+            // 最佳化資源驗證邏輯
+            return fetch(url, { 
+                method: 'HEAD',
+                cache: 'no-cache' 
+            }).then(response => response.ok)
+              .catch(() => false);
         }
 
         logError(error, url) {
@@ -348,18 +347,23 @@
         }
     }
 
-    // 註冊到全域命名空間
+    // 簡化初始化邏輯
+    const loader = new ResourceLoader();
     window.HimanSystem = window.HimanSystem || {};
-    window.HimanSystem.resourceLoader = new ResourceLoader();
+    window.HimanSystem.resourceLoader = loader;
 
-    // 移除重複的初始化代碼，只保留事件監聽
     document.addEventListener('DOMContentLoaded', () => {
+        // 統一資源配置
         const resources = [
-            { type: 'style', url: './css/main.css' },
-            { type: 'style', url: './css/components.css' },
-            { type: 'script', url: './js/core/core.js' },
-            { type: 'script', url: './js/core/module.js' }
-        ];
-        window.HimanSystem.resourceLoader.loadResources(resources);
+            'css/main.css',
+            'css/components.css',
+            'js/core.js',
+            'js/module.js'
+        ].map(path => ({
+            type: path.endsWith('.css') ? 'style' : 'script',
+            url: `./${path}`
+        }));
+        
+        loader.loadResources(resources);
     });
 })();

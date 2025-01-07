@@ -1,216 +1,208 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HiMAN管理系統 - 數位時代的優雅解決方案</title>
-    
-    <!-- 使用 emoji 作為 favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>👤</text></svg>">
-    
-    <!-- 整理後的 CSS 引入 -->
-    <link rel="stylesheet" href="./css/main.css">
-    <link rel="stylesheet" href="./css/login.css">
-    <link rel="stylesheet" href="./css/toast.css">
-
-    <!-- 系統配置 -->
+    <title>HiMAN管理系統 - 主控台</title>
+    <!-- 先載入 Tailwind -->
+    <link href="./css/tailwind.css" rel="stylesheet">
+    <!-- 再載入自訂樣式 -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/entry-form.css">
+    <link rel="stylesheet" href="css/entry-records.css">
+    <link rel="stylesheet" href="css/entry-records/active-lockers.css">
+    <link rel="stylesheet" href="css/entry-records/history.css">
+    <link rel="stylesheet" href="css/entry-records/time-tracking.css">
+    <link rel="stylesheet" href="css/entry-records/temp-leave.css">
+    <!-- 修正錯誤處理腳本 -->
     <script>
-        window.HimanSystem = {
-            debug: true,
-            config: {
-                modules: {
-                    required: ['core', 'toast', 'storage', 'auth'],
-                    optional: ['modal', 'stats']
-                },
-                paths: {
-                    js: './js',
-                    css: './css',
-                    components: './js/components',
-                    modules: './js/modules'
-                }
+        window.addEventListener('error', function(e) {
+            if (e.filename && e.filename.startsWith('chrome-error://')) {
+                e.preventDefault();
+                console.warn('Ignored chrome-error protocol message');
             }
-        };
+        });
     </script>
-    
-    <!-- 核心模組按順序載入 -->
-    <script src="./js/core/system.js"></script>
-    <script src="./js/components/toast.js"></script>
-    <script src="./js/core/storage.js"></script>
-    <script src="./js/modules/auth.js"></script>
-    <script src="./js/modules/system-ui.js"></script>
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" 
-            crossorigin="anonymous"></script>
 </head>
-<body>
-    <!-- 登入介面 -->
-    <div class="login-wrapper">
-        <div class="login-container">
-            <div class="login-box">
-                <div class="login-header">
-                    <div class="login-logo">
-                        <span class="logo-icon">👤</span>
-                    </div>
-                    <h2>HiMAN管理系統</h2>
-                    <p>優雅的數位管理體驗</p>
-                </div>
-                
-                <form id="loginForm">
-                    <div class="form-group">
-                        <div class="input-wrapper">
-                            <input type="text" 
-                                   id="username" 
-                                   placeholder="請輸入帳號"
-                                   autocomplete="off" 
-                                   required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <div class="input-wrapper">
-                            <input type="password" 
-                                   id="password" 
-                                   placeholder="請輸入密碼"
-                                   autocomplete="off" 
-                                   required>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="login-button">登入系統</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- 主系統介面 -->
-    <div id="mainSystem" class="hidden-system">
-        <header class="main-header">
-            <div class="header-content"></div>
-        </header>
-
-        <main id="mainContent">
-            <!-- 優惠時段提示 -->
-            <div id="discountAlert" class="discount-alert hidden">
-                <p>目前為優惠時段！優惠價格：<span class="price"></span></p>
+<body class="bg-gray-50">
+    <div id="mainSystem" class="flex h-screen">
+        <!-- 側邊導航區 -->
+        <aside class="sidebar">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold text-gray-800">HiMAN 系統</h1>
+                <p class="text-sm text-gray-500 mt-1">優雅的管理體驗</p>
             </div>
             
-            <div id="entrySection" class="section">
-                <div class="entry-container">
-                    <div class="header-section">
-                        <div class="header-title">
-                            <h2>入場登記</h2>
-                        </div>
-                        <div id="currentPrice" class="price-display">
-                            <div class="time-info">
-                                目前時間：<span class="current-time"></span>
-                            </div>
-                        </div>
-                    </div>
+            <nav class="mt-6" id="mainNav">
+                <button class="nav-item active" data-page="entryForm">
+                    <span class="icon">📝</span>
+                    <span class="nav-text">入場登記</span>
+                </button>
+                <button class="nav-item" data-page="recordsSection">
+                    <span class="icon">📅</span>
+                    <span class="nav-text">紀錄查詢</span>
+                </button>
+                <button class="nav-item" data-page="statsSection">
+                    <span class="icon">📊</span>
+                    <span class="nav-text">營業報表</span>
+                </button>
+                <button class="nav-item" data-page="ticketsSection">
+                    <span class="icon">🎫</span>
+                    <span class="nav-text">票券管理</span>
+                </button>
+            </nav>
 
-                    <form id="entryForm" class="form-grid">
-                        <div class="form-group">
-                            <label class="form-label" for="lockerNumber">櫃位號碼</label>
-                            <input type="number" id="lockerNumber" class="form-input" required>
-                        </div>
+            <!-- 登出按鈕 -->
+            <div class="logout-section">
+                <button class="nav-item logout-btn" id="logoutBtn">
+                    <span class="icon">🚪</span>
+                    <span class="nav-text">登出系統</span>
+                </button>
+            </div>
+        </aside>
 
-                        <div class="form-group">
-                            <label class="form-label" id="paymentTypeLabel">付款方式</label>
-                            <div class="payment-types" role="radiogroup" aria-labelledby="paymentTypeLabel">
-                                <label class="payment-type-label" for="cashPayment">
-                                    <input type="radio" 
-                                           id="cashPayment"
-                                           name="paymentType" 
-                                           value="cash" 
-                                           checked
-                                           aria-labelledby="cashLabel">
-                                    <span id="cashLabel">現金</span>
-                                </label>
-                                <label class="payment-type-label" for="ticketPayment">
-                                    <input type="radio" 
-                                           id="ticketPayment"
-                                           name="paymentType" 
-                                           value="ticket"
-                                           aria-labelledby="ticketLabel">
-                                    <span id="ticketLabel">票券</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="cash-payment-area">
-                            <div class="form-group">
-                                <label class="form-label" for="amount">金額</label>
-                                <div class="amount-display">
-                                    <span class="amount-currency">$</span>
-                                    <input type="number" 
-                                           id="amount" 
-                                           class="form-input amount-input" 
-                                           readonly
-                                           aria-label="付款金額">
+        <!-- 主要內容區域 -->
+        <main class="flex-1">
+            <!-- 入場登記頁面 -->
+            <div id="entryFormPage" class="page-container active">
+                <div class="page-content">
+                    <!-- 原有的入場登記表單內容 -->
+                    <!-- 通知提示的優雅展現 -->
+                    <div id="notification" class="notification hidden"></div>
+                    
+                    <!-- 入場登記表單 (預設顯示) -->
+                    <div id="entryForm" class="page-section active">
+                        <form id="registrationForm" class="entry-form">
+                            <!-- 櫃位號碼和時間顯示區域 -->
+                            <div class="entry-header">
+                                <div class="locker-time-container">
+                                    <div class="locker-section">
+                                        <label for="lockerNumber" class="form-label">櫃位號碼</label>
+                                        <input type="number" id="lockerNumber" class="locker-input" min="1" max="500" required>
+                                    </div>
+                                    <div class="current-datetime">
+                                        <div class="date-display">
+                                            <span id="currentDate" class="date"></span>
+                                        </div>
+                                        <div class="time-display">
+                                            <span id="currentTime" class="time"></span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="ticket-payment-area hidden">
-                            <div class="form-group">
-                                <label class="form-label" for="ticketNumber">票券號碼</label>
-                                <input type="text" 
-                                       id="ticketNumber" 
-                                       class="form-input" 
-                                       placeholder="請輸入票券號碼"
-                                       pattern="[A-Za-z0-9]+"
-                                       autocomplete="off"
-                                       aria-label="票券號碼輸入">
-                                <small class="form-hint" id="ticketHint">請輸入有效的票券號碼</small>
+                            
+                            <!-- 入場時間顯示 -->
+                            <div class="form-group entry-time">
+                                <label for="entryTime" class="form-label">入場時間</label>
+                                <input type="text" id="entryTime" class="form-input" readonly>
+                                <div id="discountPeriod" class="price-info">
+                                    <div class="price-header">
+                                        <span class="time-badge"></span>
+                                        <span class="discount-badge"></span>
+                                    </div>
+                                    <div class="price-details">
+                                        <span id="currentPrice"></span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="form-group">
-                            <label class="form-label" for="remarks">備註說明</label>
-                            <textarea id="remarks" class="form-input" rows="3"></textarea>
-                        </div>
+                            <!-- 付款資訊區塊 -->
+                            <section class="payment-section form-section">
+                                <h3 class="section-title">付款資訊</h3>
+                                <div class="payment-options">
+                                    <label class="radio-label">
+                                        <input type="radio" name="paymentType" value="cash" checked>
+                                        <span>現金付款</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="paymentType" value="ticket">
+                                        <span>票券使用</span>
+                                    </label>
+                                </div>
 
-                        <div class="form-group">
-                            <button type="submit" class="submit-button">
-                                確認登記
-                            </button>
-                        </div>
-                    </form>
+                                <!-- 票券輸入區域 -->
+                                <div id="ticketArea" class="payment-content" style="display: none;">
+                                    <div class="form-group">
+                                        <label class="form-label" for="ticketNumber">票券編號</label>
+                                        <input type="text" id="ticketNumber" class="form-input" placeholder="請輸入票券編號">
+                                    </div>   
+                                </div>
+
+                                <!-- 現金付款區域 -->
+                                <div id="cashArea" class="payment-content">
+                                    <div class="amount-container">
+                                        <div class="form-group">
+                                            <label class="form-label" for="amount">金額</label>
+                                            <input type="number" id="amount" class="form-input" required>
+                                        </div>
+                                        <div class="custom-amount">
+                                            <input type="checkbox" id="customAmount">
+                                            <label for="customAmount">自行輸入金額</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- 備註區域移動到這裡 -->
+                            <section class="form-section"></section>
+                                <h3 class="section-title">備註說明</h3>
+                                <div class="remarks-area">
+                                    <textarea id="remarks" class="form-textarea" placeholder="請輸入備註事項..."></textarea>
+                                </div>
+                            </section>
+
+                            <!-- 確認按鈕區塊 -->
+                            <section class="action-section">
+                                <button type="submit" class="btn btn-primary">確認登記</button>
+                            </section>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 使用中櫃位頁面 -->
+            <div id="activeLockerPage" class="page-container">
+                <div class="page-content">
+                    <!-- 使用中櫃位內容 -->
+                </div>
+            </div>
+
+            <!-- 歷史記錄頁面 -->
+            <div id="historyPage" class="page-container">
+                <div class="page-content">
+                    <!-- 歷史記錄內容 -->
+                </div>
+            </div>
+
+            <!-- 暫時外出頁面 -->
+            <div id="tempLeavePage" class="page-container">
+                <div class="page-content">
+                    <!-- 暫時外出內容 -->
                 </div>
             </div>
         </main>
+    </div>
 
-        <!-- Loading spinner -->
-        <div id="loading" class="loading hidden">
-            <div class="loading-spinner"></div>
-        </div>
-
-        <!-- Toast notifications -->
-        <div id="toast" class="toast hidden"></div>
-
-        <div class="container">
-            <!-- Content -->
+    <!-- 費用明細對話框 -->
+    <div id="feeDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>費用明細</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="fee-details">
+                    <!-- ...existing code... -->
+                </div>
+            </div>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            window.HimanSystem.core.initialize().catch(error => {
-                console.error('系統初始化失敗:', error);
-            });
-        });
-
-        // 只保留全域錯誤處理
-        window.onerror = function(msg, url, line, col, error) {
-            console.error('全域錯誤:', {
-                message: msg,
-                url: url,
-                line: line,
-                column: col,
-                error: error
-            });
-            return false;
-        };
-    </script>
+    <!-- 修改腳本引用順序 -->
+    <script src="js/core/system.js" type="module"></script>
+    <script src="js/modules/auth.js" type="module"></script>
+    <script src="js/modules/checkin.js" type="module"></script>
+    <script src="js/modules/storage.js" type="module"></script>
+    <script src="js/entry.js" type="module"></script>
 </body>
 </html>

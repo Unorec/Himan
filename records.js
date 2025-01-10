@@ -105,6 +105,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function calculateTotal(charges) {
+        // 添加防護檢查
+        if (!Array.isArray(charges) || charges.length === 0) {
+            return 0;
+        }
         return charges.reduce((sum, charge) => sum + charge.amount, 0);
     }
 
@@ -279,12 +283,13 @@ function handleReturn(button) {
 }
 
 // 費用常數定義
-const PRICING = {
-    WEEKDAY_PRICE: 500,    // 平日價格
-    WEEKEND_PRICE: 700,    // 假日價格
-    TIME_LIMIT: 24,        // 基本時數（小時）
-    OVERTIME_RATE: 100     // 每小時加收費用
-};
+if (!window.PRICING) {
+    window.PRICING = {
+        REGULAR: 500,
+        WEEKEND: 700,
+        DISCOUNT: 350
+    };
+}
 
 // 判斷是否為週末
 function isWeekend(date) {

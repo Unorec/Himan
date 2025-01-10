@@ -76,5 +76,28 @@ const Storage = {
             return this.save(this.KEYS.ENTRY_RECORDS, records);
         }
         return false;
+    },
+
+    sync: function() {
+        const pendingChanges = this.getPendingChanges();
+        if (pendingChanges.length > 0) {
+            return this.syncWithServer(pendingChanges)
+                .then(() => this.clearPendingChanges())
+                .catch(err => console.error('同步失敗:', err));
+        }
+        return Promise.resolve();
+    },
+
+    getPendingChanges: function() {
+        return this.load('pendingChanges') || [];
+    },
+
+    addPendingChange: function(change) {
+        const changes = this.getPendingChanges();
+        changes.push({
+            ...change,
+            timestamp: Date.now()
+        });
+        this.save('pendingChanges', changes);
     }
 };

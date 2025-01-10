@@ -14,6 +14,25 @@ function initializePage() {
         window.location.hash = '#entry';
     }
     handlePageChange();
+    
+    window.onerror = function(msg, url, line, col, error) {
+        console.error('發生錯誤:', {
+            message: msg,
+            url: url,
+            line: line,
+            column: col,
+            error: error
+        });
+        
+        // 顯示使用者友善的錯誤訊息
+        const errorMessage = document.getElementById('errorMessage');
+        if (errorMessage) {
+            errorMessage.textContent = '系統發生錯誤，請重新整理頁面';
+            errorMessage.style.display = 'block';
+        }
+        
+        return false;
+    };
 }
 
 function handlePageChange() {

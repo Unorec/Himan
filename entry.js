@@ -234,9 +234,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(this);
         const entryData = Object.fromEntries(formData.entries());
         
-        // 置物櫃驗證
-        const lockerNumber = parseInt(entryData.lockerNumber);
-        if (!validateLockerNumber(lockerNumber)) {
+        // 修改：置物櫃驗證邏輯
+        if (!validateLockerNumber(entryData.lockerNumber)) {
             alert('請輸入有效的置物櫃號碼 (1-500)');
             return;
         }

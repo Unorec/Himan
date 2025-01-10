@@ -11,6 +11,10 @@
     <link rel="stylesheet" href="css/records.css">
     <link rel="stylesheet" href="css/tickets.css">
     <link rel="stylesheet" href="css/stats.css">
+    <link rel="stylesheet" href="css/systemSettings.css">
+    
+    <!-- 修改 Chart.js CDN 引入 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     
     <!-- JavaScript 檔案 -->
     <script src="js/storage.js"></script>
@@ -19,6 +23,7 @@
     <script defer src="js/entry.js"></script>
     <script defer src="js/records.js"></script>
     <script defer src="js/stats.js"></script>
+    <script defer src="js/systemSettings.js"></script>
 </head>
 <body>
     <header>
@@ -29,6 +34,7 @@
                 <li><a href="#records">入場記錄</a></li>
                 <li><a href="#tickets">票券管理</a></li>
                 <li><a href="#stats">營業報表</a></li>
+                <li><a href="#systemSettings">系統設定</a></li>
             </ul>
         </nav>
     </header>
@@ -196,44 +202,124 @@
 
         <!-- 營業報表區塊 -->
         <section id="stats" class="stats-section">
-            <h2 class="section-title">營業報表 - 數據的藝術饗宴</h2>
-            <div class="stats-controls">
-                <div class="date-range-picker">
-                    <label for="startDate">起始日期：</label>
-                    <input type="date" id="startDate" title="選擇起始日期" placeholder="選擇起始日期">
-                    <span>至</span>
-                    <input type="date" id="endDate" title="選擇結束日期" placeholder="選擇結束日期">
-                    <button id="queryStats" class="btn btn-primary">查詢</button>
-                </div>
-                <div class="export-controls">
-                    <button id="exportStats" class="btn btn-secondary">匯出報表</button>
-                </div>
-            </div>
+            <h2 class="section-title">營業報表 - 時光軌跡的數字詩篇</h2>
             
-            <div class="stats-dashboard">
-                <div class="stats-card">
-                    <h3>營業總額</h3>
-                    <div id="totalRevenue" class="stats-number">$0</div>
+            <div class="report-controls">
+                <div class="time-range-selector">
+                    <button class="btn btn-time active" data-range="day">日報表</button>
+                    <button class="btn btn-time" data-range="week">週報表</button>
+                    <button class="btn btn-time" data-range="month">月報表</button>
                 </div>
-                <div class="stats-card">
-                    <h3>入場人次</h3>
-                    <div id="totalVisitors" class="stats-number">0</div>
-                </div>
-                <div class="stats-card">
-                    <h3>平均停留時間</h3>
-                    <div id="avgStayTime" class="stats-number">0小時</div>
+                <div class="custom-range">
+                    <input type="date" id="startDate" class="date-input">
+                    <span>至</span>
+                    <input type="date" id="endDate" class="date-input">
+                    <button id="customRangeBtn" class="btn btn-primary">生成自訂報表</button>
                 </div>
             </div>
-
-            <div class="stats-charts">
-                <div class="chart-container">
-                    <h3>每日營收趨勢</h3>
+        
+            <div class="report-content">
+                <div class="revenue-chart chart-container">
+                    <h3>營業額統計</h3>
                     <canvas id="revenueChart"></canvas>
                 </div>
-                <div class="chart-container">
-                    <h3>付款方式分析</h3>
-                    <canvas id="paymentChart"></canvas>
+                
+                <div class="occupancy-chart chart-container">
+                    <h3>櫃位使用率分析</h3>
+                    <canvas id="occupancyChart"></canvas>
                 </div>
+                
+                <div class="ticket-usage-chart chart-container">
+                    <h3>票券使用統計</h3>
+                    <canvas id="ticketUsageChart"></canvas>
+                </div>
+            </div>
+        
+            <div class="report-summary">
+                <div class="summary-card">
+                    <h4>總營業額</h4>
+                    <p id="totalRevenue" class="highlight-number"></p>
+                </div>
+                <div class="summary-card">
+                    <h4>平均櫃位使用率</h4>
+                    <p id="avgOccupancy" class="highlight-number"></p>
+                </div>
+                <div class="summary-card">
+                    <h4>票券使用總數</h4>
+                    <p id="totalTicketsUsed" class="highlight-number"></p>
+                </div>
+         </section>
+
+         <!-- 系統設定區塊 -->
+         <section id="systemSettings" class="settings-section">
+            <h2 class="section-title">系統設定 - 精細調校時光的齒輪</h2>
+            
+            <div class="settings-container">
+                <div class="setting-group">
+                    <h3>票券金額設定</h3>
+                    <div class="setting-item">
+                        <label for="regularTicketPrice">平日票價：</label>
+                        <input type="number" id="regularTicketPrice" class="price-input" min="0">
+                    </div>
+                    <div class="setting-item">
+                        <label for="weekendTicketPrice">假日票價：</label>
+                        <input type="number" id="weekendTicketPrice" class="price-input" min="0">
+                    </div>
+                </div>
+        
+                <div class="setting-group">
+                    <h3>優惠時段設定</h3>
+                    <div class="setting-item">
+                        <label for="discountStartTime">開始時間：</label>
+                        <input type="time" id="discountStartTime" class="time-input">
+                    </div>
+                    <div class="setting-item">
+                        <label for="discountEndTime">結束時間：</label>
+                        <input type="time" id="discountEndTime" class="time-input">
+                    </div>
+                    <div class="setting-item">
+                        <label for="discountPrice">優惠價格：</label>
+                        <input type="number" id="discountPrice" class="price-input" min="0">
+                    </div>
+                </div>
+        
+                <div class="setting-group">
+                    <h3>活動節日設定</h3>
+                    <div class="setting-item">
+                        <label for="eventName">活動名稱：</label>
+                        <input type="text" id="eventName" class="text-input">
+                    </div>
+                    <div class="setting-item">
+                        <label for="eventStartDate">開始日期：</label>
+                        <input type="date" id="eventStartDate" class="date-input">
+                    </div>
+                    <div class="setting-item">
+                        <label for="eventEndDate">結束日期：</label>
+                        <input type="date" id="eventEndDate" class="date-input">
+                    </div>
+                    <div class="setting-item">
+                        <label for="eventRecurrence">重複頻率：</label>
+                        <select id="eventRecurrence" class="select-input">
+                            <option value="daily">每日</option>
+                            <option value="weekly">每週</option>
+                            <option value="monthly">每月</option>
+                            <option value="yearly">每年</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="eventTime">活動時間：</label>
+                        <input type="time" id="eventTime" class="time-input">
+                    </div>
+                    <div class="setting-item">
+                        <label for="eventDescription">活動內容：</label>
+                        <textarea id="eventDescription" class="textarea-input" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+        
+            <div class="settings-actions">
+                <button id="saveSettings" class="btn btn-primary">保存設定</button>
+                <button id="resetSettings" class="btn btn-secondary">重置設定</button>
             </div>
         </section>
     </main>

@@ -60,9 +60,11 @@
                             name="username" 
                             class="login-input" 
                             placeholder=" "
+                            autocomplete="off"
                             required
                         >
                         <label for="username" class="input-label">帳號</label>
+                        <span class="input-error" id="usernameError"></span>
                     </div>
         
                     <div class="input-group">
@@ -75,12 +77,15 @@
                             required
                         >
                         <label for="password" class="input-label">密碼</label>
+                        <span class="input-error" id="passwordError"></span>
                     </div>
-        
-                    <div id="lockdownTimer"></div>
+
+                    <div id="loginStatus" class="login-status"></div>
+                    <div id="lockdownTimer" class="lockdown-timer"></div>
         
                     <button type="submit" class="login-button">
-                        登入系統
+                        <span class="button-text">登入系統</span>
+                        <div class="button-loader"></div>
                     </button>
                 </form>
             </div>

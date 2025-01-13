@@ -36,6 +36,15 @@ class LoginSystem {
                 }
             });
         });
+
+        // 添加登出功能
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (confirm('確定要登出系統嗎？')) {
+                localStorage.removeItem('authToken');
+                window.location.reload();
+            }
+        });
     }
 
     async handleLogin(e) {

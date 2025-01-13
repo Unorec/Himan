@@ -3,6 +3,13 @@
     --secondary-color: #2ecc71;
     --text-color: #333;
     --background-color: #f4f4f4;
+    --muji-white: #FFFFFF;
+    --muji-gray-light: #F7F6F2;
+    --muji-gray: #7F7F7F;
+    --muji-gray-dark: #333333;
+    --muji-beige: #F3EFE4;
+    --muji-accent: #B45F55;
+    --font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
 }
 
 * {
@@ -18,6 +25,10 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    background-color: var(--muji-white);
+    color: var(--muji-gray-dark);
+    font-family: var(--font-family);
+    line-height: 1.6;
 }
 
 header {
@@ -25,11 +36,17 @@ header {
     color: white;
     padding: 1rem 0;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background: var(--muji-white);
+    border-bottom: 1px solid #EFEFEF;
+    padding: 1rem 2rem;
 }
 
 nav ul {
     display: flex;
     justify-content: space-around;
+    list-style: none;
+    display: flex;
+    gap: 2rem;
     list-style: none;
 }
 
@@ -39,10 +56,56 @@ nav a {
     padding: 0.5rem 1rem;
     border-radius: 4px;
     transition: background-color 0.3s ease;
+    color: var(--muji-gray);
+    text-decoration: none;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 1rem;
+    transition: color 0.2s;
 }
 
 nav a:hover {
     background-color: rgba(255,255,255,0.1);
+    color: var(--muji-gray-dark);
+}
+
+nav a.active {
+    color: var(--muji-gray-dark);
+    border-bottom: 2px solid var(--muji-gray);
+}
+
+.logout-item {
+    margin-left: auto;
+}
+
+.btn {
+    background: var(--muji-gray);
+    color: var(--muji-white);
+    border: none;
+    border-radius: 2px;
+    padding: 0.8rem 1.5rem;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn:hover {
+    background: var(--muji-gray-dark);
+}
+
+input, select, textarea {
+    border: 1px solid #DDDDDD;
+    border-radius: 2px;
+    padding: 0.8rem;
+    font-size: 0.95rem;
+    background: var(--muji-white);
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--muji-gray);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(127, 127, 127, 0.1);
 }
 
 main {

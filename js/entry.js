@@ -179,43 +179,24 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
 
-    // 修改：創建入場記錄行
+    // 修改入場記錄創建
     function createEntryRecord(data) {
-        const now = new Date();
-        const priceInfo = calculatePrice(now);
         const record = {
+            id: Date.now(),
             lockerNumber: data.lockerNumber,
             status: 'active',
-            entryTime: now.toLocaleString('zh-TW'),
-            tempLeaveTime: null,
-            returnTime: null,
-            endTime: priceInfo.endTime,
-            paymentInfo: data.paymentType === 'cash' ? 
-                        `現金：${data.cashAmount}元` : 
-                        `票券：${data.ticketNumber}`,
+            entryTime: new Date().toLocaleString('zh-TW'),
+            amount: data.paymentType === 'cash' ? data.cashAmount : 0,
+            paymentType: data.paymentType,
+            ticketNumber: data.ticketNumber || null,
             remarks: data.remarks || ''
         };
 
-        // 保存到本地存儲
-        const records = JSON.parse(localStorage.getItem('himanRecords') || '[]');
-        records.push(record);
-        localStorage.setItem('himanRecords', JSON.stringify(records));
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${record.lockerNumber}</td>
-            <td><span class="status-badge active">使用中</span></td>
-            <td>${record.entryTime}</td>
-            <td>-</td>
-            <td>-</td>
-            <td data-end-time="${priceInfo.endTime.getTime()}">${calculateTimeRemaining(priceInfo.endTime)}</td>
-            <td>${record.paymentInfo}</td>
-            <td>
-                <button class="btn btn-primary" onclick="handleTemporaryLeave(this)">暫離</button>
-                <button class="btn btn-danger" onclick="handleCheckout(this)">結束</button>
-            </td>
-        `;
-        return tr;
+        if (window.HimanRecords) {
+            window.HimanRecords.addRecord(record);
+        }
+        
+        return record;
     }
 
     // 新增：計算剩餘時間
@@ -248,19 +229,105 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // 新增記錄到表格
-        const recordsBody = document.getElementById('recordsBody');
-        if (recordsBody) {
-            const newRecord = createEntryRecord(entryData);
-            recordsBody.insertBefore(newRecord, recordsBody.firstChild);
+        try {
+            const record = createEntryRecord(entryData);
+            this.reset();
+            updateDateTime();
+        } catch (error) {
+            console.error('入場登記失敗:', error);
+            alert('入場登記失敗，請重試');
         }
+    });
 
-        console.log('入場資料:', entryData);
-        alert('登記成功，記得給毛巾！');
-        this.reset();
-        updateDateTime();
+    // 新增：頁面切換處理
+    const navLinks = document.querySelectorAll('nav a');
+    const sections = document.querySelectorAll('main > section');
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            
+            // 隱藏所有區段
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // 只顯示目標區段
+            document.getElementById(targetId).style.display = 'block';
+            
+            // 移除所有active class
+            navLinks.forEach(link => link.classList.remove('active'));
+            // 添加active class到當前選中的連結
+            this.classList.add('active');
+        });
+    });
+
+    // 預設顯示第一個區段，隱藏其他
+    sections.forEach((section, index) => {
+        section.style.display = index === 0 ? 'block' : 'none';
     });
 
     // 初始化
     updateDateTime();
+    
+    function handleTempLeave(event) {
+        // 實作臨時離開的邏輯
+        console.log('Handling temporary leave');
+    }
+
+    function showChargeDetails(event) {
+        // 實作顯示收費詳情的邏輯
+        console.log('Showing charge details');
+    }
+});
+
+(function() {
+  // 等待 DOM 完全載入
+  document.addEventListener('DOMContentLoaded', function() {
+    // 獲取元素前先檢查
+    const navLinks = document.querySelectorAll('nav a');
+    const sections = document.querySelectorAll('main > section');
+    
+    if (!navLinks.length || !sections.length) {
+      console.warn('Navigation elements not found');
+      return;
+    }
+
+    navLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href').substring(1);
+        const targetSection = document.getElementById(targetId);
+        
+        if (targetSection) {
+          sections.forEach(section => section.style.display = 'none');
+          targetSection.style.display = 'block';
+          
+          navLinks.forEach(link => link.classList.remove('active'));
+          this.classList.add('active');
+        }
+      });
+    });
+  });
+})();
+
+window.addEventListener('DOMContentLoaded', function() {
+    // 取得元素
+    const paymentTypeInputs = document.getElementsByName('paymentType');
+    const cashPaymentDiv = document.getElementById('cashPayment');
+    const ticketPaymentDiv = document.getElementById('ticketPayment');
+
+    // 付款方式切換處理
+    paymentTypeInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            if (this.value === 'cash') {
+                cashPaymentDiv.style.display = 'block';
+                ticketPaymentDiv.style.display = 'none';
+            } else if (this.value === 'ticket') {
+                cashPaymentDiv.style.display = 'none';
+                ticketPaymentDiv.style.display = 'block';
+            }
+        });
+    });
 });

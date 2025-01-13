@@ -79,3 +79,21 @@ function initStatsModule() {
     console.log('營業報表模組初始化');
     // 這裡將實現營業報表的具體邏輯
 }
+
+function handleTemporaryLeave(lockerNumber) {
+    try {
+        const record = storage.getRecord(lockerNumber);
+        if (!record) {
+            alert('找不到該櫃位記錄');
+            return;
+        }
+        
+        record.temporaryLeave = new Date();
+        storage.updateRecord(lockerNumber, record);
+        alert('暫離登記成功');
+        updateDisplay();
+    } catch (error) {
+        console.error('處理暫離時發生錯誤:', error);
+        alert('處理暫離時發生錯誤');
+    }
+}

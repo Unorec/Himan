@@ -1,12 +1,68 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const saveSettingsBtn = document.getElementById('saveSettings');
-    const resetSettingsBtn = document.getElementById('resetSettings');
+window.HimanSettings = {
+    elements: null,
+    isInitialized: false,
 
-    // 載入初始設定
-    loadSettings();
+    init: function() {
+        // 如果已經初始化過，直接返回
+        if (this.isInitialized) return true;
 
-    // 保存設定
-    saveSettingsBtn.addEventListener('click', function() {
+        // 確保 DOM 已完全載入
+        if (document.readyState !== 'complete') {
+            window.addEventListener('load', () => this.init());
+            return false;
+        }
+
+        try {
+            setTimeout(() => {
+                this.initializeElements();
+                if (this.validateElements()) {
+                    this.bindEvents();
+                    this.loadSettings();
+                    this.isInitialized = true;
+                } else {
+                    console.warn('系統設定元素未完全載入，將在 500ms 後重試...');
+                    setTimeout(() => this.init(), 500);
+                }
+            }, 100);
+
+            return true;
+        } catch (error) {
+            console.error('初始化系統設定時發生錯誤:', error);
+            return false;
+        }
+    },
+
+    initializeElements: function() {
+        // 使用較寬鬆的選擇器
+        this.elements = {
+            saveBtn: document.querySelector('[id^="saveSettings"]'),
+            resetBtn: document.querySelector('[id^="resetSettings"]'),
+            form: document.querySelector('.settings-container, #systemSettings')
+        };
+
+        if (!this.elements.form) {
+            console.warn('找不到設定表單容器，嘗試等待DOM完全載入...');
+            return false;
+        }
+
+        return true;
+    },
+
+    validateElements: function() {
+        return this.elements && this.elements.form && 
+               (this.elements.saveBtn || this.elements.resetBtn);
+    },
+
+    bindEvents: function() {
+        if (this.elements.saveBtn) {
+            this.elements.saveBtn.addEventListener('click', this.saveSettings.bind(this));
+        }
+        if (this.elements.resetBtn) {
+            this.elements.resetBtn.addEventListener('click', this.resetSettings.bind(this));
+        }
+    },
+
+    saveSettings: function() {
         const settings = {
             regularTicketPrice: document.getElementById('regularTicketPrice').value,
             weekendTicketPrice: document.getElementById('weekendTicketPrice').value,
@@ -23,25 +79,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
 
-        // 模擬保存到後端
         saveSettingsToBackend(settings).then(() => {
             showNotification('設定已成功保存');
         }).catch(error => {
             showNotification('保存設定時發生錯誤', 'error');
         });
-    });
+    },
 
-    // 重置設定
-    resetSettingsBtn.addEventListener('click', function() {
+    resetSettings: function() {
         if (confirm('確定要重置所有設定嗎？此操作不可撤銷。')) {
-            loadSettings(); // 重新載入預設設定
+            this.loadSettings();
             showNotification('設定已重置為預設值');
         }
-    });
+    },
 
-    // 模擬從後端載入設定
-    function loadSettings() {
-        // 這裡應該是從後端 API 獲取設定，這裡使用模擬數據
+    loadSettings: function() {
         const settings = {
             regularTicketPrice: 500,
             weekendTicketPrice: 700,
@@ -58,7 +110,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
 
-        // 將設定填充到表單
         document.getElementById('regularTicketPrice').value = settings.regularTicketPrice;
         document.getElementById('weekendTicketPrice').value = settings.weekendTicketPrice;
         document.getElementById('discountStartTime').value = settings.discountStartTime;
@@ -71,30 +122,45 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('eventTime').value = settings.event.time;
         document.getElementById('eventDescription').value = settings.event.description;
     }
+};
 
-    // 模擬保存設定到後端
-    function saveSettingsToBackend(settings) {
-        return new Promise((resolve, reject) => {
-            // 模擬 API 請求
-            setTimeout(() => {
-                if (Math.random() > 0.1) { // 90% 成功率
-                    resolve();
-                } else {
-                    reject(new Error('模擬的網絡錯誤'));
-                }
-            }, 1000);
-        });
+function saveSettingsToBackend(settings) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            if (Math.random() > 0.1) {
+                resolve();
+            } else {
+                reject(new Error('模擬的網絡錯誤'));
+            }
+        }, 1000);
+    });
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+function tryInitSettings(attempts = 0) {
+    if (attempts > 10) {
+        console.error('無法初始化系統設定');
+        return;
     }
 
-    // 顯示通知
-    function showNotification(message, type = 'success') {
-        const notification = document.createElement('div');
-        notification.textContent = message;
-        notification.className = `notification ${type}`;
-        document.body.appendChild(notification);
+    if (!window.HimanSettings.init()) {
+        setTimeout(() => tryInitSettings(attempts + 1), 200);
+    }
+}
 
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
+// 修改初始化方式
+window.addEventListener('load', () => {
+    if (window.HimanSettings && !window.HimanSettings.isInitialized) {
+        window.HimanSettings.init();
     }
 });

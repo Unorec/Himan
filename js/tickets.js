@@ -1,107 +1,185 @@
-document.addEventListener('DOMContentLoaded', function() {
-    initializeTicketSystem();
-});
+// 使用 IIFE 避免重複宣告
+(function() {
+    // 如果已經存在 TicketManager 實例，就不再重新定義
+    if (window.ticketManager) return;
 
-function initializeTicketSystem() {
-    const ticketBody = document.getElementById('ticketBody');
-    const addTicketBtn = document.getElementById('addTicketBtn');
-    const addTicketModal = document.getElementById('addTicketModal');
-    const searchInput = document.getElementById('ticketSearch');
-    const searchBtn = document.getElementById('searchTicketBtn');
-
-    if (!ticketBody || !addTicketBtn || !addTicketModal || !searchInput) {
-        console.error('必要的票券管理元素未找到');
-        return;
-    }
-
-    // 初始化時載入預設票券數據
-    const defaultTickets = [
-        { type: 'H', number: 'H12345678', amount: 500, status: 'active', createdAt: new Date().toISOString() },
-        { type: 'M', number: 'M87654321', amount: 700, status: 'used', createdAt: new Date().toISOString() }
-    ];
-
-    // 立即渲染預設票券
-    renderTickets(defaultTickets);
-
-    // 綁定新增票券按鈕事件
-    if (addTicketBtn) {
-        addTicketBtn.addEventListener('click', () => {
-            addTicketModal.style.display = 'block';
-        });
-    }
-
-    // 綁定搜尋功能
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredTickets = defaultTickets.filter(ticket => 
-                ticket.number.toLowerCase().includes(searchTerm)
-            );
-            renderTickets(filteredTickets);
-        });
-    }
-
-    // 關閉模態框的點擊事件
-    window.addEventListener('click', (event) => {
-        if (event.target === addTicketModal) {
-            closeModal();
+    // 票券管理系統的優雅實現
+    class TicketManager {
+        constructor() {
+            this.tickets = new Map();
+            this.currentBatch = 1;
+            this.bindEvents();
         }
-    });
-}
 
-function renderTickets(tickets) {
-    const ticketBody = document.getElementById('ticketBody');
-    if (!ticketBody) return;
+        // 初始化事件綁定
+        bindEvents() {
+            const form = document.getElementById('ticketForm');
+            form?.addEventListener('submit', (e) => this.handleGenerate(e));
 
-    ticketBody.innerHTML = tickets.map(ticket => `
-        <tr>
-            <td>${getTicketTypeName(ticket.type)}</td>
-            <td>${ticket.number}</td>
-            <td>${ticket.amount}元</td>
-            <td>${getStatusText(ticket.status)}</td>
-            <td>${new Date(ticket.createdAt).toLocaleString('zh-TW')}</td>
-            <td>
-                <button class="btn btn-info" onclick="viewTicketDetails('${ticket.number}')">詳情</button>
-                <button class="btn btn-warning" onclick="invalidateTicket('${ticket.number}')"
-                    ${ticket.status !== 'active' ? 'disabled' : ''}>
-                    作廢
-                </button>
-            </td>
-        </tr>
-    `).join('');
-}
+            // 售出模態框事件
+            document.querySelectorAll('[data-action="sale"]').forEach(btn => {
+                btn.addEventListener('click', (e) => this.showSaleModal(e));
+            });
 
-function getTicketTypeName(type) {
-    const typeMap = {
-        'H': '平日券',
-        'M': '暢遊券',
-        'P': '公關票',
-        'S': '特殊節日',
-        'L': '限量販售'
-    };
-    return typeMap[type] || '未知類型';
-}
+            // 關閉模態框
+            document.querySelector('.modal .close-btn')?.addEventListener('click', 
+                () => this.closeSaleModal());
+        }
 
-function getStatusText(status) {
-    const statusMap = {
-        'active': '有效',
-        'used': '已使用',
-        'invalid': '已作廢'
-    };
-    return statusMap[status] || status;
-}
+        // 生成票券序號的藝術
+        generateTicketNumbers(startNumber, type, count) {
+            const tickets = [];
+            const baseNumber = parseInt(startNumber);
+            
+            if (isNaN(baseNumber)) return tickets;
 
-function viewTicketDetails(number) {
-    alert(`查看票券 ${number} 的詳細資訊`);
-}
+            for (let i = 0; i < count; i++) {
+                const number = baseNumber + i;
+                tickets.push({
+                    number: `${type}${number.toString().padStart(6, '0')}`,
+                    type: type === 'H' ? '平日券' : '暢遊券',
+                    price: parseInt(document.getElementById('price').value) || 0,
+                    status: 'active',
+                    createdAt: new Date().toISOString()
+                });
+            }
 
-function invalidateTicket(number) {
-    if (confirm(`確定要作廢票券 ${number} 嗎？`)) {
-        alert(`票券 ${number} 已作廢`);
-        // 這裡可以添加實際的作廢邏輯
+            return tickets;
+        }
+
+        // 處理批次生成
+        async handleGenerate(e) {
+            e.preventDefault();
+
+            const type = document.getElementById('ticketType').value;
+            const startNumber = document.getElementById('startNumber').value;
+            const batchSize = parseInt(document.getElementById('batchSize').value);
+            const remark = document.getElementById('remark').value;
+
+            if (!this.validateInput(startNumber)) {
+                this.showNotification('請輸入有效的起始號碼', 'error');
+                return;
+            }
+
+            try {
+                const tickets = this.generateTicketNumbers(startNumber, type, batchSize * 10);
+                await this.saveBatch(tickets, this.currentBatch, remark);
+                this.renderTickets();
+                this.showNotification('票券批次生成成功', 'success');
+                this.currentBatch++;
+            } catch (error) {
+                this.showNotification('票券生成失敗', 'error');
+                console.error('票券生成錯誤:', error);
+            }
+        }
+
+        // 輸入驗證的優雅實現
+        validateInput(startNumber) {
+            return /^\d+$/.test(startNumber);
+        }
+
+        // 儲存批次的精緻處理
+        async saveBatch(tickets, batchNumber, remark) {
+            tickets.forEach(ticket => {
+                ticket.batch = batchNumber;
+                ticket.remark = remark;
+                this.tickets.set(ticket.number, ticket);
+            });
+
+            // 這裡可以添加與後端API的互動
+            return Promise.resolve();
+        }
+
+        // 票券展示的視覺呈現
+        renderTickets() {
+            const container = document.getElementById('ticketList');
+            if (!container) return;
+
+            const batchedTickets = this.groupTicketsByBatch();
+            
+            container.innerHTML = Array.from(batchedTickets.entries())
+                .map(([batch, tickets]) => this.renderBatch(batch, tickets))
+                .join('');
+
+            // 重新綁定售出按鈕事件
+            this.bindSaleButtons();
+        }
+
+        // 批次分組的智能實現
+        groupTicketsByBatch() {
+            const batches = new Map();
+            
+            for (const ticket of this.tickets.values()) {
+                if (!batches.has(ticket.batch)) {
+                    batches.set(ticket.batch, []);
+                }
+                batches.get(ticket.batch).push(ticket);
+            }
+            
+            return batches;
+        }
+
+        // 批次渲染的藝術呈現
+        renderBatch(batch, tickets) {
+            const isSold = tickets[0].status === 'sold';
+            
+            return `
+                <div class="ticket-batch">
+                    <div class="batch-header">
+                        <h4>第 ${batch} 本</h4>
+                        ${!isSold ? `
+                            <button class="btn btn-primary" data-action="sale" data-batch="${batch}">
+                                登記售出
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="tickets-grid">
+                        ${tickets.map(ticket => this.renderTicket(ticket)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 單張票券渲染
+        renderTicket(ticket) {
+            return `
+                <div class="ticket-card ${ticket.status === 'sold' ? 'sold' : ''}">
+                    <div class="ticket-number">${ticket.number}</div>
+                    <div class="ticket-type">${ticket.type}</div>
+                    <div class="ticket-price">NT$ ${ticket.price}</div>
+                    <div class="ticket-status">${ticket.status === 'sold' ? '已售出' : '可使用'}</div>
+                </div>
+            `;
+        }
+
+        // 顯示售出模態框
+        showSaleModal(e) {
+            const batch = e.target.dataset.batch;
+            const modal = document.getElementById('saleModal');
+            modal.dataset.batch = batch;
+            modal.classList.add('active');
+        }
+
+        // 關閉售出模態框
+        closeSaleModal() {
+            const modal = document.getElementById('saleModal');
+            modal.classList.remove('active');
+        }
+
+        // 顯示通知訊息
+        showNotification(message, type) {
+            // 可以實現更精美的通知效果
+            alert(message);
+        }
+
+        // 綁定售出按鈕事件
+        bindSaleButtons() {
+            document.querySelectorAll('[data-action="sale"]').forEach(btn => {
+                btn.addEventListener('click', (e) => this.showSaleModal(e));
+            });
+        }
     }
-}
 
-function closeModal() {
-    document.getElementById('addTicketModal').style.display = 'none';
-}
+    // 建立全域實例
+    window.ticketManager = new TicketManager();
+})();
